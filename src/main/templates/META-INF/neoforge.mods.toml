@@ -37,11 +37,13 @@ side="BOTH"
 [[dependencies.${mod_id}]]
 modId="mca"
 type="optional"
+versionRange="[7.7.0,)"
 ordering="AFTER"
 side="BOTH"
 
 [[dependencies.${mod_id}]]
 modId="townstead"
 type="optional"
+versionRange="[0.7.6,)"
 ordering="AFTER"
 side="BOTH"
