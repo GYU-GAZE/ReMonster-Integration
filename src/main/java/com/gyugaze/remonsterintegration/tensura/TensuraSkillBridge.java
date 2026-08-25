@@ -1,5 +1,6 @@
 package com.gyugaze.remonsterintegration.tensura;
 
+import io.github.manasmods.manascore.skill.api.ManasSkill;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.manascore.skill.api.SkillAPI;
 import io.github.manasmods.manascore.skill.impl.SkillStorage;
@@ -25,6 +26,29 @@ public final class TensuraSkillBridge {
     public static Optional<ManasSkillInstance> getSkillInstance(LivingEntity entity, ResourceLocation skillId) {
         Objects.requireNonNull(skillId, "skillId");
         return getStorage(entity).getSkill(skillId);
+    }
+
+    /**
+     * Adds a registered skill only when the entity does not already possess it.
+     * No chat message is produced for Mob Profile assignment.
+     *
+     * @return true when a new skill was actually learned.
+     */
+    public static boolean ensureSkill(LivingEntity entity, ResourceLocation skillId) {
+        Objects.requireNonNull(entity, "entity");
+        Objects.requireNonNull(skillId, "skillId");
+
+        SkillStorage storage = getStorage(entity);
+        if (storage.getSkill(skillId).isPresent()) {
+            return false;
+        }
+
+        ManasSkill skill = SkillAPI.getSkillRegistry().get(skillId);
+        if (skill == null) {
+            return false;
+        }
+
+        return storage.learnSkill(skill, null);
     }
 
     /**
