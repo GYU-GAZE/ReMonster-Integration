@@ -25,8 +25,12 @@ sourceSets.main.resources {
 }
 
 repositories {
-    // Third-party dependencies should use Maven repositories when available.
-    // Mods without a suitable Maven are supplied locally under ./libs and are never committed.
+    maven {
+        url = 'https://www.cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
 }
 
 neoForge {
@@ -80,8 +84,12 @@ configurations {
 }
 
 dependencies {
-    // Development-only third-party jars. Keep ./libs out of Git.
-    // This deliberately avoids redistributing Tensura/MCA/Townstead binaries.
+    // Compile against the exact public release artifacts without redistributing their jars.
+    compileOnly 'curse.maven:manascore-619025:8022425'
+    compileOnly 'curse.maven:tensura-reincarnated-643695:8665599'
+
+    // A local dev instance still uses the exact jars from the modpack under ./libs.
+    // This is intentional because Tensura has additional runtime dependencies that the pack already supplies.
     compileOnly fileTree(dir: 'libs', include: ['*.jar'])
     localRuntime fileTree(dir: 'libs', include: ['*.jar'])
 }
