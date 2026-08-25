@@ -1,0 +1,21 @@
+{
+  "entity": "wyrmroost:canari_wyvern",
+  "disposition": "neutral",
+  "tier": "normal",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.0,
+  "guard_hostile": false,
+  "aggro_range": 0,
+  "dungeon_weight": 1,
+  "themes": ["dragon", "flying", "swamp", "territorial", "poison", "tameable"],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": ["swamp"],
+    "rarity": "uncommon",
+    "weight": 9,
+    "group_min": 2,
+    "group_max": 5
+  }
+}
