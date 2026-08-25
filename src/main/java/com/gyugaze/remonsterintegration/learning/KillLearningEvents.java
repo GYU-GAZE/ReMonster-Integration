@@ -8,12 +8,10 @@ import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * NeoForge event bridge for profile-driven skill learning.
- *
- * Direct player kills are supported first. Subordinate/clone attribution is intentionally a
- * separate resolver so their ownership semantics can be added without contaminating this path.
  */
 public final class KillLearningEvents {
     private static final double DEFAULT_BASE_LEARNING_POINTS = 1.0;
@@ -27,10 +25,12 @@ public final class KillLearningEvents {
             return;
         }
 
-        if (!(event.getSource().getEntity() instanceof ServerPlayer player)) {
+        Optional<ServerPlayer> creditedPlayer = KillCreditResolver.resolve(event.getSource());
+        if (creditedPlayer.isEmpty()) {
             return;
         }
 
+        ServerPlayer player = creditedPlayer.get();
         MobProfileRegistry.get(defeated).ifPresent(profile -> {
             List<ResourceLocation> progressed = KillLearningService.grantFromProfile(
                     player,
