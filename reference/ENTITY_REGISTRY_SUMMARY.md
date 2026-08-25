@@ -1,17 +1,19 @@
 # Entity registry snapshot summary
 
-Source: the `entity_type.txt` dump from the current Re:Monster modpack instance.
+Source: the `entity_type.txt` dump from the Re:Monster modpack instance captured before Born in Chaos was removed from the pack.
 
-Total registry ids in snapshot: **766**.
+Total registry ids in this historical snapshot: **766**.
 
-## Namespace counts
+> This snapshot is now partially stale. `born_in_chaos_v1` has been explicitly removed from the target modpack and must be ignored by profile generation, compatibility work, ecology design and runtime target lists. Generate a fresh registry dump after the local modpack removal when convenient.
+
+## Namespace counts in the historical snapshot
 
 | Namespace | IDs |
 |---|---:|
 | tensura | 209 |
 | minecraft | 130 |
 | cataclysm | 103 |
-| born_in_chaos_v1 | 98 |
+| born_in_chaos_v1 | 98 (removed from target pack) |
 | iceandfire | 47 |
 | block_factorys_bosses | 43 |
 | mowziesmobs | 41 |
@@ -44,7 +46,6 @@ cataclysm:ignis
 mowziesmobs:ferrous_wroughtnaut
 mobs_of_mythology:kobold
 iceandfire:fire_dragon
-born_in_chaos_v1:dread_hound
 mca:male_villager
 mca:female_villager
 ```
@@ -66,12 +67,13 @@ The eventual registry scanner must validate that a registered type actually prod
 
 ```text
 tensura
-born_in_chaos_v1
 cataclysm
 iceandfire
 block_factorys_bosses
 mowziesmobs
 mobs_of_mythology
 ```
+
+`born_in_chaos_v1` is explicitly excluded even though it remains present in this historical dump.
 
 MCA entities are handled by dedicated adapters rather than normal hostile-mob profile generation.
