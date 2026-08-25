@@ -37,8 +37,9 @@ public final class KillLearningEvents {
                     .map(KillLearningEvents::getChampionLearningMultiplier)
                     .orElse(1.0);
 
-            List<ResourceLocation> progressed = KillLearningService.grantFromProfile(
+            List<ResourceLocation> progressed = KillLearningService.grantFromDefeatedEntity(
                     player,
+                    defeated,
                     profile,
                     DEFAULT_BASE_LEARNING_POINTS * championMultiplier
             );
