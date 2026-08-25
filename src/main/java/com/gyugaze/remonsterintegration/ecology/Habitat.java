@@ -3,7 +3,9 @@ package com.gyugaze.remonsterintegration.ecology;
 public enum Habitat {
     PLAINS,
     MEADOW,
+    SAVANNA,
     FOREST,
+    JUNGLE,
     TAIGA,
     SWAMP,
     MOUNTAIN,
