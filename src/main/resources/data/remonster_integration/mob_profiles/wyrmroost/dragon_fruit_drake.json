@@ -1,0 +1,21 @@
+{
+  "entity": "wyrmroost:dragon_fruit_drake",
+  "disposition": "hostile",
+  "tier": "normal",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.0,
+  "guard_hostile": true,
+  "aggro_range": 20,
+  "dungeon_weight": 2,
+  "themes": ["dragon", "jungle", "tameable", "crop_affinity"],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": ["jungle"],
+    "rarity": "common",
+    "weight": 23,
+    "group_min": 4,
+    "group_max": 5
+  }
+}
