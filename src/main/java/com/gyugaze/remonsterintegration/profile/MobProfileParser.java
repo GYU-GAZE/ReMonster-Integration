@@ -23,6 +23,7 @@ public final class MobProfileParser {
         MobDisposition disposition = enumValue(MobDisposition.class, string(json, "disposition", "neutral"), sourceId, "disposition");
         MobTier tier = enumValue(MobTier.class, string(json, "tier", "normal"), sourceId, "tier");
         double ep = number(json, "ep", 0.0);
+        EpApplicationMode epMode = enumValue(EpApplicationMode.class, string(json, "ep_mode", "fallback"), sourceId, "ep_mode");
         double learningMultiplier = number(json, "learning_multiplier", 1.0);
         boolean guardHostile = bool(json, "guard_hostile", disposition == MobDisposition.HOSTILE);
         int dungeonWeight = integer(json, "dungeon_weight", 0);
@@ -40,6 +41,7 @@ public final class MobProfileParser {
                 disposition,
                 tier,
                 ep,
+                epMode,
                 skills,
                 learningMultiplier,
                 guardHostile,
