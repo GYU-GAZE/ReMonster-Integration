@@ -12,7 +12,9 @@ import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
+import io.github.manasmods.tensura.ability.skill.resist.ResistSkill;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -25,6 +27,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Comparator;
 import java.util.List;
@@ -36,6 +43,8 @@ import java.util.UUID;
  * Pack-author diagnostics. These commands are intentionally permission-gated and are not gameplay UI.
  */
 public final class IntegrationCommands {
+    private static final double LOOK_INSPECT_RANGE = 32.0D;
+
     private IntegrationCommands() {
     }
 
@@ -44,6 +53,7 @@ public final class IntegrationCommands {
                 Commands.literal("remonster")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("inspect")
+                                .executes(context -> inspectLookTarget(context.getSource()))
                                 .then(Commands.argument("target", EntityArgument.entity())
                                         .executes(context -> inspect(
                                                 context.getSource(),
@@ -88,6 +98,44 @@ public final class IntegrationCommands {
         );
     }
 
+    private static int inspectLookTarget(CommandSourceStack source) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        Entity target = findLookTarget(player, LOOK_INSPECT_RANGE);
+        if (target == null) {
+            source.sendFailure(Component.literal(
+                    "No entity found under your crosshair within " + (int) LOOK_INSPECT_RANGE + " blocks"
+            ));
+            return 0;
+        }
+        return inspect(source, target);
+    }
+
+    /**
+     * Server-side crosshair entity raycast. A block hit shortens the ray so diagnostics do not inspect
+     * entities through walls.
+     */
+    private static Entity findLookTarget(ServerPlayer player, double range) {
+        Vec3 eye = player.getEyePosition();
+        Vec3 view = player.getViewVector(1.0F);
+        Vec3 maxEnd = eye.add(view.scale(range));
+
+        HitResult blockHit = player.pick(range, 1.0F, false);
+        Vec3 end = blockHit.getType() == HitResult.Type.MISS ? maxEnd : blockHit.getLocation();
+        Vec3 ray = end.subtract(eye);
+        double maxDistanceSqr = eye.distanceToSqr(end);
+        AABB searchBox = player.getBoundingBox().expandTowards(ray).inflate(1.0D);
+
+        EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
+                player,
+                eye,
+                end,
+                searchBox,
+                entity -> entity != player && !entity.isSpectator() && entity.isPickable(),
+                maxDistanceSqr
+        );
+        return entityHit == null ? null : entityHit.getEntity();
+    }
+
     private static int inspect(CommandSourceStack source, Entity target) {
         ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
         source.sendSuccess(() -> Component.literal("[Re:Monster] " + entityId + " / " + target.getUUID()), false);
@@ -129,13 +177,31 @@ public final class IntegrationCommands {
         ), false);
         sendOwnershipStatus(source, living);
 
-        List<String> skills = TensuraSkillBridge.getStorage(living).getLearnedSkills().stream()
-                .map(ManasSkillInstance::getSkillId)
-                .map(ResourceLocation::toString)
-                .sorted(Comparator.naturalOrder())
+        List<ManasSkillInstance> skillEntries = TensuraSkillBridge.getStorage(living).getLearnedSkills().stream()
+                .sorted(Comparator.comparing(instance -> instance.getSkillId().toString()))
                 .toList();
 
-        source.sendSuccess(() -> Component.literal("runtime skills (" + skills.size() + "): " + skills), false);
+        List<String> runtimeAbilities = skillEntries.stream()
+                .filter(instance -> !(instance.getSkill() instanceof ResistSkill))
+                .map(ManasSkillInstance::getSkillId)
+                .map(ResourceLocation::toString)
+                .toList();
+
+        List<String> resistanceEntries = skillEntries.stream()
+                .filter(instance -> instance.getSkill() instanceof ResistSkill)
+                .map(ManasSkillInstance::getSkillId)
+                .map(ResourceLocation::toString)
+                .toList();
+
+        source.sendSuccess(() -> Component.literal(
+                "runtime non-resistance skills (" + runtimeAbilities.size() + "): " + runtimeAbilities
+        ), false);
+        source.sendSuccess(() -> Component.literal(
+                "resistance/proficiency storage entries (" + resistanceEntries.size() + "): " + resistanceEntries
+        ), false);
+        source.sendSuccess(() -> Component.literal(
+                "raw ManasCore skill storage entries: " + skillEntries.size()
+        ), false);
         return 1;
     }
 
