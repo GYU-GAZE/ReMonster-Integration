@@ -161,6 +161,84 @@ Because those helpers gate native movement mutation behind `ISubordinate`, MCA o
 
 Important caveat: targeting commands can call `Mob.setTarget(...)` directly. MCA compatibility must test and possibly intercept this behavior to ensure commands do not conflict with MCA combat/schedule logic.
 
+## Better Subordinates 1.2.4 boundary
+
+The exact target build was inspected from CurseMaven (`tensura-better-subordinates-1489224:8414486`). The important architecture is much narrower than expected.
+
+`ExpandedSkillStorage` is a ManasCore entity storage containing the native Better Subordinates progression counters:
+
+```text
+spiderEyesEaten
+spiderKills
+slimeKills
+centipedeKills
+totalKills
+damageTaken
+existenceUpdated
+```
+
+It persists these fields itself and implements `IExpandedSkillAcquisition`.
+
+### Native attachment predicate
+
+Better Subordinates registers this storage only when the entity is:
+
+```text
+OwnableEntity
+AND LivingEntity
+AND not #tensura:clones
+```
+
+An MCA `VillagerEntityMCA` is intentionally not converted into a vanilla `OwnableEntity`, so an ownership-only MCA subordinate would normally fail this one attachment predicate even though Tensura already recognizes its permanent owner.
+
+The project therefore patches only the `ExpandedSkillStorage` registration predicate so an MCA villager is also accepted. This gives MCA villagers the upstream Better Subordinates storage without changing their entity class or Brain.
+
+### Everything after storage attachment is already generic
+
+Observed Better Subordinates progression methods accept ordinary `LivingEntity` instances:
+
+```text
+attemptTallyKill(Entity, LivingEntity)
+attemptTallyDamage(LivingEntity, float)
+entityEPUpdate(LivingEntity)
+IExpandedSkillAcquisition.grantSkill(LivingEntity, ...)
+```
+
+These methods use:
+
+- `SubordinateHelper.getSubordinateOwner(...)`
+- `SubordinateHelper.getSubordinateOwnerUUID(...)`
+- `EnergyHelper.getMaxEP(...)`
+- `SkillAPI.getSkillsFrom(...)`
+- `TensuraStorages.getExistenceFrom(...)`
+- `SkillHelper.learnSkill(...)`
+
+Therefore the existing Re:Monster permanent-owner adapter supplies the ownership relation Better Subordinates expects after its storage is present.
+
+The Thought Communication extension and Better Subordinates C2S packets also validate ownership through `SubordinateHelper.isSubordinate(owner, target)` and operate on generic `LivingEntity` skill/ability storage. The skill-grant packet has one additional gate: `BetterSubs.getSkillExpansionFrom(target) != null`, which the storage predicate bridge satisfies.
+
+### Deliberate AI boundary
+
+Better Subordinates also mixes combat automation such as Haki usage into `TensuraTamableEntity`. Re:Monster does **not** extend that mixin to MCA villagers.
+
+Desired split:
+
+```text
+MCA villager
+├─ MCA Brain / schedule / family / profession / home       unchanged
+├─ Tensura existence / owner / EP / skill storage         enabled
+└─ Better Subordinates progression storage                enabled
+   ├─ kills
+   ├─ damage taken
+   ├─ EP threshold unlocks
+   ├─ skill acquisition / mastery infrastructure
+   └─ Thought Communication skill UI / commands
+
+TensuraTamableEntity-only combat automation               not copied to MCA
+```
+
+Runtime testing still has to verify storage persistence, event tallying and UI behavior in the full pack, but the bytecode-level compatibility boundary is now explicit.
+
 ## Race / evolution classes
 
 Observed classes include:
@@ -281,5 +359,5 @@ The project intends to rebalance these into a coherent cross-mod ecology, includ
 - race assignment/evolution methods
 - death/kill event ownership resolution for subordinate/clone kills
 - how third-party `LivingEntity` receives `ExistenceStorage` at runtime
-- exact Thought Communication predicate/targeting behavior
+- exact Thought Communication targeting behavior on MCA entities
 - skills that override the default learning/acquisition model
