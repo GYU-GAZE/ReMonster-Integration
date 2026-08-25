@@ -1,0 +1,21 @@
+{
+  "entity": "wyrmroost:coin_dragon",
+  "disposition": "passive",
+  "tier": "normal",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.0,
+  "guard_hostile": false,
+  "aggro_range": 0,
+  "dungeon_weight": 0,
+  "themes": ["dragon", "collectible", "passive"],
+  "ecology": {
+    "natural_spawn": false,
+    "habitats": [],
+    "rarity": "special",
+    "weight": 0,
+    "group_min": 1,
+    "group_max": 1
+  }
+}
