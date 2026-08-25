@@ -24,7 +24,7 @@ jobs:
           gradle-version: '9.2.1'
 
       - name: Inspect Better Subordinates classes
-        run: gradle inspectBetterSubsClasses --quiet
+        run: gradle inspectBetterSubsClasses --quiet --no-configuration-cache
 
       - name: Build
         run: gradle build --stacktrace
