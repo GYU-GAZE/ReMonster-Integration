@@ -4,7 +4,9 @@ import io.github.manasmods.manascore.skill.api.ManasSkill;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.manascore.skill.api.SkillAPI;
 import io.github.manasmods.manascore.skill.impl.SkillStorage;
+import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.TensuraSkill;
+import io.github.manasmods.tensura.ability.skill.Skill;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -61,8 +63,65 @@ public final class TensuraSkillBridge {
     }
 
     /**
-     * Adds points through Tensura's own acquisition-learning method so its events, penalties,
-     * messages, sync and completion behavior remain authoritative.
+     * Creates Tensura's native negative-mastery acquisition instance when a kill exposes a skill the
+     * learner has never seen before.
+     *
+     * Re:Monster deliberately auto-starts only COMMON and EXTRA skills here. RESISTANCE entries are
+     * handled by Tensura's resistance systems, INTRINSIC skills belong to race/body identity, and
+     * UNIQUE/ULTIMATE skills need explicit pack progression rules rather than being copied from any
+     * random kill.
+     *
+     * Existing skill instances are never replaced.
+     */
+    public static boolean ensureKillLearningInstance(LivingEntity learner, ResourceLocation skillId) {
+        Objects.requireNonNull(learner, "learner");
+        Objects.requireNonNull(skillId, "skillId");
+
+        Optional<ManasSkillInstance> existing = getSkillInstance(learner, skillId);
+        if (existing.isPresent()) {
+            return existing.get().getMastery() < 0.0;
+        }
+
+        ManasSkill registered = SkillAPI.getSkillRegistry().get(skillId);
+        if (!(registered instanceof Skill tensuraSkill)) {
+            return false;
+        }
+
+        Skill.SkillType type = tensuraSkill.getType();
+        if (type != Skill.SkillType.COMMON && type != Skill.SkillType.EXTRA) {
+            return false;
+        }
+
+        return SkillHelper.learnSkill(learner, tensuraSkill.createLearningInstance(learner));
+    }
+
+    /**
+     * Starts acquisition when necessary and then adds points through Tensura's own learning method so
+     * its events, penalties, messages, sync and completion behavior remain authoritative.
+     *
+     * @return true when Tensura accepted the learning-point attempt.
+     */
+    public static boolean addOrStartAcquisitionLearning(
+            LivingEntity learner,
+            ResourceLocation skillId,
+            double points
+    ) {
+        Objects.requireNonNull(learner, "learner");
+        Objects.requireNonNull(skillId, "skillId");
+
+        if (points <= 0.0) {
+            return false;
+        }
+
+        if (getSkillInstance(learner, skillId).isEmpty() && !ensureKillLearningInstance(learner, skillId)) {
+            return false;
+        }
+
+        return addAcquisitionLearning(learner, skillId, points);
+    }
+
+    /**
+     * Adds points to an acquisition instance that already exists.
      *
      * @return true when Tensura accepted the learning-point attempt.
      */
