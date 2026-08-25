@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.gyugaze.remonsterintegration.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "mca.GuardEnemiesSensorMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
