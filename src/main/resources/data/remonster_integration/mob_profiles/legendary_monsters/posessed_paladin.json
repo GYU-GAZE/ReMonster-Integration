@@ -1,0 +1,21 @@
+{
+  "entity": "legendary_monsters:posessed_paladin",
+  "disposition": "hostile",
+  "tier": "boss",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 2.0,
+  "guard_hostile": true,
+  "aggro_range": 0,
+  "dungeon_weight": 0,
+  "themes": ["boss", "legendary_monsters", "cursed"],
+  "ecology": {
+    "natural_spawn": false,
+    "habitats": ["dungeon_only"],
+    "rarity": "rare",
+    "weight": 0,
+    "group_min": 1,
+    "group_max": 1
+  }
+}
