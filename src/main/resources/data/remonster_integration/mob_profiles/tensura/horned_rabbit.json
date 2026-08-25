@@ -1,0 +1,26 @@
+{
+  "entity": "tensura:horned_rabbit",
+  "disposition": "hostile",
+  "tier": "normal",
+  "ep": 1200,
+  "skills": [],
+  "learning_multiplier": 1.0,
+  "guard_hostile": true,
+  "dungeon_weight": 1,
+  "themes": [
+    "beast",
+    "early_game"
+  ],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": [
+      "plains",
+      "meadow",
+      "forest"
+    ],
+    "rarity": "common",
+    "weight": 70,
+    "group_min": 1,
+    "group_max": 3
+  }
+}
