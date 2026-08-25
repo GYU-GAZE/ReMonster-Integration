@@ -13,6 +13,9 @@ description='''
 Cross-mod integration layer for the Re:Monster-style isekai modpack. Tensura: Reincarnated is the gameplay spine; this addon coordinates mob profiles, EP, skills, ecology, MCA villagers/guards, Townstead races, subordinates, dungeons and quests.
 '''
 
+[[mixins]]
+config="remonster_integration.mixins.json"
+
 [[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"
