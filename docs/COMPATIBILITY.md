@@ -37,8 +37,9 @@ This file tracks the target modpack runtime and which integrations are owned by 
 | Bosses'Rise | installed | boss/dungeon layer; existing Tensura compat wins where applicable |
 | Ice and Fire Community Edition | installed | fantasy fauna/boss layer; use official Tensura compat if present/compatible |
 | MobChampions | installed | sole random elite/champion variation layer; retain its native stat/effect system and add profile-aware EP/learning/quest treatment |
-| Legendary Monsters | planned | target 2.2.2 for 1.21.1 NeoForge; boss/miniboss layer; prefer the dedicated Tensura compatibility addon for EP/skills after runtime validation |
-| Wyrmroost | planned | target 1.4.1 for 1.21.1 NeoForge; dragon fauna/taming; custom Mob Profile integration |
+| Legendary Monsters | planned | target 2.2.2 for 1.21.1 NeoForge; boss/miniboss layer; source registry inventoried |
+| Tensura Reincarnated & Legendary Monsters Compatibility | planned with Legendary Monsters | prefer as authoritative Legendary Monsters EP/magicule/aura/skill/combat-skill bridge after runtime validation |
+| Wyrmroost | planned | target 1.4.1 for 1.21.1 NeoForge; dragon registry inventoried; preserve native taming/ownership behavior |
 | Saint's Dragons | future | activate profiles when official 1.21.1 NeoForge port exists |
 | Opposing Force | future | activate profiles when official 1.21.1 NeoForge port exists |
 
@@ -47,6 +48,19 @@ This file tracks the target modpack runtime and which integrations are owned by 
 MobChampions is the only generic random "this individual spawned absurdly strong" system in the pack. Re:Monster Integration should detect champion state for EP, learning, quests and dungeon balancing, but should not duplicate MobChampions' own health/armor/speed/damage/effect modifiers.
 
 MobChampions 1.21.1 does not currently appear to apply a generic entity scale/size modifier. Physical size changes are therefore not part of the champion policy unless Re:Monster Integration intentionally adds them later.
+
+Champion rank is already consumed by kill-learning rewards without modifying MobChampions combat stats:
+
+- Uncommon: x1.25 learning
+- Rare: x1.5 learning
+- Epic: x2 learning
+- Legendary: x3 learning
+
+### Legendary Monsters policy
+
+The dedicated 1.21.1 NeoForge compatibility addon advertises EP, magicule/aura pools, tier-scaled Tensura skills and custom combat AI that actively casts those skills for Legendary Monsters entities. If runtime testing confirms those claims on the frozen pack versions, that addon should be authoritative for those systems.
+
+Re:Monster Integration should then own only the cross-pack metadata and systems not already covered there: ecology, MCA guard policy, kill-learning interpretation, MobChampions-aware rewards, bounty/quest metadata, dungeon weights and targeted balance corrections.
 
 ## Structure / dungeon mods
 
@@ -80,7 +94,7 @@ MobChampions 1.21.1 does not currently appear to apply a generic entity scale/si
 
 ## Compatibility rules
 
-1. Existing official Tensura compatibility should be preferred when it already handles a mod correctly.
+1. Existing official/dedicated Tensura compatibility should be preferred when it already handles a mod correctly.
 2. Re:Monster Integration must avoid duplicate EP rewards, skills and evolution effects.
 3. Optional mod integrations must fail soft when the target mod/entity is absent.
 4. MCA villager identity and simulation data are authoritative and must survive all Tensura integration.
