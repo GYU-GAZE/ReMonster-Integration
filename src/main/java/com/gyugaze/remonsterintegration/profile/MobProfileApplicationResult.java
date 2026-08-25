@@ -8,6 +8,9 @@ public record MobProfileApplicationResult(
         boolean epChanged,
         double previousEp,
         double resultingEp,
+        boolean aggroRangeChanged,
+        double previousAggroRange,
+        double resultingAggroRange,
         List<ResourceLocation> addedSkills
 ) {
     public MobProfileApplicationResult {
@@ -15,6 +18,6 @@ public record MobProfileApplicationResult(
     }
 
     public boolean changedAnything() {
-        return epChanged || !addedSkills.isEmpty();
+        return epChanged || aggroRangeChanged || !addedSkills.isEmpty();
     }
 }
