@@ -29,6 +29,21 @@ public final class TensuraSubordinateBridge {
         return Optional.ofNullable(SubordinateHelper.getSubordinateOwner(entity));
     }
 
+    public static Optional<UUID> getPermanentOwnerUuid(LivingEntity entity) {
+        Objects.requireNonNull(entity, "entity");
+        return Optional.ofNullable(TensuraStorages.getExistenceFrom(entity).getPermanentOwner());
+    }
+
+    public static Optional<UUID> getTemporaryOwnerUuid(LivingEntity entity) {
+        Objects.requireNonNull(entity, "entity");
+        return Optional.ofNullable(TensuraStorages.getExistenceFrom(entity).getTemporaryOwner());
+    }
+
+    public static Optional<UUID> getSummonerUuid(LivingEntity entity) {
+        Objects.requireNonNull(entity, "entity");
+        return Optional.ofNullable(TensuraStorages.getExistenceFrom(entity).getSummoner());
+    }
+
     public static boolean isSubordinateOf(LivingEntity owner, LivingEntity target) {
         Objects.requireNonNull(owner, "owner");
         Objects.requireNonNull(target, "target");
