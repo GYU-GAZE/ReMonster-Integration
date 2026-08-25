@@ -14,13 +14,12 @@ This file tracks the target modpack runtime and which integrations are owned by 
 
 | Mod | Target version | Role | Integration status |
 |---|---:|---|---|
-| Tensura: Reincarnated | 2.0.1.2 | gameplay spine | API reconnaissance started |
+| Tensura: Reincarnated | 2.0.1.2 | gameplay spine | API integration active |
 | ManasCore | 4.0.0.2 | storage/skill/race backend | compile integration working through bundled modules |
-| Tensura: Better Subordinates | 1.2.4 | subordinate progression | inspection pending |
+| Tensura: Better Subordinates | 1.2.4 | subordinate progression | deeper progression integration pending |
 | Tensura: Skill Obtain | 1.1 | kill/skill ecosystem | inspect before duplicating behavior |
-| Tensura Unique Monsters | 1.0.2 | elite modifier layer | integration pending |
 | EPGains | 0.0.18 | EP/scaling changes | must avoid double scaling |
-| MCA Reborn | 7.7.36-beta.3+1.21.1 | villagers/society | threat bridge + subordinate adapter planned |
+| MCA Reborn | 7.7.36-beta.3+1.21.1 | villagers/society | threat bridge implemented; subordinate adapter in progress |
 | MCA Capitals | 1.2.1 | settlement layer | preserve compatibility |
 | MCA: Quests | 1.1.0 | villager quests | hunt content planned |
 | Townstead | 0.7.6+1.21.1 | roots/genetics/visual races | Tensura race visual bridge planned |
@@ -30,16 +29,24 @@ This file tracks the target modpack runtime and which integrations are owned by 
 
 | Mod | Status | Intended treatment |
 |---|---|---|
-| Tensura base/addons | installed | full Mob Profile coverage |
+| Tensura base/addons | installed | full Mob Profile coverage and aggro/ecology normalization |
 | L_Ender's Cataclysm | installed | high-tier/boss/dungeon emphasis |
 | Mowzie's Mobs | installed | full fantasy ecosystem integration |
 | Mowzie's Cataclysm | installed | inspect overlap with both parents |
 | Mobs of Mythology | installed | general fantasy ecosystem |
 | Bosses'Rise | installed | boss/dungeon layer; existing Tensura compat wins where applicable |
 | Ice and Fire Community Edition | installed | fantasy fauna/boss layer; use official Tensura compat if present/compatible |
-| MobChampions | installed | modifier layer; profile-aware scaling planned |
+| MobChampions | installed | sole random elite/champion variation layer; retain its native stat/effect system and add profile-aware EP/learning/quest treatment |
+| Legendary Monsters | planned | target 2.2.2 for 1.21.1 NeoForge; boss/miniboss layer; prefer the dedicated Tensura compatibility addon for EP/skills after runtime validation |
+| Wyrmroost | planned | target 1.4.1 for 1.21.1 NeoForge; dragon fauna/taming; custom Mob Profile integration |
 | Saint's Dragons | future | activate profiles when official 1.21.1 NeoForge port exists |
 | Opposing Force | future | activate profiles when official 1.21.1 NeoForge port exists |
+
+### Elite variation policy
+
+MobChampions is the only generic random "this individual spawned absurdly strong" system in the pack. Re:Monster Integration should detect champion state for EP, learning, quests and dungeon balancing, but should not duplicate MobChampions' own health/armor/speed/damage/effect modifiers.
+
+MobChampions 1.21.1 does not currently appear to apply a generic entity scale/size modifier. Physical size changes are therefore not part of the champion policy unless Re:Monster Integration intentionally adds them later.
 
 ## Structure / dungeon mods
 
@@ -59,6 +66,11 @@ This file tracks the target modpack runtime and which integrations are owned by 
 | MCA: Quests | monster-hunt objectives driven by project roster |
 | FTB Quests | intentionally deferred to final stage |
 
+## Explicitly removed from the pack plan
+
+- Born in Chaos
+- Tensura Unique Monsters / Tensura: Unique Monster; MobChampions is the sole generic random elite variation layer
+
 ## Explicitly out of scope
 
 - MCA Conversations integration
@@ -73,4 +85,5 @@ This file tracks the target modpack runtime and which integrations are owned by 
 3. Optional mod integrations must fail soft when the target mod/entity is absent.
 4. MCA villager identity and simulation data are authoritative and must survive all Tensura integration.
 5. Spawn/ecology overrides should prefer datapacks and existing configuration before mixins/runtime replacement.
-6. Exact versions must be updated when the pack instance changes; compatibility is not assumed across Tensura/MCA/Townstead updates.
+6. MobChampions remains authoritative for champion stat/effect modification; the integration addon may consume champion state but should not recreate its modifier system.
+7. Exact versions must be updated when the pack instance changes; compatibility is not assumed across Tensura/MCA/Townstead updates.
