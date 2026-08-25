@@ -1,5 +1,6 @@
 package com.gyugaze.remonsterintegration.command;
 
+import com.gyugaze.remonsterintegration.compat.BetterSubordinatesBridge;
 import com.gyugaze.remonsterintegration.compat.MobChampionsBridge;
 import com.gyugaze.remonsterintegration.mca.McaGuardTargetPolicy;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
@@ -193,6 +194,12 @@ public final class IntegrationCommands {
         source.sendSuccess(() -> Component.literal("OwnableEntity owner: " + finalOwnableOwner), false);
         source.sendSuccess(() -> Component.literal(
                 "player-owned companion: " + McaGuardTargetPolicy.isPlayerOwnedCompanion(living)
+        ), false);
+
+        BetterSubordinatesBridge.StorageStatus betterSubsStatus =
+                BetterSubordinatesBridge.getProgressionStorageStatus(living);
+        source.sendSuccess(() -> Component.literal(
+                "Better Subs progression storage: " + betterSubsStatus.displayName()
         ), false);
     }
 
