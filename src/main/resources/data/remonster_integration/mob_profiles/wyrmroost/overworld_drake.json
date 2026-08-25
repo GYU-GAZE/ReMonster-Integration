@@ -1,0 +1,21 @@
+{
+  "entity": "wyrmroost:overworld_drake",
+  "disposition": "hostile",
+  "tier": "normal",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.0,
+  "guard_hostile": true,
+  "aggro_range": 20,
+  "dungeon_weight": 2,
+  "themes": ["dragon", "predator", "plains", "savanna", "tameable"],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": ["plains"],
+    "rarity": "uncommon",
+    "weight": 8,
+    "group_min": 1,
+    "group_max": 3
+  }
+}
