@@ -26,6 +26,7 @@ public final class MobProfileParser {
         EpApplicationMode epMode = enumValue(EpApplicationMode.class, string(json, "ep_mode", "fallback"), sourceId, "ep_mode");
         double learningMultiplier = number(json, "learning_multiplier", 1.0);
         boolean guardHostile = bool(json, "guard_hostile", disposition == MobDisposition.HOSTILE);
+        double aggroRange = number(json, "aggro_range", 0.0);
         int dungeonWeight = integer(json, "dungeon_weight", 0);
 
         List<ResourceLocation> skills = new ArrayList<>();
@@ -45,6 +46,7 @@ public final class MobProfileParser {
                 skills,
                 learningMultiplier,
                 guardHostile,
+                aggroRange,
                 dungeonWeight,
                 themes,
                 ecology
