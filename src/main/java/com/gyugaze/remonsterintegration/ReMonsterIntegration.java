@@ -1,5 +1,6 @@
 package com.gyugaze.remonsterintegration;
 
+import com.gyugaze.remonsterintegration.learning.KillLearningEvents;
 import com.gyugaze.remonsterintegration.profile.MobProfileReloadListener;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
@@ -16,6 +17,7 @@ public final class ReMonsterIntegration {
 
     public ReMonsterIntegration(IEventBus modEventBus, ModContainer modContainer) {
         NeoForge.EVENT_BUS.addListener(this::onAddReloadListeners);
+        NeoForge.EVENT_BUS.addListener(KillLearningEvents::onLivingDeath);
         LOGGER.info("[Re:Monster Integration] loaded");
     }
 
