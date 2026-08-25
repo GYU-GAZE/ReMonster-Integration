@@ -1,6 +1,7 @@
 package com.gyugaze.remonsterintegration.command;
 
 import com.gyugaze.remonsterintegration.compat.MobChampionsBridge;
+import com.gyugaze.remonsterintegration.mca.McaGuardTargetPolicy;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.profile.MobProfileApplicationResult;
@@ -20,12 +21,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
 
 /**
@@ -50,6 +53,14 @@ public final class IntegrationCommands {
                                         .then(Commands.argument("target", EntityArgument.entity())
                                                 .executes(context -> reapplyProfile(
                                                         context.getSource(),
+                                                        EntityArgument.getEntity(context, "target")
+                                                )))))
+                        .then(Commands.literal("guard_priority")
+                                .then(Commands.argument("guard", EntityArgument.entity())
+                                        .then(Commands.argument("target", EntityArgument.entity())
+                                                .executes(context -> inspectGuardPriority(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "guard"),
                                                         EntityArgument.getEntity(context, "target")
                                                 )))))
                         .then(Commands.literal("mca_subordinate")
@@ -112,6 +123,17 @@ public final class IntegrationCommands {
         ), false);
         source.sendSuccess(() -> Component.literal("resolved Tensura owner: " + owner.map(UUID::toString).orElse("none")), false);
 
+        String ownableOwner = "n/a";
+        if (living instanceof OwnableEntity ownable) {
+            LivingEntity vanillaOwner = ownable.getOwner();
+            ownableOwner = vanillaOwner == null ? "none" : vanillaOwner.getUUID().toString();
+        }
+        String finalOwnableOwner = ownableOwner;
+        source.sendSuccess(() -> Component.literal("OwnableEntity owner: " + finalOwnableOwner), false);
+        source.sendSuccess(() -> Component.literal(
+                "player-owned companion: " + McaGuardTargetPolicy.isPlayerOwnedCompanion(living)
+        ), false);
+
         List<String> skills = TensuraSkillBridge.getStorage(living).getLearnedSkills().stream()
                 .map(ManasSkillInstance::getSkillId)
                 .map(ResourceLocation::toString)
@@ -119,6 +141,24 @@ public final class IntegrationCommands {
                 .toList();
 
         source.sendSuccess(() -> Component.literal("runtime skills (" + skills.size() + "): " + skills), false);
+        return 1;
+    }
+
+    private static int inspectGuardPriority(CommandSourceStack source, Entity guardEntity, Entity targetEntity) {
+        if (!(guardEntity instanceof LivingEntity guard) || !(targetEntity instanceof LivingEntity target)) {
+            source.sendFailure(Component.literal("guard and target must both be living entities"));
+            return 0;
+        }
+
+        OptionalInt override = McaGuardTargetPolicy.getPriorityOverride(target, guard);
+        String result = override.isPresent()
+                ? Integer.toString(override.getAsInt())
+                : "delegate to MCA";
+        source.sendSuccess(() -> Component.literal(
+                "[Re:Monster] guard priority override: " + result
+                        + " | activeThreat=" + McaGuardTargetPolicy.isActivelyThreateningProtectedEntity(target, guard)
+                        + " | playerOwnedCompanion=" + McaGuardTargetPolicy.isPlayerOwnedCompanion(target)
+        ), false);
         return 1;
     }
 
