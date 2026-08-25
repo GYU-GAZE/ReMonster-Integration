@@ -1,5 +1,6 @@
 package com.gyugaze.remonsterintegration.command;
 
+import com.gyugaze.remonsterintegration.compat.MobChampionsBridge;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.profile.MobProfileRegistry;
@@ -92,9 +93,13 @@ public final class IntegrationCommands {
         double ep = TensuraExistenceBridge.getEp(living);
         Optional<UUID> owner = TensuraSubordinateBridge.getResolvedOwnerUuid(living);
         AttributeInstance followRange = living.getAttribute(Attributes.FOLLOW_RANGE);
+        Optional<MobChampionsBridge.ChampionRank> championRank = MobChampionsBridge.getChampionRank(living);
         source.sendSuccess(() -> Component.literal("runtime EP: " + ep), false);
         source.sendSuccess(() -> Component.literal(
                 "runtime FOLLOW_RANGE: " + (followRange == null ? "n/a" : followRange.getValue())
+        ), false);
+        source.sendSuccess(() -> Component.literal(
+                "MobChampions: " + championRank.map(Enum::name).orElse("normal/not active")
         ), false);
         source.sendSuccess(() -> Component.literal("resolved Tensura owner: " + owner.map(UUID::toString).orElse("none")), false);
 
