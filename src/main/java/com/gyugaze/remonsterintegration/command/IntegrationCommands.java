@@ -3,6 +3,8 @@ package com.gyugaze.remonsterintegration.command;
 import com.gyugaze.remonsterintegration.compat.MobChampionsBridge;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.profile.MobProfile;
+import com.gyugaze.remonsterintegration.profile.MobProfileApplicationResult;
+import com.gyugaze.remonsterintegration.profile.MobProfileApplicationService;
 import com.gyugaze.remonsterintegration.profile.MobProfileRegistry;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
@@ -43,6 +45,13 @@ public final class IntegrationCommands {
                                                 context.getSource(),
                                                 EntityArgument.getEntity(context, "target")
                                         ))))
+                        .then(Commands.literal("profile")
+                                .then(Commands.literal("reapply")
+                                        .then(Commands.argument("target", EntityArgument.entity())
+                                                .executes(context -> reapplyProfile(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "target")
+                                                )))))
                         .then(Commands.literal("mca_subordinate")
                                 .then(Commands.literal("assign")
                                         .then(Commands.argument("target", EntityArgument.entity())
@@ -110,6 +119,28 @@ public final class IntegrationCommands {
                 .toList();
 
         source.sendSuccess(() -> Component.literal("runtime skills (" + skills.size() + "): " + skills), false);
+        return 1;
+    }
+
+    private static int reapplyProfile(CommandSourceStack source, Entity target) {
+        if (!(target instanceof LivingEntity living)) {
+            source.sendFailure(Component.literal("target is not a living entity"));
+            return 0;
+        }
+
+        Optional<MobProfile> profile = MobProfileRegistry.get(living);
+        if (profile.isEmpty()) {
+            source.sendFailure(Component.literal("target has no loaded Re:Monster Mob Profile"));
+            return 0;
+        }
+
+        MobProfileApplicationResult result = MobProfileApplicationService.apply(living, profile.get());
+        source.sendSuccess(() -> Component.literal(
+                "[Re:Monster] reapplied " + profile.get().entityId()
+                        + " | EP " + result.previousEp() + " -> " + result.resultingEp()
+                        + " | FOLLOW_RANGE " + result.previousAggroRange() + " -> " + result.resultingAggroRange()
+                        + " | addedSkills=" + result.addedSkills()
+        ), false);
         return 1;
     }
 
