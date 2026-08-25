@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make the installed mob mods feel like one isekai bestiary. Biomes should have recognizable fauna, generalist fantasy creatures should actually be encountered, and highly themed mobs should appear only where they make sense.
+Make the installed mob mods feel like one isekai bestiary. Biomes should have recognizable fauna, generalist fantasy creatures should actually be encountered, and strongly themed mobs should appear only where they make sense.
 
 Current vanilla/mod spawn tables are treated as input, not canon.
 
@@ -116,7 +116,6 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 - one-eyed owl
 - foliaath and similar fantasy flora
 - kobolds
-- curated Born in Chaos dark-fantasy fauna
 ```
 
 ### Taiga
@@ -126,7 +125,7 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 - direwolf
 - horned rabbit
 - cold-region predators
-- selected undead/dark-fantasy night encounters
+- selected fantasy night encounters where they fit the pack tone
 ```
 
 ### Swamp
@@ -137,7 +136,7 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 - leech lizard
 - lizardman
 - hydra where appropriately rare
-- corpse/glutton fish
+- corpse/glutton-style fish from retained compatible mods where applicable
 - spore creatures
 ```
 
@@ -146,7 +145,7 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 ```text
 - pegasus
 - unicorn
-- giant/ horned bears
+- giant/horned bears
 - troll
 - cyclops
 - feathered serpent
@@ -174,43 +173,6 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 - underground fantasy fauna
 - dungeon-specific undead
 ```
-
-## Born in Chaos curation
-
-Born in Chaos is kept, but its roster is not allowed to define the entire overworld tone.
-
-Broadly compatible dark-fantasy examples:
-
-```text
-dread_hound
-door_knight
-fallen_chaos_knight
-infernal_spirit
-bonescaller
-supreme_bonescaller
-mother_spider
-corpse_fish
-glutton_fish
-seared_spirit
-restless_spirit
-lifestealer
-```
-
-Highly Halloween/goofy/contextual entities should be restricted to cursed zones, thematic structures, dungeons, events or disabled natural spawn as appropriate.
-
-Examples requiring curation:
-
-```text
-zombie_clown
-mr_pumpkin
-mrs_pumpkin
-senor_pumpkin
-lord_pumpkinhead
-pumpkin_dunce
-barrel_zombie
-```
-
-The exact roster will be decided from entity profiles rather than removing the whole mod.
 
 ## Tensura baseline observations
 
