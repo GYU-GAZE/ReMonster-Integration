@@ -31,6 +31,12 @@ repositories {
             includeGroup 'curse.maven'
         }
     }
+    maven {
+        url = 'https://maven.architectury.dev/'
+        content {
+            includeGroup 'dev.architectury'
+        }
+    }
 }
 
 neoForge {
@@ -80,18 +86,39 @@ neoForge {
 }
 
 configurations {
+    manasCoreBundle
     runtimeClasspath.extendsFrom localRuntime
 }
 
 dependencies {
-    // Compile against the exact public release artifacts without redistributing their jars.
-    compileOnly 'curse.maven:manascore-619025:8022425'
+    // Tensura itself is available as a normal CurseMaven artifact.
     compileOnly 'curse.maven:tensura-reincarnated-643695:8665599'
 
+    // ManasCore's published NeoForge release is a bundle whose API modules are nested jars.
+    // Resolve the exact pack release, extract those modules below, and put them on javac's classpath.
+    manasCoreBundle 'curse.maven:manascore-619025:8022425'
+    compileOnly 'dev.architectury:architectury-neoforge:13.0.8'
+    compileOnly fileTree(dir: layout.buildDirectory.dir('manascore-compile-modules'), include: ['*.jar'])
+
     // A local dev instance still uses the exact jars from the modpack under ./libs.
-    // This is intentional because Tensura has additional runtime dependencies that the pack already supplies.
     compileOnly fileTree(dir: 'libs', include: ['*.jar'])
     localRuntime fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+var extractManasCoreModules = tasks.register('extractManasCoreModules', Sync) {
+    from({ configurations.manasCoreBundle.collect { zipTree(it) } }) {
+        include '**/*.jar'
+        eachFile { details ->
+            // Flatten nested module paths. Module jar names are unique inside the ManasCore bundle.
+            details.path = details.name
+        }
+        includeEmptyDirs = false
+    }
+    into layout.buildDirectory.dir('manascore-compile-modules')
+}
+
+tasks.named('compileJava').configure {
+    dependsOn extractManasCoreModules
 }
 
 var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
