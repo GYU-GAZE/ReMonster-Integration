@@ -15,7 +15,7 @@ This file tracks the target modpack runtime and which integrations are owned by 
 | Mod | Target version | Role | Integration status |
 |---|---:|---|---|
 | Tensura: Reincarnated | 2.0.1.2 | gameplay spine | API reconnaissance started |
-| ManasCore | current pack build | storage/skill/race backend | jar/API inspection pending |
+| ManasCore | 4.0.0.2 | storage/skill/race backend | compile integration working through bundled modules |
 | Tensura: Better Subordinates | 1.2.4 | subordinate progression | inspection pending |
 | Tensura: Skill Obtain | 1.1 | kill/skill ecosystem | inspect before duplicating behavior |
 | Tensura Unique Monsters | 1.0.2 | elite modifier layer | integration pending |
@@ -31,7 +31,6 @@ This file tracks the target modpack runtime and which integrations are owned by 
 | Mod | Status | Intended treatment |
 |---|---|---|
 | Tensura base/addons | installed | full Mob Profile coverage |
-| Born in Chaos | installed | curated; dark-fantasy mobs general, Halloween/goofy mobs restricted |
 | L_Ender's Cataclysm | installed | high-tier/boss/dungeon emphasis |
 | Mowzie's Mobs | installed | full fantasy ecosystem integration |
 | Mowzie's Cataclysm | installed | inspect overlap with both parents |
