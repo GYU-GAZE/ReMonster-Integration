@@ -15,6 +15,7 @@ public record MobProfile(
         List<ResourceLocation> skills,
         double learningMultiplier,
         boolean guardHostile,
+        double aggroRange,
         int dungeonWeight,
         Set<String> themes,
         EcologyProfile ecology
@@ -29,8 +30,19 @@ public record MobProfile(
         if (learningMultiplier < 0) {
             throw new IllegalArgumentException("Learning multiplier cannot be negative");
         }
+        if (!Double.isFinite(aggroRange) || aggroRange < 0) {
+            throw new IllegalArgumentException("Aggro range must be a finite non-negative number");
+        }
         if (dungeonWeight < 0) {
             throw new IllegalArgumentException("Dungeon weight cannot be negative");
         }
+    }
+
+    /**
+     * A value of 0 preserves the entity's native FOLLOW_RANGE.
+     * Positive values explicitly normalize its target-acquisition and ally-alert radius.
+     */
+    public boolean overridesAggroRange() {
+        return aggroRange > 0.0;
     }
 }
