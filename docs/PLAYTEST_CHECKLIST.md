@@ -104,7 +104,7 @@ playerOwnedCompanion=false
 
 Expected gameplay: guard treats the mob as a threat.
 
-## 6. MCA villager as Tensura subordinate in place
+## 6. MCA villager as Tensura + Better Subordinates subordinate in place
 
 Target a normal MCA villager and run:
 
@@ -119,10 +119,13 @@ Expected immediately:
 - permanent owner equals the player UUID
 - resolved owner equals the player UUID unless a higher-priority temporary owner/summoner exists
 - MCA profession/family/home/personality/schedule are unchanged
+- with Better Subordinates 1.2.4 installed, diagnostics show `Better Subs progression storage: present`
+
+The Better Subordinates storage check is decisive. `missing` means its native progression storage did not attach to the MCA villager and the compatibility mixin needs investigation before testing kill/damage/EP training.
 
 Then interact with the villager normally and verify MCA UI still works.
 
-## 7. Save/reload ownership persistence
+## 7. Save/reload ownership and progression-storage persistence
 
 After step 6:
 
@@ -134,6 +137,7 @@ Expected:
 
 - permanent owner still equals the player UUID
 - resolved owner still resolves correctly
+- Better Subs progression storage is still `present`
 - MCA profession/family/home data remains intact
 
 This is the first decisive runtime proof that the in-place MCA subordinate architecture works.
