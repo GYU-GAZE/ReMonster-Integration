@@ -1,0 +1,10 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": "#tensura:horned_rabbit_spawn",
+  "spawners": {
+    "type": "tensura:horned_rabbit",
+    "maxCount": 3,
+    "minCount": 1,
+    "weight": 70
+  }
+}
