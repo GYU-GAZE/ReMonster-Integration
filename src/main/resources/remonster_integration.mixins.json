@@ -5,7 +5,11 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "mca.GuardEnemiesSensorMixin",
-    "bettersubs.ExpandedSkillStorageMixin"
+    "bettersubs.ExpandedSkillStorageMixin",
+    "tensura.SubordinateHelperMixin",
+    "tensura.TelepathySkillMixin",
+    "tensura.SubordinateFollowOwnerMixin",
+    "vanilla.FollowOwnerGoalMixin"
   ],
   "injectors": {
     "defaultRequire": 0
