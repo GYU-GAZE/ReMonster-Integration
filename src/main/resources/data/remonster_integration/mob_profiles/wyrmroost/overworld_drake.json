@@ -12,7 +12,7 @@
   "themes": ["dragon", "predator", "plains", "savanna", "tameable"],
   "ecology": {
     "natural_spawn": true,
-    "habitats": ["plains"],
+    "habitats": ["plains", "savanna"],
     "rarity": "uncommon",
     "weight": 8,
     "group_min": 1,
