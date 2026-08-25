@@ -12,7 +12,7 @@ This roadmap is ordered by dependency and risk, not by feature hype. Shared infr
 - [x] Build the addon successfully in CI against real Tensura + ManasCore APIs
 - [ ] Add complete local runtime dependency set for launching the full pack from the dev workspace
 - [ ] Launch a test instance and confirm `[Re:Monster Integration] loaded`
-- [x] Add `/remonster inspect <entity>` diagnostics for profile, EP, owner, skills and FOLLOW_RANGE
+- [x] Add `/remonster inspect <entity>` diagnostics for profile, EP, ownership layers, skills, MobChampions and FOLLOW_RANGE
 
 ## Phase 1 - Shared Mob Profile system
 
@@ -33,8 +33,11 @@ Create one data-driven source of truth for modded mobs.
 - [x] model ecology / habitat profile
 - [x] model optional aggro/FOLLOW_RANGE override; `0` preserves native behavior
 - [x] model tags/themes such as beast, undead, dark_fantasy, aquatic, dragon, construct
-- [ ] reapply profiles to already-loaded entities after datapack reload
+- [x] expand habitat vocabulary with savanna and jungle after source-backed Wyrmroost inventory
+- [ ] reapply profiles to every already-loaded matching entity automatically after datapack reload
 - [ ] author broader validated profile catalog for supported mob mods
+- [x] author initial source-backed Wyrmroost catalog for all 10 living dragon/creature entity types
+- [x] author initial Legendary Monsters boss profiles for Cloud Golem, Possessed Paladin and The Obliterator
 
 Current profile shape:
 
@@ -66,15 +69,19 @@ Current profile shape:
 
 - [x] Resolve `IExistence` for arbitrary `LivingEntity`
 - [x] Add a narrow `TensuraExistenceBridge` for EP access
-- [x] Add a narrow `TensuraSubordinateBridge` for ownership/alliance access
+- [x] Add a narrow `TensuraSubordinateBridge` for resolved and raw ownership/alliance access
 - [x] Add generic runtime Mob Profile application on entity join
 - [x] Add safe EP application that preserves existing positive EP by default
 - [x] Add generic ManasCore/Tensura skill assignment without duplicates
 - [x] run project application at `EventPriority.LOWEST` so existing compatibility can act first
+- [x] consume skills actually present on a mob at runtime so official compatibility addons remain authoritative
 - [ ] author / balance EP values for supported third-party mobs
-- [ ] author / validate effective Tensura skills for supported third-party mobs
-- [ ] explicit per-mod rules where an official compatibility addon must always win
-- [ ] detect MobChampions state and use it for EP/learning/quest/dungeon scaling without recreating its own stat system
+- [ ] author / validate project-owned effective Tensura skills where no good compatibility addon exists
+- [x] define explicit Legendary Monsters ownership rule: dedicated Tensura compatibility addon owns EP/skills/casting if runtime validation passes
+- [ ] explicit per-mod rules for the remaining official compatibility addons
+- [x] detect MobChampions state without recreating its stat system
+- [x] use MobChampions rank for kill-learning scaling
+- [ ] use MobChampions rank for EP/quest/dungeon reward scaling
 
 Target mob mods include:
 
@@ -111,10 +118,12 @@ When a player possesses a Tensura skill but is still in Tensura's acquisition-le
 - [x] resolve generic Tensura subordinate/summon ownership chains back to a `ServerPlayer`
 - [x] depth/cycle guard for ownership resolution
 - [x] intersect profile skill ids with player's possessed acquisition-learning instances
+- [x] union profile-declared skills with skills actually present on the defeated mob at runtime
 - [ ] runtime-validate specific clone/summon implementations whose damage source may differ
 - [ ] add common/configurable base learning amount
 - [x] scale core service by profile learning multiplier
-- [ ] additionally scale by EP / tier / boss / MobChampion state
+- [x] scale learning by MobChampions rank: uncommon 1.25x, rare 1.5x, epic 2x, legendary 3x
+- [ ] additionally scale by EP / profile tier where balance testing supports it
 - [ ] runtime-test skills with unusual mode-learning overrides
 
 ## Phase 4 - Ecology / Spawn / Aggro Director
@@ -122,16 +131,20 @@ When a player possesses a Tensura skill but is still in Tensura's acquisition-le
 Build a coherent isekai bestiary instead of accepting every mod's independent spawn table and aggro rules.
 
 - [x] inventory Tensura 2.0.1.2 natural spawn mechanism and extract all 42 natural spawn modifiers
-- [ ] inventory existing natural spawn systems for the other target mods
+- [x] inventory Wyrmroost 1.4.1 natural spawn mechanism, weights, group sizes and biome tags
+- [ ] inventory existing natural spawn systems for the remaining target mods
 - [x] prove clean Tensura biome-tag / NeoForge biome-modifier overrides with Horned Rabbit
+- [x] confirm Wyrmroost also uses clean NeoForge biome modifiers/tags suitable for datapack overrides
 - [ ] expand biome overrides to the curated Tensura fauna roster
+- [ ] tune Wyrmroost distribution only where source defaults conflict with project ecology
 - [ ] use InControl for rules that cannot be cleanly data-overridden
 - [ ] custom runtime spawn hook only where required
-- [x] define semantic habitat groups: plains, meadow, forest, taiga, swamp, mountain, desert, coast/ocean, river, cave, nether, end, cursed, dungeon-only
+- [x] define semantic habitat groups: plains, meadow, savanna, forest, jungle, taiga, swamp, mountain, desert, coast/ocean, river, cave, nether, end, cursed, dungeon-only
 - [x] model frequency tiers and group sizes
 - [ ] minimum player distance where useful
 - [x] define policy keeping elite/boss entities out of ordinary spawn soup unless explicitly intended
 - [x] author first active biome rebalance: Horned Rabbit in plains/meadow/forest, weight 70, groups 1-3
+- [x] classify all 10 Wyrmroost living species from their real target goals/taming/spawn source before assigning profiles
 - [ ] playtest first active ecology override in the full pack
 
 ### Aggro normalization
@@ -142,7 +155,8 @@ Build a coherent isekai bestiary instead of accepting every mod's independent sp
 - [x] identify Tensura mobs with larger native ranges, including multiple 64-block entities, Megalodon at 48 and Charybdis at 256
 - [x] confirm wild prey targeting treats players as directly valid prey and can propagate a newly acquired target to nearby allies
 - [x] add optional Mob Profile `aggro_range` and apply it through the vanilla FOLLOW_RANGE attribute
-- [ ] author normalized ranges by mob role instead of blanket-changing every Tensura entity
+- [x] start role-based normalization with Direwolf and Barghest instead of blanket-changing all Tensura entities
+- [ ] author normalized ranges for the remaining ordinary hostile Tensura fauna
 - [ ] keep intentionally exceptional boss/calamity detection where it improves encounters
 - [ ] specifically reduce ordinary fast/flying hostile acquisition ranges where they create off-screen dogpiles
 - [ ] playtest whether ally target propagation still feels too aggressive after range normalization
@@ -162,10 +176,12 @@ Initial design rule:
 - [x] MCA guards can target profile-declared hostile mobs from supported mods
 - [x] use explicit project hostility classification rather than trusting every mod's broad monster tags
 - [x] expose Tensura subordinate ownership/alliance predicate for the MCA bridge
-- [x] guards ignore normally-hostile mobs owned by a player
-- [x] active aggression overrides subordinate immunity when the mob is directly attacking the guard or another MCA villager
+- [x] guards ignore normally-hostile mobs owned through Tensura by a player
+- [x] guards also ignore vanilla/modded `OwnableEntity` companions owned by a player, including tamed Wyrmroost dragons
+- [x] active aggression overrides ownership immunity when the mob is directly attacking the guard or another MCA villager
 - [x] profile-declared friendly/neutral entities can be excluded from guard targeting
-- [x] keep the bridge optional/fail-soft when MCA is absent
+- [x] keep the bridge optional/fail-soft when MCA and/or a companion mod is absent
+- [x] add `/remonster guard_priority <guard> <target>` diagnostics
 - [ ] runtime-test melee guards and archers in the full pack
 
 ## Phase 6 - MCA Villager Subordinate Adapter
@@ -188,8 +204,10 @@ Add:
 
 - [x] low-level Tensura permanent-owner write exists without entity replacement
 - [x] confirmed Tensura recognizes generic `LivingEntity` ownership before checking native `ISubordinate`
+- [x] expose resolved, permanent, temporary and summoner ownership separately for debugging
 - [x] add MCA-specific in-place ownership adapter
 - [x] add pack-author commands to assign/clear Tensura permanent ownership on an MCA villager
+- [x] add `/remonster mca_subordinate status <target>` ownership diagnostics
 - [ ] runtime-verify ownership survives save/reload and MCA schedule changes
 - [ ] EP progression
 - [ ] skills
@@ -266,9 +284,12 @@ Player gameplay remains Tensura-driven. Townstead primarily supplies visual/gene
 
 - [ ] config UX
 - [x] initial entity diagnostics command
-- [x] expose runtime FOLLOW_RANGE in entity diagnostics
+- [x] expose runtime FOLLOW_RANGE, ownership layers and MobChampions in entity diagnostics
+- [x] add targeted profile reapply command
+- [x] add guard-decision diagnostics
+- [x] add MCA subordinate ownership-status diagnostics
 - [ ] profile validation reports
-- [ ] richer commands for profile reload/reapply and guard decisions
+- [ ] automatic profile reload/reapply command for loaded entities
 - [ ] pack maker documentation
 
 ## Final Phase - FTB Quests
