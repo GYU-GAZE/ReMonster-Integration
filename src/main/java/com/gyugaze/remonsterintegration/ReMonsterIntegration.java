@@ -1,6 +1,7 @@
 package com.gyugaze.remonsterintegration;
 
 import com.gyugaze.remonsterintegration.command.IntegrationCommands;
+import com.gyugaze.remonsterintegration.command.SpawnDiagnosticCommands;
 import com.gyugaze.remonsterintegration.learning.KillLearningEvents;
 import com.gyugaze.remonsterintegration.profile.MobProfileEntityEvents;
 import com.gyugaze.remonsterintegration.profile.MobProfileReloadListener;
@@ -33,5 +34,6 @@ public final class ReMonsterIntegration {
 
     private void onRegisterCommands(RegisterCommandsEvent event) {
         IntegrationCommands.register(event.getDispatcher());
+        SpawnDiagnosticCommands.register(event.getDispatcher());
     }
 }
