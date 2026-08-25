@@ -17,6 +17,8 @@ Use the least invasive mechanism that can express the desired rule:
 
 Tensura 2.0.1.2 already uses `data/tensura/neoforge/biome_modifier/*_spawn.json` plus `data/tensura/tags/worldgen/biome/*_spawn.json`, which makes it a good target for clean datapack overrides.
 
+Wyrmroost 1.4.1 also uses NeoForge biome modifiers plus biome tags for its natural dragon population, so its ecology can normally be tuned without invasive AI/spawn mixins.
+
 ## Habitat vocabulary
 
 Project profile habitats currently include:
@@ -24,7 +26,9 @@ Project profile habitats currently include:
 ```text
 PLAINS
 MEADOW
+SAVANNA
 FOREST
+JUNGLE
 TAIGA
 SWAMP
 MOUNTAIN
@@ -66,7 +70,7 @@ Examples:
 - deathworms / sandworms / desert monsters -> desert/badlands
 - trolls / cyclopes / some bears -> mountains/taiga
 - aquatic monsters -> rivers/coasts/ocean
-- dragons -> restricted high-tier habitats/regions/structures
+- dragons -> species-specific habitats, restricted high-tier regions or structures
 
 ### Threat tiers
 
@@ -97,13 +101,25 @@ uncommon
 - direwolf packs
 - giant ant
 - selected orc scouts
+- overworld drake where its species role remains appropriate
 
 rare
 - pegasus/unicorn depending on biome
+- alpine in meadow/mountain transition
 - elite/champion variant
 ```
 
 Plains should work as an early-game isekai ecosystem rather than feeling empty until a hostile pack suddenly spawns.
+
+### Savanna
+
+```text
+- overworld drake
+- selected generalist beasts
+- dry-region predators that do not require true desert
+```
+
+Savanna is kept distinct from plains so dragon/fauna distribution does not need to be flattened into one giant overworld bucket.
 
 ### Forest
 
@@ -116,6 +132,15 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 - one-eyed owl
 - foliaath and similar fantasy flora
 - kobolds
+- roost stalker
+```
+
+### Jungle
+
+```text
+- dragon fruit drake
+- dense tropical fantasy fauna
+- selected reptiles/insects where their ecology fits
 ```
 
 ### Taiga
@@ -135,8 +160,8 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 - hover lizard
 - leech lizard
 - lizardman
+- canari wyvern as territorial swamp dragon
 - hydra where appropriately rare
-- corpse/glutton-style fish from retained compatible mods where applicable
 - spore creatures
 ```
 
@@ -149,7 +174,8 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 - troll
 - cyclops
 - feathered serpent
-- rare dragon encounters/territories
+- alpine
+- royal red at rare mountain-peak territory
 ```
 
 ### Desert / badlands
@@ -159,9 +185,18 @@ Plains should work as an early-game isekai ecosystem rather than feeling empty u
 - basilisk
 - knight spider
 - orcs depending on region design
+- lesser desertwyrm
 - deathworm
 - sandworm
 - high-tier Cataclysm desert content as structure/boss encounters
+```
+
+### Coast / ocean
+
+```text
+- silver glider around ocean/beach/stony shore
+- butterfly leviathan as rare large aquatic dragon
+- other aquatic fantasy fauna by depth/region where practical
 ```
 
 ### Cave
@@ -186,6 +221,31 @@ The inspected 2.0.1.2 jar currently has examples such as:
 Full extracted modifier summary is stored in `reference/tensura_natural_spawns_2.0.1.2.csv`.
 
 This explains why a player can see many direwolves in bursts while effectively never encountering Horned Rabbits during plains play despite both being iconic early fantasy fauna.
+
+## Wyrmroost baseline observations
+
+Source-backed 1.4.1 natural spawn data currently gives:
+
+| Species | Native habitat | Weight | Group | Project behavior class |
+|---|---|---:|---:|---|
+| Lesser Desertwyrm | desert | 13 | 1-3 | neutral/passive burrowing fauna |
+| Overworld Drake | plains + savanna | 8 | 1-3 | wild hostile predator; tameable |
+| Silver Glider | ocean + beach + stony shore | 10 | 1-4 | passive/avoidant; tameable |
+| Roost Stalker | plains + mountain slope + forest | 7 | 2-9 | neutral predator/scavenger; tameable |
+| Dragon Fruit Drake | jungle | 23 | 4-5 | adult wild hostile; babies tameable |
+| Canari Wyvern | swamp | 9 | 2-5 | territorial neutral; attacks player only after close threat escalation |
+| Royal Red | mountain peak | 1 | 1 | rare elite wild predator; tameable through its own knockout flow |
+| Alpine | mountain peak + meadow | 2 | 1-4 | neutral; naturally targets nectar-carrying bees rather than players |
+| Butterfly Leviathan | ocean | 1 | 1 | rare aquatic elite; wild targets player/guardian/squid in water; tameable |
+| Coin Dragon | no natural biome modifier | - | - | passive collectible/special entity |
+
+Important integration rule:
+
+- wild species behavior comes from the Wyrmroost entity's actual goals
+- tame state stays authoritative in Wyrmroost
+- MCA guard logic separately recognizes player-owned `OwnableEntity` instances, so a species may be hostile while wild and protected as a companion after taming
+
+The first Mob Profiles preserve Wyrmroost's source-backed spawn weights/group sizes rather than immediately rebalance everything. Playtest data should decide which native distributions actually need intervention.
 
 ## Future balancing inputs
 
