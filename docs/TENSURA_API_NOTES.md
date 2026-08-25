@@ -1,6 +1,6 @@
 # Tensura 2.0.1.2 API reconnaissance
 
-Source basis: direct inspection of the installed `tensura-neoforge-2.0.1.2.jar` supplied for development.
+Source basis: direct inspection of the installed `tensura-neoforge-2.0.1.2.jar` supplied for development, plus the matching public ManasCore 1.21.1 source where noted.
 
 This document records observed class signatures/bytecode behavior. It is not a substitute for the upstream source and should be updated whenever the target Tensura version changes.
 
@@ -28,6 +28,17 @@ io.github.manasmods.tensura.storage.ep.IExistence
 io.github.manasmods.tensura.storage.ep.ExistenceStorage
 io.github.manasmods.tensura.storage.TensuraStorages
 ```
+
+Observed `TensuraStorages` access:
+
+```text
+TensuraStorages.getExistenceFrom(LivingEntity) -> IExistence
+TensuraStorages.getAbilityFrom(LivingEntity) -> IAbility
+TensuraStorages.getEffectFrom(LivingEntity) -> IEffect
+TensuraStorages.getSpiritFrom(LivingEntity) -> ISpiritWielder
+```
+
+`getExistenceFrom` directly retrieves the `ExistenceStorage` attached through ManasCore storage to a `LivingEntity`.
 
 Observed `IExistence` methods include:
 
@@ -177,9 +188,9 @@ PhysicalBodyRequirement
 
 The jar contains explicit race classes for Goblin, Hobgoblin, Enlightened Hobgoblin, Ogre, Kijin and many other branches, so expanded evolution work can likely reuse the native race framework rather than inventing an independent race system.
 
-## Skills
+## Skills and learning
 
-Relevant base classes:
+Relevant Tensura classes:
 
 ```text
 io.github.manasmods.tensura.ability.TensuraSkill
@@ -188,6 +199,49 @@ io.github.manasmods.tensura.ability.SkillHelper
 io.github.manasmods.tensura.ability.SkillUtils
 io.github.manasmods.tensura.ability.skill.Skill
 ```
+
+Relevant ManasCore classes:
+
+```text
+io.github.manasmods.manascore.skill.api.SkillAPI
+io.github.manasmods.manascore.skill.impl.SkillStorage
+io.github.manasmods.manascore.skill.api.ManasSkillInstance
+```
+
+`SkillAPI.getSkillsFrom(LivingEntity)` returns a `SkillStorage` for arbitrary living entities. `SkillStorage` stores `ManasSkillInstance` objects and exposes `getSkill(ResourceLocation)`, `getLearnedSkills()`, `learnSkill(...)`, `forgetSkill(...)` and update/sync helpers.
+
+### Critical learning-state discovery
+
+Tensura represents an acquired-but-not-fully-learned skill using a real `ManasSkillInstance` whose mastery is **negative**.
+
+`TensuraSkill.createLearningInstance(entity)` creates a normal `TensuraSkillInstance` and sets mastery to `getAcquirementMastery(entity)`, which is negative for the learning/acquisition state.
+
+`TensuraSkill.addLearnPoint(instance, entity, mode, amount)`:
+
+- immediately rejects instances with mastery >= 0
+- fires `TensuraSkillEvents.SKILL_LEARNING`
+- increases the negative mastery value toward 0
+- marks skill storage dirty/synced
+- when the threshold is crossed, the normal Tensura learning/acquisition flow completes the transition
+
+This is almost exactly the primitive required for the planned kill-learning feature. We should **call Tensura's own `addLearnPoint`** rather than inventing a second learning counter.
+
+Mode-specific learning is separate. `learnMode(...)` stores per-mode learning progress in the skill instance NBT tag using `getModeId(...)` and `getLearningPointRequirement(...)`.
+
+Therefore the planned kill-learning algorithm can be:
+
+```text
+1. Resolve dead mob's effective profile skills.
+2. Resolve player's SkillStorage.
+3. For each matching skill id:
+   - player must already have a skill instance
+   - instance mastery must be < 0
+   - registered skill must be a TensuraSkill
+4. Call TensuraSkill.addLearnPoint(instance, player, 0, configuredAmount).
+5. Let Tensura events, penalties, messages, sync and completion behavior run normally.
+```
+
+The exact mode argument and whether some skills need specialized handling still require runtime tests, but the underlying mechanic is confirmed.
 
 Registries include:
 
@@ -198,8 +252,6 @@ IntrinsicSkills
 ResistanceSkills
 UniqueSkills
 ```
-
-Further investigation requires the matching ManasCore jar because the actual skill storage/mastery APIs are defined in ManasCore interfaces.
 
 ## Natural spawn data
 
@@ -225,10 +277,9 @@ The project intends to rebalance these into a coherent cross-mod ecology, includ
 
 ## Next inspection targets
 
-- `TensuraStorages` signatures and storage acquisition guarantees
-- naming flow and where `setPermanentOwner` is written
+- naming flow and exact places where `setPermanentOwner` is written
 - race assignment/evolution methods
-- ManasCore skill storage / possessed vs learned/mastered state
-- event hooks for death / EP changes
-- how third-party `LivingEntity` receives `ExistenceStorage`
-- exact Thought Communication subordinate predicate lambdas
+- death/kill event ownership resolution for subordinate/clone kills
+- how third-party `LivingEntity` receives `ExistenceStorage` at runtime
+- exact Thought Communication predicate/targeting behavior
+- skills that override the default learning/acquisition model
