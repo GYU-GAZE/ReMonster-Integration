@@ -77,6 +77,12 @@ public final class IntegrationCommands {
                                                 .executes(context -> clearMcaSubordinate(
                                                         context.getSource(),
                                                         EntityArgument.getEntity(context, "target")
+                                                ))))
+                                .then(Commands.literal("status")
+                                        .then(Commands.argument("target", EntityArgument.entity())
+                                                .executes(context -> subordinateStatus(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "target")
                                                 )))))
         );
     }
@@ -111,7 +117,6 @@ public final class IntegrationCommands {
         }
 
         double ep = TensuraExistenceBridge.getEp(living);
-        Optional<UUID> owner = TensuraSubordinateBridge.getResolvedOwnerUuid(living);
         AttributeInstance followRange = living.getAttribute(Attributes.FOLLOW_RANGE);
         Optional<MobChampionsBridge.ChampionRank> championRank = MobChampionsBridge.getChampionRank(living);
         source.sendSuccess(() -> Component.literal("runtime EP: " + ep), false);
@@ -121,18 +126,7 @@ public final class IntegrationCommands {
         source.sendSuccess(() -> Component.literal(
                 "MobChampions: " + championRank.map(Enum::name).orElse("normal/not active")
         ), false);
-        source.sendSuccess(() -> Component.literal("resolved Tensura owner: " + owner.map(UUID::toString).orElse("none")), false);
-
-        String ownableOwner = "n/a";
-        if (living instanceof OwnableEntity ownable) {
-            LivingEntity vanillaOwner = ownable.getOwner();
-            ownableOwner = vanillaOwner == null ? "none" : vanillaOwner.getUUID().toString();
-        }
-        String finalOwnableOwner = ownableOwner;
-        source.sendSuccess(() -> Component.literal("OwnableEntity owner: " + finalOwnableOwner), false);
-        source.sendSuccess(() -> Component.literal(
-                "player-owned companion: " + McaGuardTargetPolicy.isPlayerOwnedCompanion(living)
-        ), false);
+        sendOwnershipStatus(source, living);
 
         List<String> skills = TensuraSkillBridge.getStorage(living).getLearnedSkills().stream()
                 .map(ManasSkillInstance::getSkillId)
@@ -160,6 +154,50 @@ public final class IntegrationCommands {
                         + " | playerOwnedCompanion=" + McaGuardTargetPolicy.isPlayerOwnedCompanion(target)
         ), false);
         return 1;
+    }
+
+    private static int subordinateStatus(CommandSourceStack source, Entity target) {
+        if (!(target instanceof LivingEntity living)) {
+            source.sendFailure(Component.literal("target is not a living entity"));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(
+                "[Re:Monster] subordinate status " + BuiltInRegistries.ENTITY_TYPE.getKey(living.getType())
+                        + " / " + living.getUUID()
+                        + " | MCA=" + McaSubordinateAdapter.isMcaVillager(living)
+        ), false);
+        sendOwnershipStatus(source, living);
+        return 1;
+    }
+
+    private static void sendOwnershipStatus(CommandSourceStack source, LivingEntity living) {
+        Optional<UUID> resolvedOwner = TensuraSubordinateBridge.getResolvedOwnerUuid(living);
+        Optional<UUID> permanentOwner = TensuraSubordinateBridge.getPermanentOwnerUuid(living);
+        Optional<UUID> temporaryOwner = TensuraSubordinateBridge.getTemporaryOwnerUuid(living);
+        Optional<UUID> summoner = TensuraSubordinateBridge.getSummonerUuid(living);
+
+        source.sendSuccess(() -> Component.literal(
+                "Tensura ownership: resolved=" + uuidOrNone(resolvedOwner)
+                        + " permanent=" + uuidOrNone(permanentOwner)
+                        + " temporary=" + uuidOrNone(temporaryOwner)
+                        + " summoner=" + uuidOrNone(summoner)
+        ), false);
+
+        String ownableOwner = "n/a";
+        if (living instanceof OwnableEntity ownable) {
+            LivingEntity vanillaOwner = ownable.getOwner();
+            ownableOwner = vanillaOwner == null ? "none" : vanillaOwner.getUUID().toString();
+        }
+        String finalOwnableOwner = ownableOwner;
+        source.sendSuccess(() -> Component.literal("OwnableEntity owner: " + finalOwnableOwner), false);
+        source.sendSuccess(() -> Component.literal(
+                "player-owned companion: " + McaGuardTargetPolicy.isPlayerOwnedCompanion(living)
+        ), false);
+    }
+
+    private static String uuidOrNone(Optional<UUID> value) {
+        return value.map(UUID::toString).orElse("none");
     }
 
     private static int reapplyProfile(CommandSourceStack source, Entity target) {
