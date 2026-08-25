@@ -87,12 +87,18 @@ neoForge {
 
 configurations {
     manasCoreBundle
+    betterSubsInspect
     runtimeClasspath.extendsFrom localRuntime
 }
 
 dependencies {
     // Tensura itself is available as a normal CurseMaven artifact.
     compileOnly 'curse.maven:tensura-reincarnated-643695:8665599'
+
+    // Better Subordinates is part of the target pack. Keep it compile-only so the integration jar
+    // never redistributes the ARR dependency and the runtime still owns its exact installed copy.
+    compileOnly 'curse.maven:tensura-better-subordinates-1489224:8414486'
+    betterSubsInspect 'curse.maven:tensura-better-subordinates-1489224:8414486'
 
     // ManasCore's published NeoForge release is a bundle whose API modules are nested jars.
     // Resolve the exact pack release, extract those modules below, and put them on javac's classpath.
@@ -119,6 +125,21 @@ var extractManasCoreModules = tasks.register('extractManasCoreModules', Sync) {
 
 tasks.named('compileJava').configure {
     dependsOn extractManasCoreModules
+}
+
+// Developer reconnaissance helper. It resolves the exact Better Subordinates jar through
+// CurseMaven and prints only class paths; no third-party binary is copied into this repository.
+tasks.register('inspectBetterSubsClasses') {
+    doLast {
+        configurations.betterSubsInspect.files.each { archive ->
+            println "=== Better Subordinates classes: ${archive.name} ==="
+            zipTree(archive).visit { details ->
+                if (!details.directory && details.path.endsWith('.class')) {
+                    println details.path
+                }
+            }
+        }
+    }
 }
 
 var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
