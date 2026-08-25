@@ -11,6 +11,7 @@ public record MobProfile(
         MobDisposition disposition,
         MobTier tier,
         double ep,
+        EpApplicationMode epMode,
         List<ResourceLocation> skills,
         double learningMultiplier,
         boolean guardHostile,
