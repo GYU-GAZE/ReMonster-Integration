@@ -1,0 +1,21 @@
+{
+  "entity": "tensura:direwolf",
+  "disposition": "hostile",
+  "tier": "normal",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.0,
+  "guard_hostile": true,
+  "aggro_range": 20,
+  "dungeon_weight": 1,
+  "themes": ["beast", "pack_hunter", "early_game"],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": ["plains", "forest", "taiga", "swamp", "mountain", "cave"],
+    "rarity": "common",
+    "weight": 10,
+    "group_min": 3,
+    "group_max": 7
+  }
+}
