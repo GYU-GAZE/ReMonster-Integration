@@ -23,8 +23,23 @@ jobs:
         with:
           gradle-version: '9.2.1'
 
-      - name: Inspect Better Subordinates classes
-        run: gradle inspectBetterSubsClasses --quiet --no-configuration-cache
+      - name: Inspect Better Subordinates bytecode
+        shell: bash
+        run: |
+          gradle dependencies --configuration betterSubsInspect --quiet --no-configuration-cache >/dev/null
+          JAR=$(find ~/.gradle/caches/modules-2/files-2.1/curse.maven/tensura-better-subordinates-1489224/8414486 -name '*.jar' | head -n 1)
+          echo "=== Better Subordinates jar: $JAR ==="
+          for CLS in \
+            com.trbeyond.tensura_better_subs.entity.ExpandedSkillStorage \
+            com.trbeyond.tensura_better_subs.entity.IExpandedSkillAcquisition \
+            com.trbeyond.tensura_better_subs.mixin.tensura.entity.template.MixinTensuraTamableEntity \
+            com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill \
+            com.trbeyond.tensura_better_subs.network.c2s.SubordinateSkillGrantingPacket \
+            com.trbeyond.tensura_better_subs.network.c2s.RequestSubordinateAbilityModeChangePacket; do
+            echo
+            echo "===== $CLS ====="
+            javap -classpath "$JAR" -p -c "$CLS" || true
+          done
 
       - name: Build
         run: gradle build --stacktrace
