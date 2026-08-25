@@ -1,5 +1,6 @@
 package com.gyugaze.remonsterintegration.command;
 
+import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.profile.MobProfileRegistry;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
@@ -13,8 +14,11 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.Comparator;
 import java.util.List;
@@ -38,6 +42,21 @@ public final class IntegrationCommands {
                                                 context.getSource(),
                                                 EntityArgument.getEntity(context, "target")
                                         ))))
+                        .then(Commands.literal("mca_subordinate")
+                                .then(Commands.literal("assign")
+                                        .then(Commands.argument("target", EntityArgument.entity())
+                                                .then(Commands.argument("owner", EntityArgument.player())
+                                                        .executes(context -> assignMcaSubordinate(
+                                                                context.getSource(),
+                                                                EntityArgument.getEntity(context, "target"),
+                                                                EntityArgument.getPlayer(context, "owner")
+                                                        )))))
+                                .then(Commands.literal("clear")
+                                        .then(Commands.argument("target", EntityArgument.entity())
+                                                .executes(context -> clearMcaSubordinate(
+                                                        context.getSource(),
+                                                        EntityArgument.getEntity(context, "target")
+                                                )))))
         );
     }
 
@@ -54,6 +73,7 @@ public final class IntegrationCommands {
                     "profile: " + p.tier() + " / " + p.disposition()
                             + " | EP=" + p.ep() + " (" + p.epMode() + ")"
                             + " | guardHostile=" + p.guardHostile()
+                            + " | aggroRange=" + (p.overridesAggroRange() ? p.aggroRange() : "native")
             ), false);
             source.sendSuccess(() -> Component.literal(
                     "ecology: natural=" + p.ecology().naturalSpawn()
@@ -71,7 +91,11 @@ public final class IntegrationCommands {
 
         double ep = TensuraExistenceBridge.getEp(living);
         Optional<UUID> owner = TensuraSubordinateBridge.getResolvedOwnerUuid(living);
+        AttributeInstance followRange = living.getAttribute(Attributes.FOLLOW_RANGE);
         source.sendSuccess(() -> Component.literal("runtime EP: " + ep), false);
+        source.sendSuccess(() -> Component.literal(
+                "runtime FOLLOW_RANGE: " + (followRange == null ? "n/a" : followRange.getValue())
+        ), false);
         source.sendSuccess(() -> Component.literal("resolved Tensura owner: " + owner.map(UUID::toString).orElse("none")), false);
 
         List<String> skills = TensuraSkillBridge.getStorage(living).getLearnedSkills().stream()
@@ -81,6 +105,46 @@ public final class IntegrationCommands {
                 .toList();
 
         source.sendSuccess(() -> Component.literal("runtime skills (" + skills.size() + "): " + skills), false);
+        return 1;
+    }
+
+    private static int assignMcaSubordinate(CommandSourceStack source, Entity target, ServerPlayer owner) {
+        if (!(target instanceof LivingEntity living)) {
+            source.sendFailure(Component.literal("target is not a living entity"));
+            return 0;
+        }
+        if (!McaSubordinateAdapter.isMcaVillager(living)) {
+            source.sendFailure(Component.literal("target is not an MCA villager"));
+            return 0;
+        }
+        if (!McaSubordinateAdapter.assignPermanentOwner(living, owner)) {
+            source.sendFailure(Component.literal("Tensura did not resolve the requested permanent owner"));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(
+                "[Re:Monster] MCA villager " + living.getUUID() + " is now a Tensura subordinate of " + owner.getGameProfile().getName()
+        ), true);
+        return 1;
+    }
+
+    private static int clearMcaSubordinate(CommandSourceStack source, Entity target) {
+        if (!(target instanceof LivingEntity living)) {
+            source.sendFailure(Component.literal("target is not a living entity"));
+            return 0;
+        }
+        if (!McaSubordinateAdapter.isMcaVillager(living)) {
+            source.sendFailure(Component.literal("target is not an MCA villager"));
+            return 0;
+        }
+        if (!McaSubordinateAdapter.clearPermanentOwner(living)) {
+            source.sendFailure(Component.literal("Tensura still resolves an owner after clearing permanent ownership"));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(
+                "[Re:Monster] cleared Tensura permanent ownership from MCA villager " + living.getUUID()
+        ), true);
         return 1;
     }
 }
