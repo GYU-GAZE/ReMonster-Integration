@@ -8,8 +8,9 @@ This roadmap is ordered by dependency and risk, not by feature hype. Shared infr
 - [x] Freeze initial runtime: Minecraft 1.21.1 / NeoForge 21.1.248 / Java 21
 - [x] Inspect Tensura 2.0.1.2 mod metadata and first internal APIs
 - [x] Add CI-safe compile dependencies for exact Tensura 2.0.1.2 + ManasCore 4.0.0.2 through CurseMaven
+- [x] Extract ManasCore bundled modules into the compile classpath without committing third-party jars
+- [x] Build the addon successfully in CI against real Tensura + ManasCore APIs
 - [ ] Add complete local runtime dependency set for launching the full pack from the dev workspace
-- [ ] Build the addon successfully in CI
 - [ ] Launch a test instance and confirm `[Re:Monster Integration] loaded`
 - [ ] Add a debug command / diagnostics screen for integration state
 
@@ -70,7 +71,6 @@ Current profile shape:
 Target mob mods include:
 
 - Tensura and installed Tensura addons
-- Born in Chaos
 - L_Ender's Cataclysm
 - Mowzie's Mobs
 - Mowzie's Cataclysm
@@ -110,7 +110,6 @@ Build a coherent isekai bestiary instead of accepting every mod's independent sp
 - [x] define semantic habitat groups: plains, meadow, forest, taiga, swamp, mountain, desert, coast/ocean, river, cave, nether, end, cursed, dungeon-only
 - [x] model frequency tiers and group sizes
 - [ ] minimum player distance where useful
-- [x] define Born in Chaos curation policy so horror/Halloween mobs do not dominate normal fantasy biomes
 - [x] define policy keeping elite/boss entities out of ordinary spawn soup unless explicitly intended
 - [ ] author first active biome rebalance datapack
 
@@ -118,7 +117,7 @@ Initial design rule:
 
 - generalist fantasy fauna should be visible and reasonably frequent
 - biome-characteristic mobs should make regions feel different
-- themed / goofy / horror mobs should be restricted to fitting contexts
+- strongly themed mobs should be restricted to fitting contexts
 - bosses and calamity-tier mobs should normally use structures, events or rare conditions
 
 ## Phase 5 - MCA Threat Bridge
