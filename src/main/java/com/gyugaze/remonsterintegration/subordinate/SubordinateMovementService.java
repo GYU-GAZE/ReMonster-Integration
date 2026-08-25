@@ -67,21 +67,26 @@ public final class SubordinateMovementService {
         return false;
     }
 
-    public static boolean cycleExternal(Mob target, Player owner) {
+    /**
+     * Cycles an external subordinate and returns the state that was actually applied.
+     */
+    public static Optional<SubordinateMovementMode> cycleExternal(Mob target, Player owner) {
         Objects.requireNonNull(target, "target");
         Objects.requireNonNull(owner, "owner");
 
+        if (McaSubordinateAdapter.isMcaVillager(target) || target instanceof TamableAnimal) {
+            SubordinateMovementMode next = getMode(target).orElse(SubordinateMovementMode.FOLLOW).next();
+            return applyExternalWithOwner(target, next, owner) ? Optional.of(next) : Optional.empty();
+        }
+
+        return Optional.empty();
+    }
+
+    private static boolean applyExternalWithOwner(Mob target, SubordinateMovementMode mode, Player owner) {
         if (McaSubordinateAdapter.isMcaVillager(target)) {
-            SubordinateMovementMode next = getMode(target).orElse(SubordinateMovementMode.FOLLOW).next();
-            return McaSubordinateAdapter.setMovementMode(target, next, owner);
+            return McaSubordinateAdapter.setMovementMode(target, mode, owner);
         }
-
-        if (target instanceof TamableAnimal) {
-            SubordinateMovementMode next = getMode(target).orElse(SubordinateMovementMode.FOLLOW).next();
-            return apply(target, next);
-        }
-
-        return false;
+        return apply(target, mode);
     }
 
     public static Optional<SubordinateMovementMode> getMode(LivingEntity entity) {
