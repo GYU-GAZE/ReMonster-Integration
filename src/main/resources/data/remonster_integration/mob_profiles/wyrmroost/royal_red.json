@@ -1,0 +1,21 @@
+{
+  "entity": "wyrmroost:royal_red",
+  "disposition": "hostile",
+  "tier": "elite",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.5,
+  "guard_hostile": true,
+  "aggro_range": 32,
+  "dungeon_weight": 0,
+  "themes": ["dragon", "mountain", "fire", "rare", "tameable"],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": ["mountain"],
+    "rarity": "rare",
+    "weight": 1,
+    "group_min": 1,
+    "group_max": 1
+  }
+}
