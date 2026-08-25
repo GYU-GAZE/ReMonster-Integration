@@ -1,0 +1,21 @@
+{
+  "entity": "wyrmroost:butterfly_leviathan",
+  "disposition": "hostile",
+  "tier": "elite",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.5,
+  "guard_hostile": true,
+  "aggro_range": 24,
+  "dungeon_weight": 0,
+  "themes": ["dragon", "aquatic", "ocean", "lightning", "rare", "tameable"],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": ["ocean"],
+    "rarity": "rare",
+    "weight": 1,
+    "group_min": 1,
+    "group_max": 1
+  }
+}
