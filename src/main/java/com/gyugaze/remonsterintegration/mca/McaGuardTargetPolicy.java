@@ -6,6 +6,7 @@ import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.npc.Villager;
 
 import java.util.Optional;
@@ -15,8 +16,8 @@ import java.util.OptionalInt;
  * Project-owned decision layer injected ahead of MCA's GuardEnemiesSensor priority logic.
  *
  * Returning an empty OptionalInt delegates to MCA unchanged. A present value overrides MCA's
- * priority for this target instance, allowing dynamic subordinate immunity that MCA's type-only
- * config cannot express.
+ * priority for this target instance, allowing dynamic ownership/subordinate immunity that MCA's
+ * type-only config cannot express.
  */
 public final class McaGuardTargetPolicy {
     public static final int ACTIVE_THREAT_PRIORITY = 9;
@@ -30,14 +31,15 @@ public final class McaGuardTargetPolicy {
             return OptionalInt.empty();
         }
 
-        // Self-defence and village-defence always win over subordinate immunity.
+        // Self-defence and village-defence always win over ownership immunity.
         if (isActivelyThreateningProtectedEntity(target, guard)) {
             return OptionalInt.of(ACTIVE_THREAT_PRIORITY);
         }
 
-        // A normally hostile mob owned through Tensura by a player is a friendly subordinate.
-        // MCA's own config is type-based, so this instance-level exception must happen first.
-        if (isPlayerOwnedSubordinate(target)) {
+        // Friendly ownership is instance-specific and must be checked before profile/type hostility.
+        // This covers Tensura subordinates plus normal/modded OwnableEntity companions such as
+        // Wyrmroost dragons without introducing a hard dependency on those mods.
+        if (isPlayerOwnedCompanion(target)) {
             return OptionalInt.of(IGNORE_PRIORITY);
         }
 
@@ -59,6 +61,28 @@ public final class McaGuardTargetPolicy {
         });
     }
 
+    /**
+     * True when this concrete entity instance belongs to a player through either Tensura's
+     * ExistenceStorage ownership or Minecraft's generic OwnableEntity contract.
+     */
+    public static boolean isPlayerOwnedCompanion(LivingEntity target) {
+        if (TensuraSubordinateBridge.getResolvedOwner(target)
+                .filter(ServerPlayer.class::isInstance)
+                .isPresent()) {
+            return true;
+        }
+
+        if (target instanceof OwnableEntity ownable) {
+            return ownable.getOwner() instanceof ServerPlayer;
+        }
+
+        return false;
+    }
+
+    /**
+     * Kept as a compatibility-friendly semantic alias for callers interested specifically in the
+     * Tensura subordinate use case.
+     */
     public static boolean isPlayerOwnedSubordinate(LivingEntity target) {
         return TensuraSubordinateBridge.getResolvedOwner(target)
                 .filter(ServerPlayer.class::isInstance)
