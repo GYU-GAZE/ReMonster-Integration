@@ -7,8 +7,9 @@ This roadmap is ordered by dependency and risk, not by feature hype. Shared infr
 - [x] Create project repository
 - [x] Freeze initial runtime: Minecraft 1.21.1 / NeoForge 21.1.248 / Java 21
 - [x] Inspect Tensura 2.0.1.2 mod metadata and first internal APIs
-- [ ] Add complete local development dependency set
-- [ ] Build the addon successfully
+- [x] Add CI-safe compile dependencies for exact Tensura 2.0.1.2 + ManasCore 4.0.0.2 through CurseMaven
+- [ ] Add complete local runtime dependency set for launching the full pack from the dev workspace
+- [ ] Build the addon successfully in CI
 - [ ] Launch a test instance and confirm `[Re:Monster Integration] loaded`
 - [ ] Add a debug command / diagnostics screen for integration state
 
@@ -16,29 +17,36 @@ This roadmap is ordered by dependency and risk, not by feature hype. Shared infr
 
 Create one data-driven source of truth for modded mobs.
 
-- [ ] JSON reload listener and validation
-- [ ] entity registry resolution
+- [x] Define central `MobProfile` data model
+- [x] Define JSON parser + field validation
+- [x] Define in-memory profile registry
+- [ ] JSON reload listener and resource-pack reload registration
+- [ ] entity registry validation/resolution during reload
 - [ ] optional-mod-safe profiles: missing entity ids are ignored with a warning
-- [ ] mob classification: passive / neutral / hostile / elite / boss
-- [ ] EP values
-- [ ] skills possessed by mob
-- [ ] learning multiplier
-- [ ] dungeon/spawner weight
-- [ ] MCA guard hostility policy
-- [ ] ecology / habitat profile
-- [ ] tags/themes such as beast, undead, dark_fantasy, aquatic, dragon, construct
+- [x] model mob classification: passive / neutral / hostile + normal / elite / boss / calamity
+- [x] model EP values
+- [x] model skills possessed by mob
+- [x] model learning multiplier
+- [x] model dungeon/spawner weight
+- [x] model MCA guard hostility policy
+- [x] model ecology / habitat profile
+- [x] model tags/themes such as beast, undead, dark_fantasy, aquatic, dragon, construct
 
-Planned profile shape:
+Current profile shape:
 
 ```json
 {
   "entity": "tensura:horned_rabbit",
+  "disposition": "hostile",
   "tier": "normal",
   "ep": 1200,
   "skills": [],
   "learning_multiplier": 1.0,
   "guard_hostile": true,
+  "dungeon_weight": 1,
+  "themes": ["beast"],
   "ecology": {
+    "natural_spawn": true,
     "habitats": ["plains", "meadow", "forest"],
     "rarity": "common",
     "weight": 70,
@@ -50,7 +58,9 @@ Planned profile shape:
 
 ## Phase 2 - Tensura mob integration
 
-- [ ] Resolve `IExistence` for arbitrary `LivingEntity`
+- [x] Resolve `IExistence` for arbitrary `LivingEntity`
+- [x] Add a narrow `TensuraExistenceBridge` for EP access
+- [x] Add a narrow `TensuraSubordinateBridge` for ownership/alliance access
 - [ ] assign / normalize EP for supported third-party mobs
 - [ ] assign effective Tensura skills to third-party mobs
 - [ ] prefer official compatibility behavior when an installed compat already owns a mob
@@ -72,29 +82,37 @@ Target mob mods include:
 
 ## Phase 3 - Skill learning from kills
 
-When a player possesses a Tensura skill but has not learned/mastered it, killing a mob that effectively possesses the skill should grant learning progress.
+When a player possesses a Tensura skill but is still in Tensura's acquisition-learning state, killing a mob that effectively possesses the skill should grant learning progress.
 
-- [ ] resolve true killer / owner
+- [x] Confirm native representation: acquisition-learning skill instance has mastery < 0
+- [x] Confirm native primitive: `TensuraSkill.addLearnPoint(...)`
+- [x] Add `TensuraSkillBridge` that feeds native learning instead of inventing parallel points
+- [x] Add profile-driven `KillLearningService`
+- [ ] resolve true killer / owner from death events
 - [ ] support player direct kills
 - [ ] investigate subordinate and clone kills
-- [ ] intersect dead mob skills with player's possessed-unlearned skills
-- [ ] grant configurable learning progress
-- [ ] scale progress by EP / tier / boss / champion state
-- [ ] prevent duplicate grants
+- [x] intersect profile skill ids with player's possessed acquisition-learning instances
+- [ ] add common/configurable base learning amount
+- [x] scale core service by profile learning multiplier
+- [ ] additionally scale by EP / tier / boss / champion state
+- [ ] prevent duplicate event attribution/grants
+- [ ] runtime-test skills with unusual mode-learning overrides
 
 ## Phase 4 - Ecology / Spawn Director
 
 Build a coherent isekai bestiary instead of accepting every mod's independent spawn table.
 
-- [ ] inventory existing natural spawn systems per target mod
+- [x] inventory Tensura 2.0.1.2 natural spawn mechanism and extract all 42 natural spawn modifiers
+- [ ] inventory existing natural spawn systems for the other target mods
 - [ ] override Tensura biome tags / NeoForge biome modifiers where possible
 - [ ] use InControl for rules that cannot be cleanly data-overridden
 - [ ] custom runtime spawn hook only where required
-- [ ] habitat groups: plains, forest, taiga, swamp, mountain, desert, coast/ocean, cave, nether, end, cursed, dungeon-only
-- [ ] frequency tiers and group sizes
+- [x] define semantic habitat groups: plains, meadow, forest, taiga, swamp, mountain, desert, coast/ocean, river, cave, nether, end, cursed, dungeon-only
+- [x] model frequency tiers and group sizes
 - [ ] minimum player distance where useful
-- [ ] curate Born in Chaos so horror/Halloween mobs do not dominate normal fantasy biomes
-- [ ] keep elite/boss entities out of ordinary spawn soup unless explicitly intended
+- [x] define Born in Chaos curation policy so horror/Halloween mobs do not dominate normal fantasy biomes
+- [x] define policy keeping elite/boss entities out of ordinary spawn soup unless explicitly intended
+- [ ] author first active biome rebalance datapack
 
 Initial design rule:
 
@@ -107,7 +125,7 @@ Initial design rule:
 
 - [ ] MCA guards attack hostile mobs from supported mods
 - [ ] use explicit project hostility classification rather than trusting every mod's broad monster tags
-- [ ] detect Tensura subordinate ownership dynamically
+- [x] expose Tensura subordinate ownership/alliance predicate for the future MCA bridge
 - [ ] guards ignore normally-hostile mobs owned by a friendly player
 - [ ] active aggression overrides subordinate immunity: a subordinate attacking villagers can still be defended against
 - [ ] avoid guards targeting friendly/tamed third-party mobs
@@ -131,7 +149,9 @@ Preserve:
 
 Add:
 
-- [ ] Tensura permanent owner
+- [x] low-level Tensura permanent-owner write exists without entity replacement
+- [x] confirmed Tensura recognizes generic `LivingEntity` ownership before checking native `ISubordinate`
+- [ ] MCA-specific permanent-owner conversion command/action
 - [ ] EP
 - [ ] skills
 - [ ] learning / mastery compatibility
@@ -140,7 +160,7 @@ Add:
 - [ ] evolution compatibility
 - [ ] ally/guard checks
 
-Thought Communication must be adapted to MCA semantics instead of replacing MCA scheduling.
+Thought Communication must be adapted to MCA semantics instead of replacing MCA scheduling. Initial bytecode inspection indicates native stay/follow/wander mutation is gated behind Tensura's `ISubordinate`, which is promising for an ownership-only MCA adapter, but runtime verification is mandatory.
 
 ## Phase 7 - Dungeon / Spawner Director
 
@@ -188,7 +208,8 @@ Player gameplay remains Tensura-driven. Townstead primarily supplies visual/gene
 
 ## Phase 11 - Expanded race evolution
 
-- [ ] inspect all Tensura race branches and requirements
+- [x] locate Tensura native race/evolution framework and requirement classes
+- [ ] inspect all target Tensura race branches and concrete requirement values
 - [ ] add project branches where useful
 - [ ] assign visual profile per stage
 - [ ] example: Goblin -> Hobgoblin -> Enlightened Hobgoblin / Ogre branches
