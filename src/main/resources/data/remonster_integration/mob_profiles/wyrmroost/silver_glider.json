@@ -1,0 +1,21 @@
+{
+  "entity": "wyrmroost:silver_glider",
+  "disposition": "passive",
+  "tier": "normal",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.0,
+  "guard_hostile": false,
+  "aggro_range": 0,
+  "dungeon_weight": 0,
+  "themes": ["dragon", "flying", "coastal", "fauna", "tameable"],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": ["coast", "ocean"],
+    "rarity": "uncommon",
+    "weight": 10,
+    "group_min": 1,
+    "group_max": 4
+  }
+}
