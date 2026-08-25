@@ -4,6 +4,8 @@ import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +33,19 @@ public final class MobProfileApplicationService {
             TensuraExistenceBridge.setEp(entity, targetEp);
         }
 
+        AttributeInstance followRange = entity.getAttribute(Attributes.FOLLOW_RANGE);
+        double previousAggroRange = followRange == null ? 0.0 : followRange.getBaseValue();
+        double targetAggroRange = previousAggroRange;
+        boolean aggroRangeChanged = false;
+
+        if (profile.overridesAggroRange() && followRange != null) {
+            targetAggroRange = profile.aggroRange();
+            aggroRangeChanged = Double.compare(previousAggroRange, targetAggroRange) != 0;
+            if (aggroRangeChanged) {
+                followRange.setBaseValue(targetAggroRange);
+            }
+        }
+
         List<ResourceLocation> addedSkills = new ArrayList<>();
         for (ResourceLocation skillId : profile.skills()) {
             if (TensuraSkillBridge.ensureSkill(entity, skillId)) {
@@ -42,6 +57,9 @@ public final class MobProfileApplicationService {
                 epChanged,
                 previousEp,
                 targetEp,
+                aggroRangeChanged,
+                previousAggroRange,
+                targetAggroRange,
                 addedSkills
         );
     }
