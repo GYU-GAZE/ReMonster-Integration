@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# Local development runtime
+run/
+run-data/
+logs/
+crash-reports/
+
+# Third-party mod binaries - never commit
+libs/*.jar
+mods/
+
+# IDE
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated resources cache
+src/generated/**/.cache/
