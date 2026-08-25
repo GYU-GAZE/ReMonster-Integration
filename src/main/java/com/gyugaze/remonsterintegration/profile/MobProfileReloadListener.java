@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Loads data/*/mob_profiles/**/*.json into the shared MobProfileRegistry.
+ * Loads JSON resources under the datapack mob_profiles directory into the shared MobProfileRegistry.
  */
 public final class MobProfileReloadListener extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
