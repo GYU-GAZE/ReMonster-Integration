@@ -1,0 +1,21 @@
+{
+  "entity": "wyrmroost:roost_stalker",
+  "disposition": "neutral",
+  "tier": "normal",
+  "ep": 0,
+  "ep_mode": "fallback",
+  "skills": [],
+  "learning_multiplier": 1.0,
+  "guard_hostile": false,
+  "aggro_range": 0,
+  "dungeon_weight": 1,
+  "themes": ["dragon", "scavenger", "predator", "forest", "tameable"],
+  "ecology": {
+    "natural_spawn": true,
+    "habitats": ["plains", "forest", "mountain"],
+    "rarity": "uncommon",
+    "weight": 7,
+    "group_min": 2,
+    "group_max": 9
+  }
+}
