@@ -9,7 +9,8 @@
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
     "tensura.SubordinateFollowOwnerMixin",
-    "vanilla.FollowOwnerGoalMixin"
+    "vanilla.FollowOwnerGoalMixin",
+    "vanilla.AbstractHorseMixin"
   ],
   "injectors": {
     "defaultRequire": 0
