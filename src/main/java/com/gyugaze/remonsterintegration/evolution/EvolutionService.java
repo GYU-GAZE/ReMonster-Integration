@@ -65,6 +65,10 @@ public final class EvolutionService {
             bodyResult = physical.description();
         }
 
+        double targetScale = profile.map(SpeciesBodyProfile::scale).orElse(1.0D);
+        SpeciesScaleService.apply(entity, targetScale);
+        bodyResult += " | scale=" + targetScale;
+
         SpeciesStateService.setSpecies(entity, targetSpecies);
         ReMonsterIntegration.LOGGER.info(
                 "Evolution applied to {}: {} -> {} ({})",
