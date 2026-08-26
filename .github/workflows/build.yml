@@ -37,6 +37,20 @@ jobs:
           echo '=== THOUGHT COMM MIXIN ==='
           javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
 
+      - name: Inspect Tensura goblin dwarf and mount internals
+        if: success()
+        shell: bash
+        run: |
+          JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
+          echo "TENSURA_JAR=$JAR"
+          echo '=== MATCHING CLASSES ==='
+          jar tf "$JAR" | grep '\.class$' | grep -Ei '(goblin|dwarf|basilisk|mount|reputation|trade|profession)' | sed 's#/#.#g;s#\.class$##' | sort
+          echo '=== SELECTED BYTECODE ==='
+          for C in $(jar tf "$JAR" | grep '\.class$' | grep -Ei '(GoblinEntity|DwarfEntity|TensuraMountEntity|BasiliskEntity|DwarfReputation|DwarvenReputation)' | grep -Ev '(client|renderer|model)' | sed 's#/#.#g;s#\.class$##' | sort -u); do
+            echo "===== $C ====="
+            javap -classpath "$JAR" -p -c "$C" || true
+          done
+
       - name: Upload built jar
         if: success()
         uses: actions/upload-artifact@v4
