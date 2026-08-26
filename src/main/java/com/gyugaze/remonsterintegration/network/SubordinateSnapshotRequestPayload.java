@@ -53,6 +53,7 @@ public record SubordinateSnapshotRequestPayload(int entityId) implements CustomP
             int movement = SubordinateMovementService.getMode(target)
                     .map(Enum::ordinal)
                     .orElse(-1);
+            boolean movementUnlocked = TensuraSkillBridge.hasTelepathyMovementAccess(player);
             int targeting = SubordinateTargetingService.getMode(target).ordinal();
             boolean targetingUnlocked = TensuraSkillBridge.hasMasteredThoughtCommunication(player);
             PacketDistributor.sendToPlayer(
@@ -60,6 +61,7 @@ public record SubordinateSnapshotRequestPayload(int entityId) implements CustomP
                     new SubordinateSnapshotPayload(
                             target.getId(),
                             movement,
+                            movementUnlocked,
                             targeting,
                             targetingUnlocked,
                             target.getHealth(),
