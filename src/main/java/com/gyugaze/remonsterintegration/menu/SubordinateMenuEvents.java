@@ -29,19 +29,25 @@ public final class SubordinateMenuEvents {
             return;
         }
 
-        if (target instanceof TensuraHumanoidEntity) {
-            return;
-        }
-
+        boolean humanoid = target instanceof TensuraHumanoidEntity;
         boolean tensuraCreature = target instanceof TensuraTamableEntity;
 
-        boolean emptyHandTensuraCreatureOverview = !player.isShiftKeyDown()
+        // Tensura humanoids keep normal right-click for the upstream EP/equipment inventory. Their
+        // shift interaction opens Re:Monster's shared status/skills/command overview instead.
+        boolean humanoidShiftOverview = humanoid && player.isShiftKeyDown();
+
+        // Non-humanoid Tensura creatures do not have the rich humanoid inventory, so empty-hand normal
+        // right-click opens the overview. Shift remains upstream command cycling for these creatures.
+        boolean emptyHandTensuraCreatureOverview = !humanoid
+                && !player.isShiftKeyDown()
                 && event.getItemStack().isEmpty()
                 && tensuraCreature;
 
+        // External companions preserve normal interaction (MCA dialogue, horse inventory, vanilla pet
+        // actions) and use shift-right-click for the common overview.
         boolean externalShiftOverview = player.isShiftKeyDown() && !tensuraCreature;
 
-        if (!emptyHandTensuraCreatureOverview && !externalShiftOverview) {
+        if (!humanoidShiftOverview && !emptyHandTensuraCreatureOverview && !externalShiftOverview) {
             return;
         }
 
