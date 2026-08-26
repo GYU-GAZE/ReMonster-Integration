@@ -2,11 +2,11 @@ package com.gyugaze.remonsterintegration.client;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.menu.SubordinateMenuPolicy;
+import com.gyugaze.remonsterintegration.mixin.client.AbstractContainerScreenAccessor;
+import com.gyugaze.remonsterintegration.mixin.client.ScreenInvoker;
 import com.gyugaze.remonsterintegration.network.SubordinateCommandPayload;
 import com.gyugaze.remonsterintegration.network.SubordinateSnapshotRequestPayload;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
-import com.gyugaze.remonsterintegration.mixin.client.AbstractContainerScreenAccessor;
-import io.github.manasmods.tensura.entity.template.TensuraHumanoidEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -66,18 +66,13 @@ public final class CompanionChromeEvents {
         }
 
         LivingEntity target = optionalTarget.get();
-        boolean nativeStatusButton = target instanceof TensuraHumanoidEntity;
-        Layout layout = calculateLayout(screen, nativeStatusButton);
+        Layout layout = calculateLayout(screen);
         int entityId = target.getId();
 
-        Button status = null;
-        if (!nativeStatusButton) {
-            status = Button.builder(
-                    Component.literal("Status"),
-                    button -> resolveTarget(entityId).ifPresent(BetterSubordinatesStatusBridge::open)
-            ).bounds(layout.statusX(), layout.headerY() + 5, layout.statusWidth(), 20).build();
-            event.addListener(status);
-        }
+        Button status = Button.builder(
+                Component.literal("Status"),
+                button -> resolveTarget(entityId).ifPresent(BetterSubordinatesStatusBridge::open)
+        ).bounds(layout.statusX(), layout.headerY() + 5, layout.statusWidth(), 20).build();
 
         int firstWidth = layout.movementWidth();
         int secondWidth = layout.movementWidth();
@@ -108,6 +103,7 @@ public final class CompanionChromeEvents {
                 SubordinateMovementMode.STAY
         );
 
+        event.addListener(status);
         event.addListener(follow);
         event.addListener(wander);
         event.addListener(stay);
@@ -115,6 +111,22 @@ public final class CompanionChromeEvents {
         ChromeState state = new ChromeState(entityId, layout, follow, wander, stay, status);
         CHROME.put(screen, state);
         requestSnapshot(state, true);
+    }
+
+    @SubscribeEvent
+    public static void onScreenRenderPre(ScreenEvent.Render.Pre event) {
+        ChromeState state = CHROME.get(event.getScreen());
+        if (state == null) {
+            return;
+        }
+
+        // Some native screens rebuild themselves after Init.Post. MCA's AbstractDynamicScreen,
+        // for example, calls clearWidgets() from setLayout() when interaction data arrives.
+        // Reattach only widgets that the native screen discarded instead of replacing its GUI.
+        restoreButtonIfMissing(event.getScreen(), state.status());
+        restoreButtonIfMissing(event.getScreen(), state.follow());
+        restoreButtonIfMissing(event.getScreen(), state.wander());
+        restoreButtonIfMissing(event.getScreen(), state.stay());
     }
 
     @SubscribeEvent
@@ -139,6 +151,13 @@ public final class CompanionChromeEvents {
     public static void onScreenClosing(ScreenEvent.Closing event) {
         CHROME.remove(event.getScreen());
         CompanionScreenContext.onScreenClosing(event.getScreen());
+    }
+
+    private static void restoreButtonIfMissing(Screen screen, Button button) {
+        if (button == null || screen.children().contains(button)) {
+            return;
+        }
+        ((ScreenInvoker) screen).remonster$addRenderableWidget(button);
     }
 
     private static Button movementButton(
@@ -264,7 +283,7 @@ public final class CompanionChromeEvents {
                 : Optional.empty();
     }
 
-    private static Layout calculateLayout(Screen screen, boolean nativeStatusButton) {
+    private static Layout calculateLayout(Screen screen) {
         Minecraft minecraft = Minecraft.getInstance();
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
@@ -296,7 +315,7 @@ public final class CompanionChromeEvents {
             buttonY = Math.max(2, screenHeight - 22);
         }
 
-        int statusWidth = nativeStatusButton ? 0 : 60;
+        int statusWidth = 60;
         int statusX = chromeLeft + chromeWidth - statusWidth;
         int movementWidth = Math.max(1, (chromeWidth - 8) / 3);
         return new Layout(chromeLeft, chromeWidth, headerY, buttonY, statusX, statusWidth, movementWidth);

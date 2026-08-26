@@ -14,7 +14,8 @@
     "vanilla.PlayerInteractOnMixin"
   ],
   "client": [
-    "client.AbstractContainerScreenAccessor"
+    "client.AbstractContainerScreenAccessor",
+    "client.ScreenInvoker"
   ],
   "injectors": {
     "defaultRequire": 0
