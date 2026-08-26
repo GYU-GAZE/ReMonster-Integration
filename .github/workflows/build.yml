@@ -26,22 +26,16 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect Better Subordinates status menu bytecode
+      - name: Inspect Better Subordinates status transition
         if: success()
         shell: bash
         run: |
           JAR=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
-          echo "BETTER_SUBS_JAR=$JAR"
-          for CLASS in \
-            com.trbeyond.tensura_better_subs.client.screen.MainScreenSubordinate \
-            com.trbeyond.tensura_better_subs.client.screen.ScreenHelperSubordinates \
-            com.trbeyond.tensura_better_subs.client.screen.AbilityCategoriesScreenEntity \
-            com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload \
-            com.trbeyond.tensura_better_subs.mixin.tensura.client.screen.MixinHumanoidMainScreen \
-            com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill; do
-            echo "=== $CLASS ==="
-            javap -classpath "$JAR" -p -c "$CLASS" || true
-          done
+          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.client.screen.MixinHumanoidMainScreen
+          echo '=== OPEN PAYLOAD ==='
+          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload
+          echo '=== THOUGHT COMM MIXIN ==='
+          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
 
       - name: Upload built jar
         if: success()
