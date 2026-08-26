@@ -1,8 +1,6 @@
 package com.gyugaze.remonsterintegration.menu;
 
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
-import io.github.manasmods.tensura.entity.template.TensuraHumanoidEntity;
-import io.github.manasmods.tensura.entity.template.TensuraTamableEntity;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -13,11 +11,10 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 /**
- * Temporary fallback overview only for native Tensura creatures that have no humanoid inventory.
+ * Opens Re:Monster's compact fallback screen only for owned subordinates that have no native screen.
  *
- * Re:Monster must never steal native MCA, horse, pet or TensuraHumanoid interactions. The long-term
- * UI is a companion panel layered around native screens, not a replacement screen bound to a common
- * click gesture.
+ * Native-screen entities are never intercepted here; their owning mod keeps the original interaction
+ * and Re:Monster decorates the screen client-side instead.
  */
 public final class SubordinateMenuEvents {
     private SubordinateMenuEvents() {
@@ -33,19 +30,13 @@ public final class SubordinateMenuEvents {
             return;
         }
 
-        // Humanoids retain the complete native Tensura inventory/status flow.
-        if (target instanceof TensuraHumanoidEntity) {
+        if (!SubordinateMenuPolicy.shouldUseFallbackMenu(target)) {
             return;
         }
 
-        // External mobs retain every native interaction, including horse shift-right-click inventory.
-        if (!(target instanceof TensuraTamableEntity)) {
-            return;
-        }
-
-        // Non-humanoid Tensura creatures currently lack the humanoid inventory screen. Keep a small
-        // fallback overview on empty-hand normal right-click until the native-screen companion panel
-        // is complete. Shift-right-click remains Tensura's native command cycle.
+        // Item interactions keep their original behavior (feeding, dyeing, healing, mod-specific
+        // actions, etc.). Sneak interactions are also left alone for Thought Communication/native
+        // command flows. Empty-hand normal right-click is the Re:Monster fallback gesture.
         if (player.isShiftKeyDown() || !event.getItemStack().isEmpty()) {
             return;
         }
