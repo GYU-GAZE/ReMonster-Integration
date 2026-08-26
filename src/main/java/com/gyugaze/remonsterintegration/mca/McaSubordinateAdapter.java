@@ -4,8 +4,12 @@ import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SwordItem;
 
 import java.lang.reflect.Method;
 import java.util.Locale;
@@ -47,6 +51,54 @@ public final class McaSubordinateAdapter {
             Object value = villager.getClass().getMethod("isGuard").invoke(villager);
             return value instanceof Boolean guard && guard;
         } catch (ReflectiveOperationException | LinkageError exception) {
+            return false;
+        }
+    }
+
+    /**
+     * Projects MCA's best sword from the villager inventory into its dominant equipment slot.
+     *
+     * MCA 7.7.36-beta.3 already uses this inventory-as-equipment model for guards: its EquipmentTask
+     * selects the best SwordItem without removing it from the MCA inventory, then exposes that stack
+     * through the dominant equipment slot. Ordinary villagers intentionally use EquipmentSet.NAKED,
+     * so commanded Re:Monster civilians need this narrow bridge if they are expected to fight with a
+     * sword they already carry. No guard AI, ranged AI, or inventory ownership is replaced here.
+     */
+    public static boolean equipBestMeleeWeaponFromInventory(LivingEntity villager) {
+        Objects.requireNonNull(villager, "villager");
+        if (!isMcaVillager(villager) || isGuard(villager)) {
+            return false;
+        }
+
+        try {
+            Object inventoryValue = villager.getClass().getMethod("getInventory").invoke(villager);
+            Object slotValue = villager.getClass().getMethod("getDominantSlot").invoke(villager);
+            if (!(inventoryValue instanceof Container inventory) || !(slotValue instanceof EquipmentSlot slot)) {
+                return false;
+            }
+
+            ItemStack best = ItemStack.EMPTY;
+            int bestMaxDamage = -1;
+            for (int i = 0; i < inventory.getContainerSize(); i++) {
+                ItemStack candidate = inventory.getItem(i);
+                if (candidate.getItem() instanceof SwordItem && candidate.getMaxDamage() > bestMaxDamage) {
+                    best = candidate;
+                    bestMaxDamage = candidate.getMaxDamage();
+                }
+            }
+
+            if (best.isEmpty()) {
+                return false;
+            }
+
+            villager.setItemSlot(slot, best);
+            return true;
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            ReMonsterIntegration.LOGGER.debug(
+                    "Could not project MCA civilian melee weapon for {}",
+                    villager.getUUID(),
+                    exception
+            );
             return false;
         }
     }

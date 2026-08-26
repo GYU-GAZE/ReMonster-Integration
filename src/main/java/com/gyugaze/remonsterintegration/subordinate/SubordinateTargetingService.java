@@ -253,6 +253,11 @@ public final class SubordinateTargetingService {
     }
 
     private static void driveMcaCivilCombat(Mob target, LivingEntity candidate) {
+        // MCA civilians intentionally use EquipmentSet.NAKED for self-defence, even though MCA's
+        // equipment code already knows how to choose the best sword from their inventory. Project the
+        // same best-sword choice into the dominant slot only while Re:Monster is commanding combat.
+        McaSubordinateAdapter.equipBestMeleeWeaponFromInventory(target);
+
         target.getLookControl().setLookAt(candidate, 30.0F, 30.0F);
         target.getNavigation().moveTo(candidate, 0.8D);
 
