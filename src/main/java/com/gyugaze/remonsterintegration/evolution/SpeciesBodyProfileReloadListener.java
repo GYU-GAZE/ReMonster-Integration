@@ -79,11 +79,16 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
                         "Townstead body must provide root_candidates and/or root_search_terms"
                 );
             }
+            double scale = getDouble(body, "scale", 1.0D);
+            if (!Double.isFinite(scale) || scale < 0.25D || scale > 4.0D) {
+                throw new IllegalArgumentException("Townstead 'scale' must be between 0.25 and 4.0 in " + sourceId);
+            }
             townstead = Optional.of(new SpeciesBodyProfile.TownsteadBody(
                     candidates,
                     searchTerms,
                     getBoolean(body, "preserve_shared_loci", true),
-                    getBoolean(body, "clamp_body_metrics", true)
+                    getBoolean(body, "clamp_body_metrics", true),
+                    scale
             ));
         }
 
@@ -138,5 +143,9 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
 
     private static boolean getBoolean(JsonObject object, String key, boolean fallback) {
         return object.has(key) ? object.get(key).getAsBoolean() : fallback;
+    }
+
+    private static double getDouble(JsonObject object, String key, double fallback) {
+        return object.has(key) ? object.get(key).getAsDouble() : fallback;
     }
 }

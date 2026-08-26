@@ -18,11 +18,15 @@ public record SpeciesBodyProfile(
             List<ResourceLocation> rootCandidates,
             List<String> rootSearchTerms,
             boolean preserveSharedLoci,
-            boolean clampBodyMetrics
+            boolean clampBodyMetrics,
+            double scale
     ) {
         public TownsteadBody {
             rootCandidates = rootCandidates == null ? List.of() : List.copyOf(rootCandidates);
             rootSearchTerms = rootSearchTerms == null ? List.of() : List.copyOf(rootSearchTerms);
+            if (!Double.isFinite(scale) || scale <= 0.0D) {
+                throw new IllegalArgumentException("Townstead body scale must be a finite positive number");
+            }
         }
     }
 }

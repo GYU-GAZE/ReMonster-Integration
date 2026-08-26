@@ -9,6 +9,7 @@
       "orc"
     ],
     "preserve_shared_loci": true,
-    "clamp_body_metrics": true
+    "clamp_body_metrics": true,
+    "scale": 1.15
   }
 }
