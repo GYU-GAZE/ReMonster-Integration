@@ -57,13 +57,15 @@ Re:Monster must not steal an entity's primary interaction merely to expose subor
 
 - ordinary right-click belongs to the owning mod's normal interaction path
 - if a mount uses ordinary right-click to ride, riding remains ordinary right-click
-- if its native inventory uses secondary-use / shift-right-click, that remains the inventory gesture
+- when Re:Monster intentionally normalizes a rideable inventory entity to horse-style controls, secondary-use / shift-right-click owns the native inventory
 - Re:Monster decorates the native screen after it opens rather than opening a replacement screen first
 - the lightweight fallback subordinate screen is allowed only when the complete native/item interaction chain returned `PASS`
 
 An older implementation deliberately opened the Re:Monster overview on empty-hand normal right-click for non-humanoid `TensuraTamableEntity` instances. That behavior could steal the Basilisk's riding interaction and has been removed. The current `SubordinateMenuEvents` path only sends an ownership-authorized screen context and never cancels the native interaction.
 
-Tensura 2.0.1.2 `TensuraMountEntity` implements the vanilla `HasCustomInventoryScreen` contract and owns its `MountScreen` / `MountMenu`. Exact-jar inspection shows its interaction path checks secondary use before `openCustomInventoryScreen`, so Re:Monster should preserve that upstream mount behavior rather than reimplementing it.
+Tensura 2.0.1.2 `TensuraMountEntity` implements `HasCustomInventoryScreen` and owns its `MountScreen` / `MountMenu`, but exact-jar inspection exposed a bad input split for this pack: for an owned rideable mount, `getRidingInteraction` mounts before reaching its secondary-use branch; when the branch is reached, secondary-use returns `PASS`, which then falls through to `cycleCommands`, while non-secondary-use opens the inventory. Re:Monster therefore patches the class base rather than Basilisk specifically: secondary-use by the owner opens `openCustomInventoryScreen`, while every normal-click chest/shears/saddle/riding path remains native Tensura behavior. The redundant mount command-cycle gesture is replaced by the Follow/Wander/Stay controls already present in the companion chrome.
+
+Implemented by `TensuraMountInventoryInteractionMixin` and registered in the main mixin set. The compile/build step passed against exact Tensura 2.0.1.2; runtime input behavior still needs the pack regression test below.
 
 ### Generic native inventory coverage
 
@@ -81,7 +83,7 @@ The generic client matcher also accepts `HasCustomInventoryScreen` entities whos
 
 This means Basilisk is not special-cased as the only modded inventory creature. Any third-party mob that follows the standard vanilla custom-inventory contract is automatically eligible for native-screen decoration. The entity-type tag is the escape hatch for mods with useful native GUIs that do not implement that contract.
 
-Do not add per-species Java branches merely to support another dragon, mount or pet. Add a dedicated adapter only when the owning mod's interaction or GUI contract genuinely differs from the generic paths above.
+Input semantics are intentionally not overwritten for every third-party `HasCustomInventoryScreen` entity. A non-rideable inventory creature may legitimately use normal right-click for its container, while a rideable creature may have additional item or command gestures. Re:Monster preserves the owning mod's interaction until runtime testing proves a collision. If another rideable mod has the same inventory-versus-riding conflict as Tensura mounts, add a capability/tag-driven compatibility adapter rather than a Java species whitelist.
 
 ### Status
 
@@ -183,6 +185,7 @@ Already implemented:
 - native inventory/menu preservation policy
 - capability-driven native inventory recognition through `HasCustomInventoryScreen`
 - data-driven native-menu escape hatch for nonstandard mod GUIs
+- horse-style secondary-use inventory normalization for all Tensura `TensuraMountEntity` subclasses
 - fallback subordinate menu for entities without a useful native GUI
 - recovery of companion chrome after native screens clear/rebuild widgets
 
@@ -212,6 +215,7 @@ A full runtime battery for the universal subordinate system was reported passing
 - [ ] vanilla tameable: movement states still route correctly.
 - [ ] horse/native mount: ordinary right-click still rides, shift-right-click still opens native inventory, chrome decorates inventory, movement bridge still works.
 - [ ] Tensura mount/Basilisk: ordinary right-click still reaches native riding, shift-right-click opens native `MountScreen`, chrome decorates it.
+- [ ] Tensura mount special items: ordinary right-click chest/shears/saddle behavior remains unchanged.
 - [ ] one third-party `HasCustomInventoryScreen` entity: native interaction gesture remains unchanged and its native container receives chrome.
 - [ ] one explicitly tagged nonstandard native GUI, when such a target is identified.
 - [ ] fallback living entity with no useful native menu still reaches the generic subordinate menu only after native interaction returned `PASS`.
