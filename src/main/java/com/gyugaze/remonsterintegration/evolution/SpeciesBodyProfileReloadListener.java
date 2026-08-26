@@ -64,6 +64,10 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
         }
         JsonObject object = element.getAsJsonObject();
         ResourceLocation species = requireId(object, "species", sourceId);
+        double scale = getDouble(object, "scale", 1.0D);
+        if (!Double.isFinite(scale) || scale < 0.25D || scale > 4.0D) {
+            throw new IllegalArgumentException("'scale' must be between 0.25 and 4.0 in " + sourceId);
+        }
 
         Optional<SpeciesBodyProfile.TownsteadBody> townstead = Optional.empty();
         if (object.has("townstead")) {
@@ -87,7 +91,7 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
             ));
         }
 
-        return new SpeciesBodyProfile(species, townstead);
+        return new SpeciesBodyProfile(species, scale, townstead);
     }
 
     private static ResourceLocation requireId(JsonObject object, String key, ResourceLocation sourceId) {
@@ -138,5 +142,9 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
 
     private static boolean getBoolean(JsonObject object, String key, boolean fallback) {
         return object.has(key) ? object.get(key).getAsBoolean() : fallback;
+    }
+
+    private static double getDouble(JsonObject object, String key, double fallback) {
+        return object.has(key) ? object.get(key).getAsDouble() : fallback;
     }
 }
