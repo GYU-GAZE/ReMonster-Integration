@@ -2,8 +2,7 @@
   "species": "remonster_integration:ogre",
   "townstead": {
     "root_candidates": [
-      "townstead_classic:tiefling",
-      "townstead_classic:infernal_tiefling"
+      "townstead_classic:tiefling"
     ],
     "root_search_terms": [
       "tiefling"
