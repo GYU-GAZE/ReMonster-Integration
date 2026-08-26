@@ -29,22 +29,16 @@ public final class SubordinateMenuEvents {
             return;
         }
 
-        // Tensura humanoids keep both their native overview/equipment menu and shift command cycling.
         if (target instanceof TensuraHumanoidEntity) {
             return;
         }
 
         boolean tensuraCreature = target instanceof TensuraTamableEntity;
 
-        // Non-humanoid Tensura creatures currently lack the rich humanoid menu, so empty-hand normal
-        // interaction gets Re:Monster's overview. Their shift interaction remains upstream so native
-        // command cycling is not stolen.
         boolean emptyHandTensuraCreatureOverview = !player.isShiftKeyDown()
                 && event.getItemStack().isEmpty()
                 && tensuraCreature;
 
-        // External companions preserve normal interaction (MCA dialogue, horse inventory, pet actions)
-        // and use shift-right-click for Re:Monster's overview.
         boolean externalShiftOverview = player.isShiftKeyDown() && !tensuraCreature;
 
         if (!emptyHandTensuraCreatureOverview && !externalShiftOverview) {
@@ -64,7 +58,7 @@ public final class SubordinateMenuEvents {
                                 new SubordinateOverviewMenu(containerId, inventory, target),
                         Component.literal("Subordinate")
                 ),
-                buffer -> buffer.writeVarInt(target.getId())
+                buffer -> SubordinateOverviewMenu.writeOpeningData(buffer, target)
         );
     }
 }
