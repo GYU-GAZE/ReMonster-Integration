@@ -29,17 +29,25 @@ public final class SubordinateMenuEvents {
             return;
         }
 
-        // Tensura humanoids already have the richer native EP/equipment screen and command gesture.
+        // Tensura humanoids keep both their native overview/equipment menu and shift command cycling.
         if (target instanceof TensuraHumanoidEntity) {
             return;
         }
 
-        boolean shiftOverview = player.isShiftKeyDown();
-        boolean emptyHandTensuraCreatureOverview = !shiftOverview
-                && event.getItemStack().isEmpty()
-                && target instanceof TensuraTamableEntity;
+        boolean tensuraCreature = target instanceof TensuraTamableEntity;
 
-        if (!shiftOverview && !emptyHandTensuraCreatureOverview) {
+        // Non-humanoid Tensura creatures currently lack the rich humanoid menu, so empty-hand normal
+        // interaction gets Re:Monster's overview. Their shift interaction remains upstream so native
+        // command cycling is not stolen.
+        boolean emptyHandTensuraCreatureOverview = !player.isShiftKeyDown()
+                && event.getItemStack().isEmpty()
+                && tensuraCreature;
+
+        // External companions preserve normal interaction (MCA dialogue, horse inventory, pet actions)
+        // and use shift-right-click for Re:Monster's overview.
+        boolean externalShiftOverview = player.isShiftKeyDown() && !tensuraCreature;
+
+        if (!emptyHandTensuraCreatureOverview && !externalShiftOverview) {
             return;
         }
 
