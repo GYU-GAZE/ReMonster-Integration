@@ -3,8 +3,10 @@ package com.gyugaze.remonsterintegration.menu;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
+import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -15,13 +17,15 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
  * Slot-less server-authoritative menu for the common Re:Monster subordinate overview.
  *
- * Equipment is intentionally not present here. Species/mod-specific equipment adapters can add a
- * richer view later without pretending that every quadruped has humanoid armor slots.
+ * Equipment is intentionally adapter-specific. The common screen owns identity, HP/EP/SHP,
+ * movement state and the exact non-resistance Tensura skills this subordinate currently possesses.
  */
 public final class SubordinateOverviewMenu extends AbstractContainerMenu {
     public static final int BUTTON_FOLLOW = 0;
@@ -32,34 +36,69 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
     private static final int DATA_EP = 1;
     private static final int DATA_SHP = 2;
     private static final int DATA_COUNT = 3;
+    private static final int MAX_SYNCED_SKILLS = 128;
     private static final double MAX_USE_DISTANCE_SQR = 12.0D * 12.0D;
 
     private final Inventory playerInventory;
     private final int targetEntityId;
     private final ContainerData data;
+    private final List<ResourceLocation> skillIds;
 
     /** Client factory used by IMenuTypeExtension. */
     public SubordinateOverviewMenu(int containerId, Inventory playerInventory, RegistryFriendlyByteBuf extraData) {
-        this(containerId, playerInventory, extraData.readVarInt(), new SimpleContainerData(DATA_COUNT));
+        this(
+                containerId,
+                playerInventory,
+                extraData.readVarInt(),
+                new SimpleContainerData(DATA_COUNT),
+                readSkillIds(extraData)
+        );
     }
 
     /** Server constructor. */
     public SubordinateOverviewMenu(int containerId, Inventory playerInventory, LivingEntity target) {
-        this(containerId, playerInventory, target.getId(), createServerData(target));
+        this(
+                containerId,
+                playerInventory,
+                target.getId(),
+                createServerData(target),
+                TensuraSkillBridge.getRuntimeNonResistanceSkillIds(target)
+        );
     }
 
     private SubordinateOverviewMenu(
             int containerId,
             Inventory playerInventory,
             int targetEntityId,
-            ContainerData data
+            ContainerData data,
+            List<ResourceLocation> skillIds
     ) {
         super(ReMonsterMenus.SUBORDINATE_OVERVIEW.get(), containerId);
         this.playerInventory = playerInventory;
         this.targetEntityId = targetEntityId;
         this.data = data;
+        this.skillIds = List.copyOf(skillIds);
         checkContainerDataCount(data, DATA_COUNT);
         addDataSlots(data);
+    }
+
+    public static void writeOpeningData(RegistryFriendlyByteBuf buffer, LivingEntity target) {
+        buffer.writeVarInt(target.getId());
+        List<ResourceLocation> skills = TensuraSkillBridge.getRuntimeNonResistanceSkillIds(target);
+        int count = Math.min(skills.size(), MAX_SYNCED_SKILLS);
+        buffer.writeVarInt(count);
+        for (int i = 0; i < count; i++) {
+            buffer.writeResourceLocation(skills.get(i));
+        }
+    }
+
+    private static List<ResourceLocation> readSkillIds(RegistryFriendlyByteBuf buffer) {
+        int count = Math.min(Math.max(buffer.readVarInt(), 0), MAX_SYNCED_SKILLS);
+        List<ResourceLocation> result = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            result.add(buffer.readResourceLocation());
+        }
+        return List.copyOf(result);
     }
 
     private static ContainerData createServerData(LivingEntity target) {
@@ -78,7 +117,6 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
 
             @Override
             public void set(int index, int value) {
-                // Overview values are read-only; movement changes go through clickMenuButton.
             }
 
             @Override
@@ -116,6 +154,10 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
 
     public int getSpiritualHealth() {
         return data.get(DATA_SHP);
+    }
+
+    public List<ResourceLocation> getSkillIds() {
+        return skillIds;
     }
 
     public Optional<SubordinateMovementMode> getMovementMode() {
