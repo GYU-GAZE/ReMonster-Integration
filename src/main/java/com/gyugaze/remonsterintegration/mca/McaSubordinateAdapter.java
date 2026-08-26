@@ -8,6 +8,7 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
 
@@ -96,6 +97,76 @@ public final class McaSubordinateAdapter {
         } catch (ReflectiveOperationException | LinkageError exception) {
             ReMonsterIntegration.LOGGER.debug(
                     "Could not project MCA civilian melee weapon for {}",
+                    villager.getUUID(),
+                    exception
+            );
+            return false;
+        }
+    }
+
+    /**
+     * Projects the best BowItem already stored in an MCA civilian's inventory into its dominant slot.
+     * This mirrors MCA's own inventory-backed equipment model while keeping ordinary-villager Brain
+     * activities unchanged.
+     */
+    public static boolean equipBestBowFromInventory(LivingEntity villager) {
+        Objects.requireNonNull(villager, "villager");
+        if (!isMcaVillager(villager) || isGuard(villager)) {
+            return false;
+        }
+
+        try {
+            Object inventoryValue = villager.getClass().getMethod("getInventory").invoke(villager);
+            Object slotValue = villager.getClass().getMethod("getDominantSlot").invoke(villager);
+            if (!(inventoryValue instanceof Container inventory) || !(slotValue instanceof EquipmentSlot slot)) {
+                return false;
+            }
+
+            ItemStack best = ItemStack.EMPTY;
+            int bestMaxDamage = -1;
+            for (int i = 0; i < inventory.getContainerSize(); i++) {
+                ItemStack candidate = inventory.getItem(i);
+                if (candidate.getItem() instanceof BowItem && candidate.getMaxDamage() > bestMaxDamage) {
+                    best = candidate;
+                    bestMaxDamage = candidate.getMaxDamage();
+                }
+            }
+
+            if (best.isEmpty()) {
+                return false;
+            }
+
+            villager.setItemSlot(slot, best);
+            return true;
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            ReMonsterIntegration.LOGGER.debug(
+                    "Could not project MCA civilian bow for {}",
+                    villager.getUUID(),
+                    exception
+            );
+            return false;
+        }
+    }
+
+    /** Invokes MCA's own VillagerEntityMCA#performRangedAttack implementation. */
+    public static boolean performHeldBowAttack(LivingEntity villager, LivingEntity target, float pullProgress) {
+        Objects.requireNonNull(villager, "villager");
+        Objects.requireNonNull(target, "target");
+        if (!isMcaVillager(villager) || isGuard(villager) || !(villager.getMainHandItem().getItem() instanceof BowItem)) {
+            return false;
+        }
+
+        try {
+            Method performRangedAttack = villager.getClass().getMethod(
+                    "performRangedAttack",
+                    LivingEntity.class,
+                    float.class
+            );
+            performRangedAttack.invoke(villager, target, pullProgress);
+            return true;
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            ReMonsterIntegration.LOGGER.debug(
+                    "Could not invoke MCA civilian bow attack for {}",
                     villager.getUUID(),
                     exception
             );
