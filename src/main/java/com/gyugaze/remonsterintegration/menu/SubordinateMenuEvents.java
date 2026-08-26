@@ -5,6 +5,7 @@ import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
@@ -23,10 +24,23 @@ public final class SubordinateMenuEvents {
     }
 
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
-        if (!(event.getTarget() instanceof LivingEntity target) || !(target instanceof Mob)) {
+        armNativeScreenContext(event.getEntity(), event.getTarget());
+    }
+
+    /**
+     * Some entities consume the click in Entity#interactAt before the generic mob-interaction path.
+     * MCA villagers do this for their normal conversation GUI, so listening only to EntityInteract
+     * misses the exact click that opens the native screen.
+     */
+    public static void onEntityInteractSpecific(PlayerInteractEvent.EntityInteractSpecific event) {
+        armNativeScreenContext(event.getEntity(), event.getTarget());
+    }
+
+    private static void armNativeScreenContext(Player player, Entity rawTarget) {
+        if (!(rawTarget instanceof LivingEntity target) || !(target instanceof Mob)) {
             return;
         }
-        if (!(event.getEntity() instanceof ServerPlayer serverPlayer)) {
+        if (!(player instanceof ServerPlayer serverPlayer)) {
             return;
         }
         if (!TensuraSubordinateBridge.isSubordinateOf(serverPlayer, target)) {
