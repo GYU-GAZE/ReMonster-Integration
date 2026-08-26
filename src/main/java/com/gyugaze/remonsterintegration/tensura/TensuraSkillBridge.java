@@ -7,9 +7,12 @@ import io.github.manasmods.manascore.skill.impl.SkillStorage;
 import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.TensuraSkill;
 import io.github.manasmods.tensura.ability.skill.Skill;
+import io.github.manasmods.tensura.ability.skill.resist.ResistSkill;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -28,6 +31,24 @@ public final class TensuraSkillBridge {
     public static Optional<ManasSkillInstance> getSkillInstance(LivingEntity entity, ResourceLocation skillId) {
         Objects.requireNonNull(skillId, "skillId");
         return getStorage(entity).getSkill(skillId);
+    }
+
+    /**
+     * Skills this exact entity currently possesses, excluding Tensura's baseline resistance/
+     * proficiency storage entries. This is the authoritative runtime list used by Re:Monster for
+     * subordinate UI and kill-learning.
+     */
+    public static List<ManasSkillInstance> getRuntimeNonResistanceSkills(LivingEntity entity) {
+        return getStorage(entity).getLearnedSkills().stream()
+                .filter(instance -> !(instance.getSkill() instanceof ResistSkill))
+                .sorted(Comparator.comparing(instance -> instance.getSkillId().toString()))
+                .toList();
+    }
+
+    public static List<ResourceLocation> getRuntimeNonResistanceSkillIds(LivingEntity entity) {
+        return getRuntimeNonResistanceSkills(entity).stream()
+                .map(ManasSkillInstance::getSkillId)
+                .toList();
     }
 
     /**
@@ -151,8 +172,6 @@ public final class TensuraSkillBridge {
             return false;
         }
 
-        // Acquisition learning is tied to the skill itself. Mode 0 is the default acquisition context;
-        // mode-specialized skills will be validated in runtime compatibility tests.
         return tensuraSkill.addLearnPoint(instance, learner, 0, points);
     }
 }
