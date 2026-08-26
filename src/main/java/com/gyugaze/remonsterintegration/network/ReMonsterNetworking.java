@@ -26,5 +26,10 @@ public final class ReMonsterNetworking {
                 SubordinateSnapshotPayload.STREAM_CODEC,
                 SubordinateSnapshotPayload::handle
         );
+        registrar.playToClient(
+                SubordinateScreenContextPayload.TYPE,
+                SubordinateScreenContextPayload.STREAM_CODEC,
+                SubordinateScreenContextPayload::handle
+        );
     }
 }
