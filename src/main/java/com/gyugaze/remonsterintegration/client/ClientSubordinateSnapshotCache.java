@@ -32,6 +32,7 @@ public final class ClientSubordinateSnapshotCache {
                 payload.entityId(),
                 new Snapshot(
                         movement,
+                        payload.movementUnlocked(),
                         targeting,
                         payload.targetingUnlocked(),
                         payload.health(),
@@ -53,6 +54,7 @@ public final class ClientSubordinateSnapshotCache {
 
     public record Snapshot(
             SubordinateMovementMode movement,
+            boolean movementUnlocked,
             SubordinateTargetingMode targeting,
             boolean targetingUnlocked,
             float health,
