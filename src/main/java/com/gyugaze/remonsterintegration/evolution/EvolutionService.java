@@ -46,9 +46,10 @@ public final class EvolutionService {
 
         String bodyResult = "semantic-only";
         Optional<SpeciesBodyProfile> profile = SpeciesBodyProfileRegistry.get(targetSpecies);
+        Optional<SpeciesBodyProfile.TownsteadBody> townsteadBody = profile.flatMap(SpeciesBodyProfile::townstead);
         boolean townsteadTarget = entity instanceof ServerPlayer || McaSubordinateAdapter.isMcaVillager(entity);
 
-        if (townsteadTarget && profile.flatMap(SpeciesBodyProfile::townstead).isPresent()) {
+        if (townsteadTarget && townsteadBody.isPresent()) {
             if (!ModList.get().isLoaded("townstead")) {
                 return EvolutionResult.failure(
                         current,
@@ -58,16 +59,20 @@ public final class EvolutionService {
             }
 
             TownsteadEvolutionCompat.ApplyResult physical =
-                    TownsteadEvolutionCompat.apply(entity, targetSpecies, profile.get().townstead().orElseThrow());
+                    TownsteadEvolutionCompat.apply(entity, targetSpecies, townsteadBody.orElseThrow());
             if (!physical.success()) {
                 return EvolutionResult.failure(current, targetSpecies, physical.failure());
             }
             bodyResult = physical.description();
         }
 
-        double targetScale = profile.map(SpeciesBodyProfile::scale).orElse(1.0D);
-        SpeciesScaleService.apply(entity, targetScale);
-        bodyResult += " | scale=" + targetScale;
+        if (townsteadTarget) {
+            double targetScale = townsteadBody
+                    .map(SpeciesBodyProfile.TownsteadBody::scale)
+                    .orElse(1.0D);
+            SpeciesScaleService.apply(entity, targetScale);
+            bodyResult += " | townsteadScale=" + targetScale;
+        }
 
         SpeciesStateService.setSpecies(entity, targetSpecies);
         ReMonsterIntegration.LOGGER.info(
