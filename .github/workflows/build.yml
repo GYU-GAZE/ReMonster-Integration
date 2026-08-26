@@ -19,15 +19,15 @@ jobs:
           gradle-version: '9.2.1'
       - name: Resolve exact Tensura jar
         run: gradle compileJava
-      - name: Inspect mount interaction only
+      - name: Inspect tamable interaction chain
         shell: bash
         run: |
           set -euo pipefail
           JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
-          for C in io.github.manasmods.tensura.entity.template.TensuraMountEntity io.github.manasmods.tensura.entity.template.TensuraRideableEntity; do
-            echo "===== $C getRidingInteraction ====="
+          for C in io.github.manasmods.tensura.entity.template.TensuraTamableEntity io.github.manasmods.tensura.entity.template.TensuraMountEntity; do
+            echo "===== $C interaction methods ====="
             javap -classpath "$JAR" -p -c "$C" | awk '
-              /getRidingInteraction\(/ {show=1}
+              /(mobInteract|getRidingInteraction|handleCommanding)\(/ {show=1}
               show {print}
               show && /^$/ {show=0}
             '
