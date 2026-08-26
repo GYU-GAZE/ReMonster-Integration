@@ -13,7 +13,11 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 /**
- * Opens Re:Monster's common subordinate overview without stealing important native interactions.
+ * Temporary fallback overview only for native Tensura creatures that have no humanoid inventory.
+ *
+ * Re:Monster must never steal native MCA, horse, pet or TensuraHumanoid interactions. The long-term
+ * UI is a companion panel layered around native screens, not a replacement screen bound to a common
+ * click gesture.
  */
 public final class SubordinateMenuEvents {
     private SubordinateMenuEvents() {
@@ -29,25 +33,20 @@ public final class SubordinateMenuEvents {
             return;
         }
 
-        boolean humanoid = target instanceof TensuraHumanoidEntity;
-        boolean tensuraCreature = target instanceof TensuraTamableEntity;
+        // Humanoids retain the complete native Tensura inventory/status flow.
+        if (target instanceof TensuraHumanoidEntity) {
+            return;
+        }
 
-        // Tensura humanoids keep normal right-click for the upstream EP/equipment inventory. Their
-        // shift interaction opens Re:Monster's shared status/skills/command overview instead.
-        boolean humanoidShiftOverview = humanoid && player.isShiftKeyDown();
+        // External mobs retain every native interaction, including horse shift-right-click inventory.
+        if (!(target instanceof TensuraTamableEntity)) {
+            return;
+        }
 
-        // Non-humanoid Tensura creatures do not have the rich humanoid inventory, so empty-hand normal
-        // right-click opens the overview. Shift remains upstream command cycling for these creatures.
-        boolean emptyHandTensuraCreatureOverview = !humanoid
-                && !player.isShiftKeyDown()
-                && event.getItemStack().isEmpty()
-                && tensuraCreature;
-
-        // External companions preserve normal interaction (MCA dialogue, horse inventory, vanilla pet
-        // actions) and use shift-right-click for the common overview.
-        boolean externalShiftOverview = player.isShiftKeyDown() && !tensuraCreature;
-
-        if (!humanoidShiftOverview && !emptyHandTensuraCreatureOverview && !externalShiftOverview) {
+        // Non-humanoid Tensura creatures currently lack the humanoid inventory screen. Keep a small
+        // fallback overview on empty-hand normal right-click until the native-screen companion panel
+        // is complete. Shift-right-click remains Tensura's native command cycle.
+        if (player.isShiftKeyDown() || !event.getItemStack().isEmpty()) {
             return;
         }
 
