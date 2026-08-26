@@ -8,7 +8,9 @@ import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.profile.MobProfileApplicationResult;
 import com.gyugaze.remonsterintegration.profile.MobProfileApplicationService;
 import com.gyugaze.remonsterintegration.profile.MobProfileRegistry;
+import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
+import com.gyugaze.remonsterintegration.tensura.TensuraExistenceDataBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import com.mojang.brigadier.CommandDispatcher;
@@ -110,10 +112,6 @@ public final class IntegrationCommands {
         return inspect(source, target);
     }
 
-    /**
-     * Server-side crosshair entity raycast. A block hit shortens the ray so diagnostics do not inspect
-     * entities through walls.
-     */
     private static Entity findLookTarget(ServerPlayer player, double range) {
         Vec3 eye = player.getEyePosition();
         Vec3 view = player.getViewVector(1.0F);
@@ -173,9 +171,21 @@ public final class IntegrationCommands {
                 "runtime FOLLOW_RANGE: " + (followRange == null ? "n/a" : followRange.getValue())
         ), false);
         source.sendSuccess(() -> Component.literal(
+                "movement mode: " + SubordinateMovementService.getMode(living).map(Enum::name).orElse("native/unmanaged")
+        ), false);
+        source.sendSuccess(() -> Component.literal(
                 "MobChampions: " + championRank.map(Enum::name).orElse("normal/not active")
         ), false);
         sendOwnershipStatus(source, living);
+
+        List<ResourceLocation> guaranteedAbilities = TensuraExistenceDataBridge.getGuaranteedAbilities(living);
+        List<TensuraExistenceDataBridge.RandomAbility> randomAbilities = TensuraExistenceDataBridge.getRandomAbilities(living);
+        source.sendSuccess(() -> Component.literal(
+                "native entity_existence abilities (" + guaranteedAbilities.size() + "): " + guaranteedAbilities
+        ), false);
+        source.sendSuccess(() -> Component.literal(
+                "native random abilities (" + randomAbilities.size() + "): " + randomAbilities
+        ), false);
 
         List<ManasSkillInstance> skillEntries = TensuraSkillBridge.getStorage(living).getLearnedSkills().stream()
                 .sorted(Comparator.comparing(instance -> instance.getSkillId().toString()))
@@ -233,6 +243,9 @@ public final class IntegrationCommands {
                 "[Re:Monster] subordinate status " + BuiltInRegistries.ENTITY_TYPE.getKey(living.getType())
                         + " / " + living.getUUID()
                         + " | MCA=" + McaSubordinateAdapter.isMcaVillager(living)
+        ), false);
+        source.sendSuccess(() -> Component.literal(
+                "movement mode: " + SubordinateMovementService.getMode(living).map(Enum::name).orElse("native/unmanaged")
         ), false);
         sendOwnershipStatus(source, living);
         return 1;
