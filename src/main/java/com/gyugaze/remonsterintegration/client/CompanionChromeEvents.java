@@ -6,6 +6,7 @@ import com.gyugaze.remonsterintegration.network.SubordinateCommandPayload;
 import com.gyugaze.remonsterintegration.network.SubordinateSnapshotRequestPayload;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
 import com.gyugaze.remonsterintegration.mixin.client.AbstractContainerScreenAccessor;
+import io.github.manasmods.tensura.entity.template.TensuraHumanoidEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -27,9 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.WeakHashMap;
 
-/**
- * Adds Re:Monster quick controls around native subordinate screens without replacing their contents.
- */
+/** Adds Re:Monster quick controls around native subordinate screens without replacing contents. */
 @EventBusSubscriber(modid = ReMonsterIntegration.MOD_ID, value = Dist.CLIENT)
 public final class CompanionChromeEvents {
     private static final long SNAPSHOT_INTERVAL_MS = 500L;
@@ -67,13 +66,18 @@ public final class CompanionChromeEvents {
         }
 
         LivingEntity target = optionalTarget.get();
-        Layout layout = calculateLayout(screen);
+        boolean nativeStatusButton = target instanceof TensuraHumanoidEntity;
+        Layout layout = calculateLayout(screen, nativeStatusButton);
         int entityId = target.getId();
 
-        Button status = Button.builder(
-                Component.literal("Status"),
-                button -> resolveTarget(entityId).ifPresent(BetterSubordinatesStatusBridge::open)
-        ).bounds(layout.statusX(), layout.headerY() + 5, layout.statusWidth(), 20).build();
+        Button status = null;
+        if (!nativeStatusButton) {
+            status = Button.builder(
+                    Component.literal("Status"),
+                    button -> resolveTarget(entityId).ifPresent(BetterSubordinatesStatusBridge::open)
+            ).bounds(layout.statusX(), layout.headerY() + 5, layout.statusWidth(), 20).build();
+            event.addListener(status);
+        }
 
         int firstWidth = layout.movementWidth();
         int secondWidth = layout.movementWidth();
@@ -104,7 +108,6 @@ public final class CompanionChromeEvents {
                 SubordinateMovementMode.STAY
         );
 
-        event.addListener(status);
         event.addListener(follow);
         event.addListener(wander);
         event.addListener(stay);
@@ -163,14 +166,18 @@ public final class CompanionChromeEvents {
         state.follow().active = controllable && movement != SubordinateMovementMode.FOLLOW;
         state.wander().active = controllable && movement != SubordinateMovementMode.WANDER;
         state.stay().active = controllable && movement != SubordinateMovementMode.STAY;
-        state.status().active = BetterSubordinatesStatusBridge.isAvailable();
+        if (state.status() != null) {
+            state.status().active = BetterSubordinatesStatusBridge.isAvailable();
+        }
     }
 
     private static void disable(ChromeState state) {
         state.follow().active = false;
         state.wander().active = false;
         state.stay().active = false;
-        state.status().active = false;
+        if (state.status() != null) {
+            state.status().active = false;
+        }
     }
 
     private static void requestSnapshot(ChromeState state, boolean force) {
@@ -189,7 +196,9 @@ public final class CompanionChromeEvents {
         Layout layout = state.layout();
         int x = layout.chromeLeft();
         int y = layout.headerY();
-        int right = layout.statusX() - 4;
+        int right = state.status() == null
+                ? layout.chromeLeft() + layout.chromeWidth()
+                : layout.statusX() - 4;
 
         graphics.fill(x, y, right, y + 30, INFO_BORDER);
         graphics.fill(x + 1, y + 1, right - 1, y + 29, INFO_BG);
@@ -255,7 +264,7 @@ public final class CompanionChromeEvents {
                 : Optional.empty();
     }
 
-    private static Layout calculateLayout(Screen screen) {
+    private static Layout calculateLayout(Screen screen, boolean nativeStatusButton) {
         Minecraft minecraft = Minecraft.getInstance();
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
@@ -287,7 +296,7 @@ public final class CompanionChromeEvents {
             buttonY = Math.max(2, screenHeight - 22);
         }
 
-        int statusWidth = 60;
+        int statusWidth = nativeStatusButton ? 0 : 60;
         int statusX = chromeLeft + chromeWidth - statusWidth;
         int movementWidth = Math.max(1, (chromeWidth - 8) / 3);
         return new Layout(chromeLeft, chromeWidth, headerY, buttonY, statusX, statusWidth, movementWidth);
