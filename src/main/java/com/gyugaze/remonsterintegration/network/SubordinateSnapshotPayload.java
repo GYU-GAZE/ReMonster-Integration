@@ -14,6 +14,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 public record SubordinateSnapshotPayload(
         int entityId,
         int movementMode,
+        int targetingMode,
+        boolean targetingUnlocked,
         float health,
         float maxHealth,
         double ep,
@@ -27,6 +29,8 @@ public record SubordinateSnapshotPayload(
             (buf, payload) -> {
                 buf.writeVarInt(payload.entityId());
                 buf.writeVarInt(payload.movementMode());
+                buf.writeVarInt(payload.targetingMode());
+                buf.writeBoolean(payload.targetingUnlocked());
                 buf.writeFloat(payload.health());
                 buf.writeFloat(payload.maxHealth());
                 buf.writeDouble(payload.ep());
@@ -35,6 +39,8 @@ public record SubordinateSnapshotPayload(
             buf -> new SubordinateSnapshotPayload(
                     buf.readVarInt(),
                     buf.readVarInt(),
+                    buf.readVarInt(),
+                    buf.readBoolean(),
                     buf.readFloat(),
                     buf.readFloat(),
                     buf.readDouble(),
