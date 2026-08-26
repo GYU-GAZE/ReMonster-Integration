@@ -26,16 +26,25 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect Better Subordinates status transition
+      - name: Inspect targeting semantics
         if: success()
         shell: bash
         run: |
-          JAR=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.client.screen.MixinHumanoidMainScreen
-          echo '=== OPEN PAYLOAD ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload
-          echo '=== THOUGHT COMM MIXIN ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
+          set -euo pipefail
+          JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
+          echo "TENSURA_JAR=$JAR"
+          echo '=== TARGETING-RELATED CLASSES ==='
+          jar tf "$JAR" | grep -E 'ThoughtCommunicationSkill|TelepathySkill|SubordinateHelper|ISubordinate|SkillRegistry|Skills.class' | head -n 200 || true
+          echo '=== ISubordinate ==='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.template.subclass.ISubordinate
+          echo '=== SubordinateHelper ==='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.util.SubordinateHelper
+          echo '=== ThoughtCommunicationSkill ==='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.ability.skill.common.ThoughtCommunicationSkill
+          echo '=== TelepathySkill ==='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.ability.skill.common.TelepathySkill
+          echo '=== STRING CANDIDATES ==='
+          strings "$JAR" | grep -Ei 'thought.?communication|thought_communication|telepathy' | head -n 100 || true
 
       - name: Upload built jar
         if: success()
