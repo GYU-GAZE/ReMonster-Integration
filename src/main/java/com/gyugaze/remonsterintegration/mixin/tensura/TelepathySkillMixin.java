@@ -1,17 +1,16 @@
 package com.gyugaze.remonsterintegration.mixin.tensura;
 
-import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementService;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.tensura.ability.skill.common.TelepathySkill;
+import io.github.manasmods.tensura.entity.template.TensuraTamableEntity;
 import io.github.manasmods.tensura.entity.template.subclass.ISubordinate;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,8 +19,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Completes Telepathy command cycling for entities that Tensura can own but whose movement state is
- * not backed by a native Tensura ISubordinate implementation.
+ * Completes Telepathy/Thought Communication command cycling for ownership-only external entities.
+ * Real TensuraTamableEntity instances always keep their own ISubordinate state so animation,
+ * wandering, sitting pose, follow and teleport remain one synchronized state machine.
  */
 @Mixin(value = TelepathySkill.class, remap = false)
 public abstract class TelepathySkillMixin {
@@ -34,12 +34,17 @@ public abstract class TelepathySkillMixin {
             remap = false,
             require = 0
     )
-    private static void remonster$cycleTamable(
+    private static void remonster$cycleCommand(
             ISubordinate subordinate,
             Mob target,
             Player player
     ) {
-        if (target instanceof TamableAnimal) {
+        if (target instanceof TensuraTamableEntity) {
+            subordinate.cycleCommands(target, player);
+            return;
+        }
+
+        if (SubordinateMovementService.supportsExternal(target)) {
             SubordinateMovementService.cycleExternal(target, player)
                     .ifPresent(mode -> sendCommandMessage(player, target, mode));
             return;
@@ -49,8 +54,8 @@ public abstract class TelepathySkillMixin {
     }
 
     /**
-     * MCA villagers never reach Tensura's ISubordinate.cycleCommands invocation. Run the adapter at
-     * return so the upstream skill still owns mastery gain, swing animation and cast sound.
+     * Entities such as MCA villagers and AbstractHorse do not reach ISubordinate.cycleCommands at all.
+     * Handle them after upstream Telepathy has performed its normal cast/mastery/sound work.
      */
     @Inject(method = "telepathy", at = @At("RETURN"), remap = false, require = 0)
     private static void remonster$cycleOwnershipOnlySubordinate(
@@ -62,7 +67,10 @@ public abstract class TelepathySkillMixin {
         if (!(user instanceof Player player)) {
             return;
         }
-        if (!McaSubordinateAdapter.isMcaVillager(target)) {
+        if (target instanceof ISubordinate) {
+            return;
+        }
+        if (!SubordinateMovementService.supportsExternal(target)) {
             return;
         }
         if (!TensuraSubordinateBridge.isSubordinateOf(user, target)) {
