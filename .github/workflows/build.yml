@@ -26,20 +26,22 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect Better Subordinates UI surface
+      - name: Inspect Better Subordinates status menu bytecode
         if: success()
         shell: bash
         run: |
           JAR=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
           echo "BETTER_SUBS_JAR=$JAR"
-          if [ -z "$JAR" ]; then
-            echo "Better Subordinates jar not found"
-            exit 1
-          fi
-          echo '=== RELEVANT CLASSES ==='
-          jar tf "$JAR" | grep '\.class$' | grep -Ei 'screen|menu|payload|packet|thought|skill|inventory|container' || true
-          echo '=== ALL MOD CLASSES ==='
-          jar tf "$JAR" | grep '^com/trbeyond/tensura_better_subs/.*\.class$' || true
+          for CLASS in \
+            com.trbeyond.tensura_better_subs.client.screen.MainScreenSubordinate \
+            com.trbeyond.tensura_better_subs.client.screen.ScreenHelperSubordinates \
+            com.trbeyond.tensura_better_subs.client.screen.AbilityCategoriesScreenEntity \
+            com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload \
+            com.trbeyond.tensura_better_subs.mixin.tensura.client.screen.MixinHumanoidMainScreen \
+            com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill; do
+            echo "=== $CLASS ==="
+            javap -classpath "$JAR" -p -c "$CLASS" || true
+          done
 
       - name: Upload built jar
         if: success()
