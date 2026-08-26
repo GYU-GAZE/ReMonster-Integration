@@ -11,6 +11,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.item.BowItem;
 
 import java.util.Comparator;
 import java.util.List;
@@ -31,6 +32,8 @@ public final class SubordinateTargetingService {
     private static final String NEXT_MCA_CIVIL_ATTACK_TICK = "remonster_next_mca_civil_attack_tick";
     private static final int EXTERNAL_TICK_INTERVAL = 5;
     private static final int MCA_CIVIL_ATTACK_COOLDOWN = 20;
+    private static final int MCA_CIVIL_BOW_DRAW_TICKS = 20;
+    private static final double MCA_CIVIL_BOW_MAX_RANGE = 15.0D;
 
     private SubordinateTargetingService() {
     }
@@ -247,12 +250,16 @@ public final class SubordinateTargetingService {
 
         // Ordinary MCA villagers do not have the guard attack package. In particular, feeding them
         // NEAREST_HOSTILE activates MCA's defensive/panic behaviour and makes them act as if THEY are
-        // under attack. For commanded civilians we instead drive only a narrow chase + melee action,
-        // leaving their Brain, schedule, family/work memories and profession untouched.
+        // under attack. For commanded civilians we instead drive a narrow combat action, leaving their
+        // Brain, schedule, family/work memories and profession untouched.
         driveMcaCivilCombat(target, candidate);
     }
 
     private static void driveMcaCivilCombat(Mob target, LivingEntity candidate) {
+        if (driveMcaCivilBowCombat(target, candidate)) {
+            return;
+        }
+
         // MCA civilians intentionally use EquipmentSet.NAKED for self-defence, even though MCA's
         // equipment code already knows how to choose the best sword from their inventory. Project the
         // same best-sword choice into the dominant slot only while Re:Monster is commanding combat.
@@ -277,6 +284,65 @@ public final class SubordinateTargetingService {
         target.getPersistentData().putLong(NEXT_MCA_CIVIL_ATTACK_TICK, gameTime + MCA_CIVIL_ATTACK_COOLDOWN);
     }
 
+    /**
+     * Mirrors the important parts of MCA 7.7.36-beta.3 BowTask without installing the guard/archer
+     * Brain package on a civilian. A carried bow takes priority over melee while commanded combat is
+     * active. The villager uses MCA's own ranged-attack implementation to create the projectile.
+     */
+    private static boolean driveMcaCivilBowCombat(Mob target, LivingEntity candidate) {
+        if (!McaSubordinateAdapter.equipBestBowFromInventory(target)
+                || !(target.getMainHandItem().getItem() instanceof BowItem bow)) {
+            return false;
+        }
+
+        target.getLookControl().setLookAt(candidate, 30.0F, 30.0F);
+        boolean visible = target.getSensing().hasLineOfSight(candidate);
+        double distanceSquared = target.distanceToSqr(candidate);
+        double bowRange = Math.min(MCA_CIVIL_BOW_MAX_RANGE, bow.getDefaultProjectileRange());
+
+        if (!visible || distanceSquared > bowRange * bowRange) {
+            stopCivilBowDraw(target);
+            target.getNavigation().moveTo(candidate, 0.8D);
+            return true;
+        }
+
+        target.getNavigation().stop();
+        long gameTime = target.level().getGameTime();
+        long nextAttack = target.getPersistentData().getLong(NEXT_MCA_CIVIL_ATTACK_TICK);
+        if (gameTime < nextAttack) {
+            return true;
+        }
+
+        if (!target.isUsingItem()) {
+            target.startUsingItem(InteractionHand.MAIN_HAND);
+            return true;
+        }
+
+        if (!(target.getUseItem().getItem() instanceof BowItem)) {
+            return true;
+        }
+
+        int pullTicks = target.getTicksUsingItem();
+        if (pullTicks < MCA_CIVIL_BOW_DRAW_TICKS) {
+            return true;
+        }
+
+        target.stopUsingItem();
+        if (McaSubordinateAdapter.performHeldBowAttack(target, candidate, BowItem.getPowerForTime(pullTicks))) {
+            target.getPersistentData().putLong(
+                    NEXT_MCA_CIVIL_ATTACK_TICK,
+                    gameTime + MCA_CIVIL_ATTACK_COOLDOWN
+            );
+        }
+        return true;
+    }
+
+    private static void stopCivilBowDraw(Mob target) {
+        if (target.isUsingItem() && target.getUseItem().getItem() instanceof BowItem) {
+            target.stopUsingItem();
+        }
+    }
+
     private static void clearTargetState(Mob target) {
         if (!McaSubordinateAdapter.isMcaVillager(target)) {
             SubordinateHelper.removeTarget(target);
@@ -285,6 +351,7 @@ public final class SubordinateTargetingService {
 
         boolean hadCombatTarget = target.getTarget() != null
                 || target.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET);
+        stopCivilBowDraw(target);
         target.setTarget(null);
         target.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
         target.getPersistentData().remove(NEXT_MCA_CIVIL_ATTACK_TICK);
