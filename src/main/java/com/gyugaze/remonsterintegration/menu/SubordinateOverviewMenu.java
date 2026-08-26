@@ -2,7 +2,10 @@ package com.gyugaze.remonsterintegration.menu;
 
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementService;
+import com.gyugaze.remonsterintegration.subordinate.SubordinateTargetingMode;
+import com.gyugaze.remonsterintegration.subordinate.SubordinateTargetingService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
+import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.Entity;
@@ -22,17 +25,24 @@ import java.util.Optional;
  * or interaction screen.
  *
  * Full Tensura skill/status management belongs to Better Subordinates. This menu only keeps the
- * quick information and movement controls Re:Monster needs before handing off to that status screen.
+ * quick information and movement/targeting controls Re:Monster needs before handing off to that
+ * status screen.
  */
 public final class SubordinateOverviewMenu extends AbstractContainerMenu {
     public static final int BUTTON_FOLLOW = 0;
     public static final int BUTTON_WANDER = 1;
     public static final int BUTTON_STAY = 2;
+    public static final int BUTTON_NEUTRAL = 3;
+    public static final int BUTTON_PASSIVE = 4;
+    public static final int BUTTON_AGGRESSIVE = 5;
+    public static final int BUTTON_PROTECT = 6;
 
     private static final int DATA_MOVEMENT = 0;
-    private static final int DATA_EP = 1;
-    private static final int DATA_SHP = 2;
-    private static final int DATA_COUNT = 3;
+    private static final int DATA_TARGETING = 1;
+    private static final int DATA_TARGETING_UNLOCKED = 2;
+    private static final int DATA_EP = 3;
+    private static final int DATA_SHP = 4;
+    private static final int DATA_COUNT = 5;
     private static final double MAX_USE_DISTANCE_SQR = 12.0D * 12.0D;
 
     private final Inventory playerInventory;
@@ -55,7 +65,7 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
                 containerId,
                 playerInventory,
                 target.getId(),
-                createServerData(target)
+                createServerData(target, playerInventory.player)
         );
     }
 
@@ -77,7 +87,7 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
         buffer.writeVarInt(target.getId());
     }
 
-    private static ContainerData createServerData(LivingEntity target) {
+    private static ContainerData createServerData(LivingEntity target, Player owner) {
         return new ContainerData() {
             @Override
             public int get(int index) {
@@ -85,6 +95,8 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
                     case DATA_MOVEMENT -> SubordinateMovementService.getMode(target)
                             .map(Enum::ordinal)
                             .orElse(-1);
+                    case DATA_TARGETING -> SubordinateTargetingService.getMode(target).ordinal();
+                    case DATA_TARGETING_UNLOCKED -> TensuraSkillBridge.hasMasteredThoughtCommunication(owner) ? 1 : 0;
                     case DATA_EP -> clampToInt(TensuraExistenceBridge.getEp(target));
                     case DATA_SHP -> clampToInt(TensuraExistenceBridge.getSpiritualHealth(target));
                     default -> 0;
@@ -138,6 +150,16 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
         return value >= 0 && value < values.length ? Optional.of(values[value]) : Optional.empty();
     }
 
+    public SubordinateTargetingMode getTargetingMode() {
+        int value = data.get(DATA_TARGETING);
+        SubordinateTargetingMode[] values = SubordinateTargetingMode.values();
+        return value >= 0 && value < values.length ? values[value] : SubordinateTargetingMode.NEUTRAL;
+    }
+
+    public boolean isTargetingUnlocked() {
+        return data.get(DATA_TARGETING_UNLOCKED) != 0;
+    }
+
     @Override
     public boolean clickMenuButton(Player player, int id) {
         Optional<LivingEntity> optionalTarget = getTarget();
@@ -149,13 +171,28 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
             return false;
         }
 
-        SubordinateMovementMode mode = switch (id) {
+        SubordinateMovementMode movementMode = switch (id) {
             case BUTTON_FOLLOW -> SubordinateMovementMode.FOLLOW;
             case BUTTON_WANDER -> SubordinateMovementMode.WANDER;
             case BUTTON_STAY -> SubordinateMovementMode.STAY;
             default -> null;
         };
-        return mode != null && SubordinateMovementService.setMode(mob, mode);
+        if (movementMode != null) {
+            return SubordinateMovementService.setMode(mob, movementMode);
+        }
+
+        if (!TensuraSkillBridge.hasMasteredThoughtCommunication(player)) {
+            return false;
+        }
+
+        SubordinateTargetingMode targetingMode = switch (id) {
+            case BUTTON_NEUTRAL -> SubordinateTargetingMode.NEUTRAL;
+            case BUTTON_PASSIVE -> SubordinateTargetingMode.PASSIVE;
+            case BUTTON_AGGRESSIVE -> SubordinateTargetingMode.AGGRESSIVE;
+            case BUTTON_PROTECT -> SubordinateTargetingMode.PROTECT;
+            default -> null;
+        };
+        return targetingMode != null && SubordinateTargetingService.setMode(mob, targetingMode);
     }
 
     @Override
