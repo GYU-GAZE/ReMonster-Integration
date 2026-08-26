@@ -3,6 +3,7 @@ package com.gyugaze.remonsterintegration.subordinate;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import io.github.manasmods.tensura.entity.template.subclass.ISubordinate;
+import io.github.manasmods.tensura.util.SubordinateHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -15,10 +16,6 @@ import java.util.Optional;
 
 /**
  * Cross-mod movement-command router.
- *
- * Native Tensura ISubordinate entities remain authoritative for their own state. Re:Monster only
- * handles integrations whose native AI would otherwise receive no useful state change from Tensura's
- * generic SubordinateHelper calls (currently MCA and vanilla/modded TamableAnimal command state).
  */
 public final class SubordinateMovementService {
     private static final String DATA_KEY = "remonster_movement_mode";
@@ -27,10 +24,29 @@ public final class SubordinateMovementService {
     }
 
     /**
-     * @return true when Re:Monster fully handled the command and the caller should skip Tensura's
-     * original helper implementation.
+     * Applies a command to any supported subordinate. External entities use their native adapter;
+     * native Tensura ISubordinate mobs keep Tensura's own command implementation.
      */
-    public static boolean apply(Mob target, SubordinateMovementMode mode) {
+    public static boolean setMode(Mob target, SubordinateMovementMode mode) {
+        if (applyExternal(target, mode)) {
+            return true;
+        }
+        if (target instanceof ISubordinate) {
+            switch (mode) {
+                case FOLLOW -> SubordinateHelper.setFollow(target);
+                case WANDER -> SubordinateHelper.setWander(target);
+                case STAY -> SubordinateHelper.setStay(target);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @return true when Re:Monster fully handled an external entity and the caller should skip
+     * Tensura's original helper implementation.
+     */
+    public static boolean applyExternal(Mob target, SubordinateMovementMode mode) {
         Objects.requireNonNull(target, "target");
         Objects.requireNonNull(mode, "mode");
 
@@ -59,12 +75,14 @@ public final class SubordinateMovementService {
             return true;
         }
 
-        // Native Tensura mobs have real ISubordinate state fields/AI and should keep using upstream.
-        if (target instanceof ISubordinate) {
-            return false;
-        }
-
         return false;
+    }
+
+    /**
+     * Compatibility alias used by the Tensura helper mixin.
+     */
+    public static boolean apply(Mob target, SubordinateMovementMode mode) {
+        return applyExternal(target, mode);
     }
 
     /**
@@ -86,7 +104,7 @@ public final class SubordinateMovementService {
         if (McaSubordinateAdapter.isMcaVillager(target)) {
             return McaSubordinateAdapter.setMovementMode(target, mode, owner);
         }
-        return apply(target, mode);
+        return applyExternal(target, mode);
     }
 
     public static Optional<SubordinateMovementMode> getMode(LivingEntity entity) {
@@ -124,8 +142,8 @@ public final class SubordinateMovementService {
     }
 
     /**
-     * Used by the vanilla FollowOwnerGoal mixin. Unmodified vanilla pets have no stored key and keep
-     * their vanilla behavior. A Re:Monster WANDER/STAY command explicitly suppresses follow-owner AI.
+     * Unmodified vanilla pets have no stored key and keep vanilla behavior. Explicit Re:Monster
+     * WANDER/STAY commands suppress FollowOwnerGoal until FOLLOW is selected again.
      */
     public static boolean allowsVanillaFollow(TamableAnimal animal) {
         return getStoredMode(animal)
