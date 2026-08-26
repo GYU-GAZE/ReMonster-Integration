@@ -3,6 +3,8 @@ package com.gyugaze.remonsterintegration;
 import com.gyugaze.remonsterintegration.command.IntegrationCommands;
 import com.gyugaze.remonsterintegration.command.SpawnDiagnosticCommands;
 import com.gyugaze.remonsterintegration.learning.KillLearningEvents;
+import com.gyugaze.remonsterintegration.menu.ReMonsterMenus;
+import com.gyugaze.remonsterintegration.menu.SubordinateMenuEvents;
 import com.gyugaze.remonsterintegration.profile.MobProfileEntityEvents;
 import com.gyugaze.remonsterintegration.profile.MobProfileReloadListener;
 import com.mojang.logging.LogUtils;
@@ -21,10 +23,13 @@ public final class ReMonsterIntegration {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ReMonsterIntegration(IEventBus modEventBus, ModContainer modContainer) {
+        ReMonsterMenus.MENUS.register(modEventBus);
+
         NeoForge.EVENT_BUS.addListener(this::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, MobProfileEntityEvents::onEntityJoinLevel);
         NeoForge.EVENT_BUS.addListener(KillLearningEvents::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(SubordinateMenuEvents::onEntityInteract);
         LOGGER.info("[Re:Monster Integration] loaded");
     }
 
