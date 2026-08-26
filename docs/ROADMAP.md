@@ -219,6 +219,25 @@ Add:
 
 Thought Communication must be adapted to MCA semantics instead of replacing MCA scheduling. Initial bytecode inspection indicates native stay/follow/wander mutation is gated behind Tensura's `ISubordinate`, which is promising for an ownership-only MCA adapter, but runtime verification is mandatory.
 
+### Universal subordinate interaction / native-screen slice
+
+- [x] preserve native screens instead of replacing useful inventories/dialogue UIs
+- [x] decorate known native screens with HP / EP / SHP / current command + Status / Follow / Wander / Stay
+- [x] recognize generic `HasCustomInventoryScreen` entities without species whitelists
+- [x] data-driven native-menu tag escape hatch for nonstandard mod GUIs
+- [x] remove old empty-hand normal-click Tensura-creature overview path that could steal mount interaction
+- [x] recover Re:Monster buttons after MCA `clearWidgets()` layout rebuilds
+- [ ] regression-test Tensura humanoid / goblin chrome
+- [ ] regression-test MCA chrome after asynchronous layout rebuild
+- [ ] regression-test horse normal-click ride + shift-click inventory
+- [ ] regression-test Basilisk/Tensura mount normal-click ride + shift-click native MountScreen
+- [ ] regression-test one third-party `HasCustomInventoryScreen` mob from the pack
+- [ ] regression-test one generic fallback subordinate with no useful native menu
+- [ ] gate movement commands behind the agreed Telepathy / 2,000 EP milestone
+- [ ] add targeting modes after Thought Communication mastery: Neutral / Passive / Aggressive / Protect
+
+See `docs/SUBORDINATE_SYSTEM.md` for the focused contract and test matrix.
+
 ## Phase 7 - Dungeon / Spawner Director
 
 - [ ] YUNG Better Dungeons spawner support
@@ -262,6 +281,23 @@ Player gameplay remains Tensura-driven. Townstead primarily supplies visual/gene
 - [ ] preserve visual genes where evolution permits
 - [ ] skin/hair/eyes/horns/ears/markings/proportions palettes
 - [ ] multiplayer sync
+
+### MCA-backed fantasy civilian species
+
+Selected Tensura civilian races may eventually use MCA villagers as the simulation entity while preserving the Tensura-facing race/progression/economy semantics needed by the pack.
+
+- [ ] prototype MCA-backed Goblin civilian species
+- [ ] preserve Tensura Goblin trade catalog on the MCA-backed Goblin
+- [ ] preserve Goblin naming and Goblin -> Hobgoblin evolution semantics
+- [ ] preserve relevant Tensura EP / skills / race state on the MCA-backed Goblin
+- [ ] runtime-test MCA family/work/schedule compatibility for Goblin civilians
+- [ ] only after Goblin proves the architecture, design MCA-backed Dwarf adapter
+- [ ] reuse `DwarfProfession` trade listings where compatible instead of manually cloning tables
+- [ ] preserve Dwarven Reputation changes, price effects, trade refusal/hostility and Gazel Dwargo progression
+- [ ] map Tensura dwarf professions including trainers / merchant / miner / lumberjack / guard semantics
+- [ ] decide explicitly which native dwarf worktime/restock/trader-level behaviors MCA supersedes and which remain bridged
+
+Do not remove native `DwarfEntity` from the pack until the reputation/profession/Gazel compatibility contract is complete.
 
 ## Phase 11 - Expanded race evolution
 
