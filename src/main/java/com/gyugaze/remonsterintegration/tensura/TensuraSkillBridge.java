@@ -34,6 +34,17 @@ public final class TensuraSkillBridge {
         return getStorage(entity).getSkill(skillId);
     }
 
+    /**
+     * Movement buttons are an alternate UI for Tensura's Telepathy command. Possession of the real
+     * Telepathy skill is therefore the authorization source of truth. Tensura itself owns the agreed
+     * 2,000 EP acquisition milestone; Re:Monster does not add a second live-EP check after the skill
+     * has already been learned.
+     */
+    public static boolean hasTelepathyMovementAccess(LivingEntity entity) {
+        Objects.requireNonNull(entity, "entity");
+        return getSkillInstance(entity, CommonSkills.TELEPATHY.getId()).isPresent();
+    }
+
     /** Uses the exact gate used by ThoughtCommunicationSkill#nextMode in Tensura 2.0.1.2. */
     public static boolean hasMasteredThoughtCommunication(LivingEntity entity) {
         Objects.requireNonNull(entity, "entity");
