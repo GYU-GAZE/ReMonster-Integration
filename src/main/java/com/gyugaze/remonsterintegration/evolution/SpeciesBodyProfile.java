@@ -8,9 +8,13 @@ import java.util.Optional;
 /** Data-driven physical representation of one semantic Re:Monster species. */
 public record SpeciesBodyProfile(
         ResourceLocation species,
+        double scale,
         Optional<TownsteadBody> townstead
 ) {
     public SpeciesBodyProfile {
+        if (!Double.isFinite(scale) || scale <= 0.0D) {
+            throw new IllegalArgumentException("Species body scale must be a finite positive number");
+        }
         townstead = townstead == null ? Optional.empty() : townstead;
     }
 
