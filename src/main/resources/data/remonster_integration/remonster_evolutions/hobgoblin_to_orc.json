@@ -1,0 +1,5 @@
+{
+  "from": "remonster_integration:hobgoblin",
+  "to": "remonster_integration:orc",
+  "minimum_ep": 0
+}

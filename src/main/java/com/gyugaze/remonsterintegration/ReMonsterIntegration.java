@@ -2,6 +2,10 @@ package com.gyugaze.remonsterintegration;
 
 import com.gyugaze.remonsterintegration.command.IntegrationCommands;
 import com.gyugaze.remonsterintegration.command.SpawnDiagnosticCommands;
+import com.gyugaze.remonsterintegration.evolution.EvolutionCommands;
+import com.gyugaze.remonsterintegration.evolution.EvolutionReloadListener;
+import com.gyugaze.remonsterintegration.evolution.SpeciesBodyProfileReloadListener;
+import com.gyugaze.remonsterintegration.evolution.SpeciesStateEvents;
 import com.gyugaze.remonsterintegration.learning.KillLearningEvents;
 import com.gyugaze.remonsterintegration.menu.ReMonsterMenus;
 import com.gyugaze.remonsterintegration.menu.SubordinateMenuEvents;
@@ -33,15 +37,19 @@ public final class ReMonsterIntegration {
         NeoForge.EVENT_BUS.addListener(KillLearningEvents::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(SubordinateMenuEvents::onEntityInteract);
         NeoForge.EVENT_BUS.addListener(SubordinateMenuEvents::onEntityInteractSpecific);
+        NeoForge.EVENT_BUS.addListener(SpeciesStateEvents::onPlayerClone);
         LOGGER.info("[Re:Monster Integration] loaded");
     }
 
     private void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(new MobProfileReloadListener());
+        event.addListener(new SpeciesBodyProfileReloadListener());
+        event.addListener(new EvolutionReloadListener());
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {
         IntegrationCommands.register(event.getDispatcher());
         SpawnDiagnosticCommands.register(event.getDispatcher());
+        EvolutionCommands.register(event.getDispatcher());
     }
 }

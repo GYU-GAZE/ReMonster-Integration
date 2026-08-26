@@ -98,6 +98,11 @@ dependencies {
     // the player's modpack remains responsible for providing the exact runtime jar.
     compileOnly 'curse.maven:tensura-better-subordinates-1489224:8414486'
 
+    // Compile against the exact Townstead + MCA builds deployed in the target pack.
+    // Both remain optional at runtime; direct Townstead classes are isolated behind a ModList gate.
+    compileOnly 'curse.maven:minecraft-comes-alive-reborn-535291:8658484'
+    compileOnly 'curse.maven:townstead-1464195:8611587'
+
     // ManasCore's published NeoForge release is a bundle whose API modules are nested jars.
     // Resolve the exact pack release, extract those modules below, and put them on javac's classpath.
     manasCoreBundle 'curse.maven:manascore-619025:8022425'
