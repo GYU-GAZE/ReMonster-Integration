@@ -3,6 +3,7 @@ package com.gyugaze.remonsterintegration.network;
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementService;
+import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -15,8 +16,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * C2S movement command used by companion chrome attached to native entity screens.
- * The client only requests a mode; ownership, distance and entity validity are always checked again
- * on the server before any AI state is mutated.
+ * The client only requests a mode; ownership, Telepathy authorization, distance and entity validity
+ * are always checked again on the server before any AI state is mutated.
  */
 public record SubordinateCommandPayload(int entityId, int movementMode) implements CustomPacketPayload {
     public static final Type<SubordinateCommandPayload> TYPE = new Type<>(
@@ -52,6 +53,9 @@ public record SubordinateCommandPayload(int entityId, int movementMode) implemen
                 return;
             }
             if (!TensuraSubordinateBridge.isSubordinateOf(player, target)) {
+                return;
+            }
+            if (!TensuraSkillBridge.hasTelepathyMovementAccess(player)) {
                 return;
             }
 
