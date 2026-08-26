@@ -1,6 +1,7 @@
 package com.gyugaze.remonsterintegration.network;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
+import com.gyugaze.remonsterintegration.client.CompanionChromeEvents;
 import com.gyugaze.remonsterintegration.client.CompanionScreenContext;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -35,6 +36,9 @@ public record SubordinateScreenContextPayload(int entityId) implements CustomPac
         if (FMLEnvironment.dist != Dist.CLIENT) {
             return;
         }
-        context.enqueueWork(() -> CompanionScreenContext.captureAuthorized(payload.entityId()));
+        context.enqueueWork(() -> {
+            CompanionScreenContext.captureAuthorized(payload.entityId());
+            CompanionChromeEvents.attachCurrentScreenIfMatching();
+        });
     }
 }

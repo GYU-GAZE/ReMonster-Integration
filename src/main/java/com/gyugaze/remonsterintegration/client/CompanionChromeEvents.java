@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.WeakHashMap;
+import java.util.function.Consumer;
 
 /** Adds Re:Monster quick controls around native subordinate screens without replacing contents. */
 @EventBusSubscriber(modid = ReMonsterIntegration.MOD_ID, value = Dist.CLIENT)
@@ -39,6 +40,7 @@ public final class CompanionChromeEvents {
     private static final int TEXT = 0xFFE6E6E6;
     private static final int MUTED = 0xFFA6A6A6;
     private static final int ACCENT = 0xFFC7D7FF;
+    private static final int HOTBAR_RESERVE = 26;
 
     private static final Map<Screen, ChromeState> CHROME = new WeakHashMap<>();
 
@@ -62,12 +64,34 @@ public final class CompanionChromeEvents {
     @SubscribeEvent
     public static void onScreenInit(ScreenEvent.Init.Post event) {
         Screen screen = event.getScreen();
-        Optional<LivingEntity> optionalTarget = CompanionScreenContext.attachIfMatching(screen);
-        if (optionalTarget.isEmpty()) {
+        CompanionScreenContext.attachIfMatching(screen)
+                .ifPresent(target -> attachChrome(screen, target, button -> event.addListener(button)));
+    }
+
+    /**
+     * Server-authorized context can arrive after a native client screen has already completed Init.Post
+     * (MCA opens its GUI optimistically on the client). Attach to that already-open screen immediately
+     * instead of requiring a failed shift-click followed by a second normal click.
+     */
+    public static void attachCurrentScreenIfMatching() {
+        Minecraft minecraft = Minecraft.getInstance();
+        Screen screen = minecraft.screen;
+        if (screen == null || CHROME.containsKey(screen)) {
             return;
         }
 
-        LivingEntity target = optionalTarget.get();
+        CompanionScreenContext.attachIfMatching(screen).ifPresent(target -> attachChrome(
+                screen,
+                target,
+                button -> ((ScreenInvoker) screen).remonster$addRenderableWidget(button)
+        ));
+    }
+
+    private static void attachChrome(Screen screen, LivingEntity target, Consumer<Button> listener) {
+        if (CHROME.containsKey(screen)) {
+            return;
+        }
+
         Layout layout = calculateLayout(screen);
         int entityId = target.getId();
 
@@ -110,14 +134,14 @@ public final class CompanionChromeEvents {
                 entityId, SubordinateTargetingMode.PROTECT
         );
 
-        event.addListener(status);
-        event.addListener(follow);
-        event.addListener(wander);
-        event.addListener(stay);
-        event.addListener(neutral);
-        event.addListener(passive);
-        event.addListener(aggressive);
-        event.addListener(protect);
+        listener.accept(status);
+        listener.accept(follow);
+        listener.accept(wander);
+        listener.accept(stay);
+        listener.accept(neutral);
+        listener.accept(passive);
+        listener.accept(aggressive);
+        listener.accept(protect);
 
         ChromeState state = new ChromeState(
                 entityId, layout, follow, wander, stay, neutral, passive, aggressive, protect, status
@@ -361,8 +385,9 @@ public final class CompanionChromeEvents {
         int headerY = nativeTop >= 34 ? nativeTop - 32 : 2;
         int movementY = nativeTop + nativeHeight + 4;
         int targetingY = movementY + 24;
-        if (targetingY + 20 > screenHeight - 2) {
-            targetingY = Math.max(2, screenHeight - 22);
+        int controlsBottom = Math.max(22, screenHeight - HOTBAR_RESERVE);
+        if (targetingY + 20 > controlsBottom) {
+            targetingY = Math.max(2, controlsBottom - 20);
             movementY = Math.max(2, targetingY - 24);
         }
 
@@ -438,6 +463,8 @@ public final class CompanionChromeEvents {
         Button protect() { return protect; }
         Button status() { return status; }
         long lastSnapshotRequestMs() { return lastSnapshotRequestMs; }
-        void lastSnapshotRequestMs(long value) { lastSnapshotRequestMs = value; }
+        void lastSnapshotRequestMs(long value) { lastSnapshotRequestRequestMs(value); }
+
+        private void lastSnapshotRequestRequestMs(long value) { lastSnapshotRequestMs = value; }
     }
 }
