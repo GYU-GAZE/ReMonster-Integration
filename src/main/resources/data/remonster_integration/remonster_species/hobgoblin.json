@@ -1,0 +1,14 @@
+{
+  "species": "remonster_integration:hobgoblin",
+  "scale": 1.0,
+  "townstead": {
+    "root_candidates": [
+      "townstead_classic:goblin"
+    ],
+    "root_search_terms": [
+      "goblin"
+    ],
+    "preserve_shared_loci": true,
+    "clamp_body_metrics": true
+  }
+}
