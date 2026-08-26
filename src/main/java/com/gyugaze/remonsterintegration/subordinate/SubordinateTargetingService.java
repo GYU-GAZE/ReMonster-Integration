@@ -5,12 +5,12 @@ import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import io.github.manasmods.tensura.entity.template.subclass.ISubordinate;
 import io.github.manasmods.tensura.util.SubordinateHelper;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.behavior.EntityTracker;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.ai.memory.WalkTarget;
+import net.minecraft.world.entity.monster.Enemy;
 
 import java.util.Comparator;
 import java.util.List;
@@ -22,13 +22,15 @@ import java.util.Optional;
  * Universal targeting/posture router.
  *
  * Native ISubordinate entities keep Tensura's behaviour integer and target AI as the source of truth.
- * Other named/owned mobs receive a small compatibility state that mirrors the native semantics as
- * closely as their original AI permits. MCA combat is driven through Brain memories rather than by
- * replacing its Brain or schedule.
+ * Other named/owned mobs receive a small compatibility state. The external aggressive adapter is
+ * deliberately safer than native Tensura's very broad "nearest non-ally" scan: it proactively hunts
+ * hostile mobs, while Neutral/Protect can still retaliate against otherwise-neutral attackers.
  */
 public final class SubordinateTargetingService {
     private static final String DATA_KEY = "remonster_targeting_mode";
+    private static final String NEXT_MCA_CIVIL_ATTACK_TICK = "remonster_next_mca_civil_attack_tick";
     private static final int EXTERNAL_TICK_INTERVAL = 5;
+    private static final int MCA_CIVIL_ATTACK_COOLDOWN = 20;
 
     private SubordinateTargetingService() {
     }
@@ -47,9 +49,9 @@ public final class SubordinateTargetingService {
         }
 
         target.getPersistentData().putString(DATA_KEY, mode.name());
-        if (mode != SubordinateTargetingMode.AGGRESSIVE) {
-            clearTargetState(target);
-        }
+        // Never carry a stale target across posture changes. The next compatibility tick resolves a
+        // target using the semantics of the newly selected mode.
+        clearTargetState(target);
         return true;
     }
 
@@ -90,8 +92,6 @@ public final class SubordinateTargetingService {
         }
         LivingEntity owner = optionalOwner.get();
 
-        // Native Tensura targeting is disabled while ordered to stay/sit. Keep the same invariant for
-        // compatibility mobs rather than letting a STAY subordinate drag itself into combat.
         if (SubordinateMovementService.getMode(target).orElse(SubordinateMovementMode.WANDER)
                 == SubordinateMovementMode.STAY) {
             clearTargetState(target);
@@ -105,7 +105,7 @@ public final class SubordinateTargetingService {
         }
 
         LivingEntity current = target.getTarget();
-        if (current != null && !isValidEnemy(target, owner, current)) {
+        if (current != null && !isValidCurrentTarget(mode, target, owner, current)) {
             clearTargetState(target);
             current = null;
         }
@@ -163,7 +163,7 @@ public final class SubordinateTargetingService {
         List<LivingEntity> candidates = target.level().getEntitiesOfClass(
                 LivingEntity.class,
                 target.getBoundingBox().inflate(range),
-                candidate -> isValidEnemy(target, owner, candidate)
+                candidate -> isAggressiveCandidate(target, owner, candidate)
         );
         return candidates.stream()
                 .min(Comparator.comparingDouble(target::distanceToSqr))
@@ -192,6 +192,34 @@ public final class SubordinateTargetingService {
                 || TensuraSubordinateBridge.isAlly(target, entity);
     }
 
+    private static boolean isValidCurrentTarget(
+            SubordinateTargetingMode mode,
+            Mob target,
+            LivingEntity owner,
+            LivingEntity candidate
+    ) {
+        return mode == SubordinateTargetingMode.AGGRESSIVE
+                ? isAggressiveCandidate(target, owner, candidate)
+                : isValidEnemy(target, owner, candidate);
+    }
+
+    private static boolean isAggressiveCandidate(Mob target, LivingEntity owner, LivingEntity candidate) {
+        if (!isValidEnemy(target, owner, candidate)) {
+            return false;
+        }
+
+        // Proactive aggression is intentionally restricted to entities Minecraft/mods identify as
+        // enemies. A neutral entity can still become a target through retaliation or Protect.
+        if (candidate instanceof Enemy) {
+            return true;
+        }
+        if (candidate instanceof Mob mob) {
+            LivingEntity threatened = mob.getTarget();
+            return threatened != null && isProtectedAlly(target, owner, threatened);
+        }
+        return false;
+    }
+
     private static boolean isValidEnemy(Mob target, LivingEntity owner, LivingEntity candidate) {
         if (candidate == null || candidate == target || candidate == owner || !candidate.isAlive()) {
             return false;
@@ -210,25 +238,53 @@ public final class SubordinateTargetingService {
             return;
         }
 
-        // MCA guards already consume ATTACK_TARGET. Ordinary villagers use NEAREST_HOSTILE in their
-        // self-defence package. Supplying both memories lets MCA keep ownership of the actual combat
-        // tasks while Re:Monster only chooses the target dictated by Thought Communication semantics.
-        target.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, candidate);
-        target.getBrain().setMemory(MemoryModuleType.NEAREST_HOSTILE, candidate);
-        target.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, new EntityTracker(candidate, true));
-        target.getBrain().setMemory(
-                MemoryModuleType.WALK_TARGET,
-                new WalkTarget(new EntityTracker(candidate, false), 0.6F, 2)
-        );
+        if (McaSubordinateAdapter.isGuard(target)) {
+            // Guards already own a real MCA combat package. ATTACK_TARGET is the native entry point
+            // that also drives their guard equipment/clothing state.
+            target.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, candidate);
+            return;
+        }
+
+        // Ordinary MCA villagers do not have the guard attack package. In particular, feeding them
+        // NEAREST_HOSTILE activates MCA's defensive/panic behaviour and makes them act as if THEY are
+        // under attack. For commanded civilians we instead drive only a narrow chase + melee action,
+        // leaving their Brain, schedule, family/work memories and profession untouched.
+        driveMcaCivilCombat(target, candidate);
+    }
+
+    private static void driveMcaCivilCombat(Mob target, LivingEntity candidate) {
+        target.getLookControl().setLookAt(candidate, 30.0F, 30.0F);
+        target.getNavigation().moveTo(candidate, 0.8D);
+
+        double reach = target.getBbWidth() * 2.0D + candidate.getBbWidth();
+        if (target.distanceToSqr(candidate) > reach * reach) {
+            return;
+        }
+
+        long gameTime = target.level().getGameTime();
+        long nextAttack = target.getPersistentData().getLong(NEXT_MCA_CIVIL_ATTACK_TICK);
+        if (gameTime < nextAttack) {
+            return;
+        }
+
+        target.swing(InteractionHand.MAIN_HAND);
+        target.doHurtTarget(candidate);
+        target.getPersistentData().putLong(NEXT_MCA_CIVIL_ATTACK_TICK, gameTime + MCA_CIVIL_ATTACK_COOLDOWN);
     }
 
     private static void clearTargetState(Mob target) {
-        SubordinateHelper.removeTarget(target);
-        if (McaSubordinateAdapter.isMcaVillager(target)) {
-            target.getBrain().eraseMemory(MemoryModuleType.NEAREST_HOSTILE);
-            target.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
-            target.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
-            target.getBrain().eraseMemory(MemoryModuleType.LOOK_TARGET);
+        if (!McaSubordinateAdapter.isMcaVillager(target)) {
+            SubordinateHelper.removeTarget(target);
+            return;
+        }
+
+        boolean hadCombatTarget = target.getTarget() != null
+                || target.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET);
+        target.setTarget(null);
+        target.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
+        target.getPersistentData().remove(NEXT_MCA_CIVIL_ATTACK_TICK);
+        if (hadCombatTarget) {
+            target.getNavigation().stop();
         }
     }
 }
