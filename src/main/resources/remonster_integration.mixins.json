@@ -12,6 +12,7 @@
     "tensura.TensuraMountInventoryInteractionMixin",
     "vanilla.FollowOwnerGoalMixin",
     "vanilla.AbstractHorseMixin",
+    "vanilla.MobTargetingModeMixin",
     "vanilla.PlayerInteractOnMixin"
   ],
   "client": [
