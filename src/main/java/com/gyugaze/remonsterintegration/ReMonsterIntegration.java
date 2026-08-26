@@ -5,6 +5,7 @@ import com.gyugaze.remonsterintegration.command.SpawnDiagnosticCommands;
 import com.gyugaze.remonsterintegration.learning.KillLearningEvents;
 import com.gyugaze.remonsterintegration.menu.ReMonsterMenus;
 import com.gyugaze.remonsterintegration.menu.SubordinateMenuEvents;
+import com.gyugaze.remonsterintegration.network.ReMonsterNetworking;
 import com.gyugaze.remonsterintegration.profile.MobProfileEntityEvents;
 import com.gyugaze.remonsterintegration.profile.MobProfileReloadListener;
 import com.mojang.logging.LogUtils;
@@ -24,6 +25,7 @@ public final class ReMonsterIntegration {
 
     public ReMonsterIntegration(IEventBus modEventBus, ModContainer modContainer) {
         ReMonsterMenus.MENUS.register(modEventBus);
+        modEventBus.addListener(ReMonsterNetworking::registerPayloads);
 
         NeoForge.EVENT_BUS.addListener(this::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
