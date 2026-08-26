@@ -22,6 +22,10 @@ public final class TensuraExistenceBridge {
         return get(entity).getEP();
     }
 
+    public static double getSpiritualHealth(LivingEntity entity) {
+        return get(entity).getSpiritualHealth();
+    }
+
     public static void setEp(LivingEntity entity, double ep) {
         if (ep < 0) {
             throw new IllegalArgumentException("EP cannot be negative");
