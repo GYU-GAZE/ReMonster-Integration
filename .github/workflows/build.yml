@@ -37,6 +37,17 @@ jobs:
           echo '=== THOUGHT COMM MIXIN ==='
           javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
 
+      - name: Inspect Tensura command skills
+        if: success()
+        shell: bash
+        run: |
+          JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
+          echo "TENSURA_JAR=$JAR"
+          echo '=== TELEPATHY ==='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.ability.skill.common.TelepathySkill
+          echo '=== THOUGHT COMMUNICATION ==='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.ability.skill.common.ThoughtCommunicationSkill
+
       - name: Upload built jar
         if: success()
         uses: actions/upload-artifact@v4
