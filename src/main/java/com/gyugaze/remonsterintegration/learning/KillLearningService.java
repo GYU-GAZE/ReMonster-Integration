@@ -2,8 +2,6 @@ package com.gyugaze.remonsterintegration.learning;
 
 import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
-import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
-import io.github.manasmods.tensura.ability.skill.resist.ResistSkill;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,18 +16,13 @@ import java.util.Set;
 /**
  * Pure service for kill-driven Tensura skill learning.
  *
- * Runtime skills are deliberately included alongside profile-declared skills. This allows Tensura's
- * own entity data and existing compatibility addons to remain authoritative for skill assignment
- * while Re:Monster can consume those skills for acquisition-learning rewards.
+ * Re:Monster treats skills this exact defeated entity really possesses at runtime as the primary
+ * learnable repertoire. This lets dynamic growth, existing compatibility addons and individual mob
+ * progression feed the same isekai-style learning loop: if the mob learned a skill, killing it can
+ * train/teach that skill under the normal acquisition rules.
  *
- * A Mob Profile is optional. This matters for vanilla mobs such as fish and for modded mobs that an
- * existing Tensura compatibility addon already enriches before Re:Monster has a curated profile.
- * When no profile exists, the default learning multiplier is 1.0.
- *
- * Tensura also keeps resistance/proficiency entries in normal LivingEntity skill storage even when
- * the entity was not explicitly granted those resistances as its combat abilities. Those ResistSkill
- * entries must not be interpreted as kill-learning rewards simply because they appear in storage.
- * Explicit profile skills remain authoritative and may still opt into a resistance deliberately.
+ * Mob Profile skills are unioned in as explicit project-owned additions. Baseline resistance/
+ * proficiency storage entries are excluded by TensuraSkillBridge.
  */
 public final class KillLearningService {
     private KillLearningService() {
@@ -53,11 +46,7 @@ public final class KillLearningService {
         double points = baseLearningPoints * profileMultiplier;
         Set<ResourceLocation> effectiveSkills = new LinkedHashSet<>();
         defeatedMob.map(MobProfile::skills).ifPresent(effectiveSkills::addAll);
-
-        TensuraSkillBridge.getStorage(defeatedEntity).getLearnedSkills().stream()
-                .filter(instance -> !(instance.getSkill() instanceof ResistSkill))
-                .map(ManasSkillInstance::getSkillId)
-                .forEach(effectiveSkills::add);
+        effectiveSkills.addAll(TensuraSkillBridge.getRuntimeNonResistanceSkillIds(defeatedEntity));
 
         List<ResourceLocation> progressed = new ArrayList<>();
         for (ResourceLocation skillId : effectiveSkills) {
@@ -69,9 +58,6 @@ public final class KillLearningService {
         return List.copyOf(progressed);
     }
 
-    /**
-     * Compatibility overload for callers that already require a Mob Profile.
-     */
     public static List<ResourceLocation> grantFromDefeatedEntity(
             ServerPlayer player,
             LivingEntity defeatedEntity,
@@ -81,9 +67,6 @@ public final class KillLearningService {
         return grantFromDefeatedEntity(player, defeatedEntity, Optional.of(defeatedMob), baseLearningPoints);
     }
 
-    /**
-     * Compatibility overload retained for callers/tests that only want profile-declared skills.
-     */
     public static List<ResourceLocation> grantFromProfile(
             ServerPlayer player,
             MobProfile defeatedMob,
