@@ -12,6 +12,9 @@
     "vanilla.FollowOwnerGoalMixin",
     "vanilla.AbstractHorseMixin"
   ],
+  "client": [
+    "client.AbstractContainerScreenAccessor"
+  ],
   "injectors": {
     "defaultRequire": 0
   }
