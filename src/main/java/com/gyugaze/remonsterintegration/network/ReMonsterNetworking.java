@@ -16,5 +16,15 @@ public final class ReMonsterNetworking {
                 SubordinateCommandPayload.STREAM_CODEC,
                 SubordinateCommandPayload::handle
         );
+        registrar.playToServer(
+                SubordinateSnapshotRequestPayload.TYPE,
+                SubordinateSnapshotRequestPayload.STREAM_CODEC,
+                SubordinateSnapshotRequestPayload::handle
+        );
+        registrar.playToClient(
+                SubordinateSnapshotPayload.TYPE,
+                SubordinateSnapshotPayload.STREAM_CODEC,
+                SubordinateSnapshotPayload::handle
+        );
     }
 }
