@@ -1,6 +1,5 @@
 {
   "species": "remonster_integration:ogre",
-  "scale": 1.25,
   "townstead": {
     "root_candidates": [
       "townstead_classic:tiefling"
@@ -9,6 +8,7 @@
       "tiefling"
     ],
     "preserve_shared_loci": true,
-    "clamp_body_metrics": true
+    "clamp_body_metrics": true,
+    "scale": 1.25
   }
 }
