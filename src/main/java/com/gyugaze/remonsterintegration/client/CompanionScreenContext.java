@@ -22,11 +22,13 @@ import java.util.Optional;
  */
 public final class CompanionScreenContext {
     private static final long PENDING_TIMEOUT_MS = 3_000L;
+    private static final long SCREEN_TRANSITION_GRACE_MS = 750L;
 
     private static int pendingTargetId = -1;
     private static long pendingSinceMs = 0L;
     private static int activeTargetId = -1;
     private static Screen activeScreen;
+    private static long activeCarryUntilMs = 0L;
 
     private CompanionScreenContext() {
     }
@@ -57,25 +59,29 @@ public final class CompanionScreenContext {
             return Optional.empty();
         }
 
+        long now = System.currentTimeMillis();
         LivingEntity pending = resolve(pendingTargetId);
-        boolean pendingFresh = pending != null
-                && System.currentTimeMillis() - pendingSinceMs <= PENDING_TIMEOUT_MS;
+        boolean pendingFresh = pending != null && now - pendingSinceMs <= PENDING_TIMEOUT_MS;
 
         if (pendingFresh && matchesNativeScreen(screen, pending)) {
-            activeTargetId = pending.getId();
-            activeScreen = screen;
+            activate(screen, pending);
             pendingTargetId = -1;
             return Optional.of(pending);
         }
 
         LivingEntity active = resolve(activeTargetId);
-        if (active != null && matchesNativeScreen(screen, active)) {
-            activeScreen = screen;
+        boolean activeMayTransfer = activeScreen != null || now <= activeCarryUntilMs;
+        if (active != null && activeMayTransfer && matchesNativeScreen(screen, active)) {
+            activate(screen, active);
             return Optional.of(active);
         }
 
         if (!pendingFresh) {
             pendingTargetId = -1;
+        }
+        if (activeScreen == null && now > activeCarryUntilMs) {
+            activeTargetId = -1;
+            activeCarryUntilMs = 0L;
         }
         return Optional.empty();
     }
@@ -90,8 +96,9 @@ public final class CompanionScreenContext {
     public static void onScreenClosing(Screen screen) {
         if (activeScreen == screen) {
             activeScreen = null;
-            // Keep the entity id briefly so MCA/Tensura screen-to-screen transitions can inherit the
-            // same target if their next screen also matches the same ecosystem.
+            // Some MCA/Tensura interactions replace one native screen with another. Keep the target
+            // only for a very short hand-off window so an unrelated screen opened later cannot inherit it.
+            activeCarryUntilMs = System.currentTimeMillis() + SCREEN_TRANSITION_GRACE_MS;
         }
     }
 
@@ -100,6 +107,13 @@ public final class CompanionScreenContext {
         pendingSinceMs = 0L;
         activeTargetId = -1;
         activeScreen = null;
+        activeCarryUntilMs = 0L;
+    }
+
+    private static void activate(Screen screen, LivingEntity target) {
+        activeTargetId = target.getId();
+        activeScreen = screen;
+        activeCarryUntilMs = 0L;
     }
 
     private static LivingEntity resolve(int entityId) {
