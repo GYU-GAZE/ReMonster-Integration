@@ -64,10 +64,6 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
         }
         JsonObject object = element.getAsJsonObject();
         ResourceLocation species = requireId(object, "species", sourceId);
-        double scale = getDouble(object, "scale", 1.0D);
-        if (!Double.isFinite(scale) || scale < 0.25D || scale > 4.0D) {
-            throw new IllegalArgumentException("'scale' must be between 0.25 and 4.0 in " + sourceId);
-        }
 
         Optional<SpeciesBodyProfile.TownsteadBody> townstead = Optional.empty();
         if (object.has("townstead")) {
@@ -83,15 +79,20 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
                         "Townstead body must provide root_candidates and/or root_search_terms"
                 );
             }
+            double scale = getDouble(body, "scale", 1.0D);
+            if (!Double.isFinite(scale) || scale < 0.25D || scale > 4.0D) {
+                throw new IllegalArgumentException("Townstead 'scale' must be between 0.25 and 4.0 in " + sourceId);
+            }
             townstead = Optional.of(new SpeciesBodyProfile.TownsteadBody(
                     candidates,
                     searchTerms,
                     getBoolean(body, "preserve_shared_loci", true),
-                    getBoolean(body, "clamp_body_metrics", true)
+                    getBoolean(body, "clamp_body_metrics", true),
+                    scale
             ));
         }
 
-        return new SpeciesBodyProfile(species, scale, townstead);
+        return new SpeciesBodyProfile(species, townstead);
     }
 
     private static ResourceLocation requireId(JsonObject object, String key, ResourceLocation sourceId) {
