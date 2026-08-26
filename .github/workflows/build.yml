@@ -9,49 +9,44 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.2.1'
-
       - name: Resolve exact Tensura jar
-        run: gradle compileJava --stacktrace
-
-      - name: Inspect Tensura entity contracts
+        run: gradle compileJava
+      - name: Focused entity inspection
         shell: bash
         run: |
-          set -euo pipefail
           JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
-          echo "TENSURA_JAR=$JAR"
-
-          mapfile -t CLASSES < <(jar tf "$JAR" | grep '\.class$' | grep -Ei '(goblin|dwarf|basilisk|mount|reputation)' | grep -Ev '(client|renderer|model)' | sed 's#/#.#g;s#\.class$##' | sort -u)
-          printf 'CLASS %s\n' "${CLASSES[@]}"
-
-          echo '=== RELEVANT METHODS ==='
-          for C in "${CLASSES[@]}"; do
-            OUT=$(mktemp)
-            if ! javap -classpath "$JAR" -p -c "$C" > "$OUT" 2>/dev/null; then
-              rm -f "$OUT"
-              continue
-            fi
-            if grep -Eqi 'mobInteract|interactAt|openCustomInventoryScreen|startRiding|isSecondaryUseActive|trade|offer|profession|restock|breed|reputation|named|nameable|evol|work' "$OUT"; then
-              echo "===== $C ====="
-              awk '
-                /^[[:space:]]*(public|protected|private).*(mobInteract|interactAt|openCustomInventoryScreen|startRiding|isSecondaryUseActive|trade|offer|profession|restock|breed|reputation|named|nameable|evol|work)/ {show=1}
-                show {print}
-                show && /^$/ {show=0}
-              ' "$OUT"
-              echo '--- referenced interaction/progression symbols ---'
-              grep -Ei 'mobInteract|interactAt|openCustomInventoryScreen|startRiding|isSecondaryUseActive|trade|offer|profession|restock|breed|reputation|named|nameable|evol|work' "$OUT" | head -n 120 || true
-            fi
-            rm -f "$OUT"
+          for C in \
+            io.github.manasmods.tensura.entity.template.TensuraMountEntity \
+            io.github.manasmods.tensura.entity.template.TensuraRideableEntity \
+            io.github.manasmods.tensura.entity.human.DwarfEntity \
+            io.github.manasmods.tensura.entity.monster.GoblinEntity; do
+            echo "===== SIGNATURES $C ====="
+            javap -classpath "$JAR" -p "$C"
+          done
+          echo '===== MOUNT INTERACTION BYTECODE ====='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.template.TensuraMountEntity | awk '
+            /InteractionResult.*interact|InteractionResult.*mobInteract|InteractionResult.*interactAt/ {show=1}
+            show {print}
+            show && /^$/ {show=0}
+          '
+          echo '===== RIDEABLE INTERACTION BYTECODE ====='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.template.TensuraRideableEntity | awk '
+            /InteractionResult.*interact|InteractionResult.*mobInteract|InteractionResult.*interactAt/ {show=1}
+            show {print}
+            show && /^$/ {show=0}
+          '
+          echo '===== CLASS REFERENCES TO DWARF/GOBLIN ====='
+          TMP=$(mktemp -d)
+          (cd "$TMP" && jar xf "$JAR")
+          for PAT in 'io/github/manasmods/tensura/entity/human/DwarfEntity' 'io/github/manasmods/tensura/entity/monster/GoblinEntity'; do
+            echo "--- $PAT ---"
+            grep -RIlUa "$PAT" "$TMP" --include='*.class' | sed "s#$TMP/##;s#/#.#g;s#\.class$##" | sort | head -n 100
           done
