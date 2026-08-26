@@ -19,34 +19,16 @@ jobs:
           gradle-version: '9.2.1'
       - name: Resolve exact Tensura jar
         run: gradle compileJava
-      - name: Focused entity inspection
+      - name: Inspect mount interaction only
         shell: bash
         run: |
+          set -euo pipefail
           JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
-          for C in \
-            io.github.manasmods.tensura.entity.template.TensuraMountEntity \
-            io.github.manasmods.tensura.entity.template.TensuraRideableEntity \
-            io.github.manasmods.tensura.entity.human.DwarfEntity \
-            io.github.manasmods.tensura.entity.monster.GoblinEntity; do
-            echo "===== SIGNATURES $C ====="
-            javap -classpath "$JAR" -p "$C"
-          done
-          echo '===== MOUNT INTERACTION BYTECODE ====='
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.template.TensuraMountEntity | awk '
-            /InteractionResult.*interact|InteractionResult.*mobInteract|InteractionResult.*interactAt/ {show=1}
-            show {print}
-            show && /^$/ {show=0}
-          '
-          echo '===== RIDEABLE INTERACTION BYTECODE ====='
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.template.TensuraRideableEntity | awk '
-            /InteractionResult.*interact|InteractionResult.*mobInteract|InteractionResult.*interactAt/ {show=1}
-            show {print}
-            show && /^$/ {show=0}
-          '
-          echo '===== CLASS REFERENCES TO DWARF/GOBLIN ====='
-          TMP=$(mktemp -d)
-          (cd "$TMP" && jar xf "$JAR")
-          for PAT in 'io/github/manasmods/tensura/entity/human/DwarfEntity' 'io/github/manasmods/tensura/entity/monster/GoblinEntity'; do
-            echo "--- $PAT ---"
-            grep -RIlUa "$PAT" "$TMP" --include='*.class' | sed "s#$TMP/##;s#/#.#g;s#\.class$##" | sort | head -n 100
+          for C in io.github.manasmods.tensura.entity.template.TensuraMountEntity io.github.manasmods.tensura.entity.template.TensuraRideableEntity; do
+            echo "===== $C getRidingInteraction ====="
+            javap -classpath "$JAR" -p -c "$C" | awk '
+              /getRidingInteraction\(/ {show=1}
+              show {print}
+              show && /^$/ {show=0}
+            '
           done
