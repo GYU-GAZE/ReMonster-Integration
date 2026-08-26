@@ -36,6 +36,21 @@ public final class McaSubordinateAdapter {
         return false;
     }
 
+    /** MCA exposes this directly on VillagerEntityMCA; reflection keeps the integration optional. */
+    public static boolean isGuard(LivingEntity villager) {
+        Objects.requireNonNull(villager, "villager");
+        if (!isMcaVillager(villager)) {
+            return false;
+        }
+
+        try {
+            Object value = villager.getClass().getMethod("isGuard").invoke(villager);
+            return value instanceof Boolean guard && guard;
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            return false;
+        }
+    }
+
     public static boolean assignPermanentOwner(LivingEntity villager, ServerPlayer owner) {
         Objects.requireNonNull(villager, "villager");
         Objects.requireNonNull(owner, "owner");
