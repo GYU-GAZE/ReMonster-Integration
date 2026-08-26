@@ -9,6 +9,7 @@
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
     "tensura.SubordinateFollowOwnerMixin",
+    "tensura.TensuraMountInventoryInteractionMixin",
     "vanilla.FollowOwnerGoalMixin",
     "vanilla.AbstractHorseMixin",
     "vanilla.PlayerInteractOnMixin"
