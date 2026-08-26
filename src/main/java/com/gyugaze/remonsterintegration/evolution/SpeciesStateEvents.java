@@ -9,5 +9,6 @@ public final class SpeciesStateEvents {
 
     public static void onPlayerClone(PlayerEvent.Clone event) {
         SpeciesStateService.copyState(event.getOriginal(), event.getEntity());
+        SpeciesScaleService.applyCurrent(event.getEntity());
     }
 }
