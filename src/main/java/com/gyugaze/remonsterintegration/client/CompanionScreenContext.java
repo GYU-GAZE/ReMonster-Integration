@@ -1,12 +1,13 @@
 package com.gyugaze.remonsterintegration.client;
 
+import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
+import com.gyugaze.remonsterintegration.menu.SubordinateMenuPolicy;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import io.github.manasmods.tensura.entity.template.TensuraHumanoidEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.HorseInventoryScreen;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
@@ -122,11 +123,13 @@ public final class CompanionScreenContext {
             return screen.getClass().getName().startsWith("io.github.manasmods.tensura.client.screen.Humanoid");
         }
 
-        ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
-        if ("mca".equals(entityId.getNamespace())) {
+        if (McaSubordinateAdapter.isMcaVillager(target)) {
             return screen.getClass().getName().startsWith("net.conczin.mca.client.gui.");
         }
 
-        return false;
+        // Data-driven escape hatch for future mods with custom inventories/screens. A tagged entity
+        // may attach to any container screen opened immediately from its interaction.
+        return SubordinateMenuPolicy.isExplicitNativeTagged(target)
+                && screen instanceof AbstractContainerScreen<?>;
     }
 }
