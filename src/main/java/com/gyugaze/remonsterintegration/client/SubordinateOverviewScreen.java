@@ -110,7 +110,7 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
         }
 
         Optional<SubordinateMovementMode> movement = menu.getMovementMode();
-        boolean controllable = movement.isPresent();
+        boolean controllable = menu.isMovementUnlocked() && movement.isPresent();
         followButton.active = controllable && movement.get() != SubordinateMovementMode.FOLLOW;
         wanderButton.active = controllable && movement.get() != SubordinateMovementMode.WANDER;
         stayButton.active = controllable && movement.get() != SubordinateMovementMode.STAY;
@@ -162,8 +162,17 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
         graphics.drawString(this.font, "EP: " + menu.getEp(), 10, 64, TEXT_COLOR, false);
         graphics.drawString(this.font, "SHP: " + menu.getSpiritualHealth(), 104, 64, TEXT_COLOR, false);
 
-        String movement = menu.getMovementMode().map(Enum::name).orElse("NATIVE / UNSUPPORTED");
-        graphics.drawString(this.font, "Movement: " + movement, 10, 80, ACCENT_COLOR, false);
+        String movement = menu.isMovementUnlocked()
+                ? menu.getMovementMode().map(Enum::name).orElse("NATIVE / UNSUPPORTED")
+                : "LOCKED - learn Telepathy (2,000 EP milestone)";
+        graphics.drawString(
+                this.font,
+                this.font.plainSubstrByWidth("Movement: " + movement, 238),
+                10,
+                80,
+                menu.isMovementUnlocked() ? ACCENT_COLOR : MUTED_COLOR,
+                false
+        );
 
         String targeting = menu.isTargetingUnlocked() ? menu.getTargetingMode().name() : "LOCKED - master Thought Communication";
         graphics.drawString(

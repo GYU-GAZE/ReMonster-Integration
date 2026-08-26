@@ -238,7 +238,9 @@ public final class CompanionChromeEvents {
     private static void refreshButtons(ChromeState state) {
         Optional<ClientSubordinateSnapshotCache.Snapshot> snapshot = ClientSubordinateSnapshotCache.get(state.entityId());
         SubordinateMovementMode movement = snapshot.map(ClientSubordinateSnapshotCache.Snapshot::movement).orElse(null);
-        boolean controllable = movement != null;
+        boolean controllable = snapshot
+                .map(value -> value.movementUnlocked() && movement != null)
+                .orElse(false);
 
         state.follow().active = controllable && movement != SubordinateMovementMode.FOLLOW;
         state.wander().active = controllable && movement != SubordinateMovementMode.WANDER;
@@ -306,7 +308,9 @@ public final class CompanionChromeEvents {
         }
 
         ClientSubordinateSnapshotCache.Snapshot snapshot = optionalSnapshot.get();
-        String movement = snapshot.movement() == null ? "NATIVE" : snapshot.movement().name();
+        String movement = !snapshot.movementUnlocked()
+                ? "LOCKED"
+                : snapshot.movement() == null ? "NATIVE" : snapshot.movement().name();
         String targeting = snapshot.targetingUnlocked() ? snapshot.targeting().name() : "LOCKED";
         String details = String.format(
                 Locale.ROOT,
@@ -323,7 +327,7 @@ public final class CompanionChromeEvents {
                 font.plainSubstrByWidth(details, availableWidth),
                 x + 4,
                 y + 17,
-                snapshot.movement() == null ? MUTED : ACCENT,
+                snapshot.movementUnlocked() && snapshot.movement() != null ? ACCENT : MUTED,
                 false
         );
     }
@@ -463,8 +467,6 @@ public final class CompanionChromeEvents {
         Button protect() { return protect; }
         Button status() { return status; }
         long lastSnapshotRequestMs() { return lastSnapshotRequestMs; }
-        void lastSnapshotRequestMs(long value) { lastSnapshotRequestRequestMs(value); }
-
-        private void lastSnapshotRequestRequestMs(long value) { lastSnapshotRequestMs = value; }
+        void lastSnapshotRequestMs(long value) { lastSnapshotRequestMs = value; }
     }
 }

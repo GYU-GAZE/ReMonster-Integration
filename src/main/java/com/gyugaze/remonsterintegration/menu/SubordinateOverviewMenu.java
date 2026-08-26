@@ -38,11 +38,12 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
     public static final int BUTTON_PROTECT = 6;
 
     private static final int DATA_MOVEMENT = 0;
-    private static final int DATA_TARGETING = 1;
-    private static final int DATA_TARGETING_UNLOCKED = 2;
-    private static final int DATA_EP = 3;
-    private static final int DATA_SHP = 4;
-    private static final int DATA_COUNT = 5;
+    private static final int DATA_MOVEMENT_UNLOCKED = 1;
+    private static final int DATA_TARGETING = 2;
+    private static final int DATA_TARGETING_UNLOCKED = 3;
+    private static final int DATA_EP = 4;
+    private static final int DATA_SHP = 5;
+    private static final int DATA_COUNT = 6;
     private static final double MAX_USE_DISTANCE_SQR = 12.0D * 12.0D;
 
     private final Inventory playerInventory;
@@ -95,6 +96,7 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
                     case DATA_MOVEMENT -> SubordinateMovementService.getMode(target)
                             .map(Enum::ordinal)
                             .orElse(-1);
+                    case DATA_MOVEMENT_UNLOCKED -> TensuraSkillBridge.hasTelepathyMovementAccess(owner) ? 1 : 0;
                     case DATA_TARGETING -> SubordinateTargetingService.getMode(target).ordinal();
                     case DATA_TARGETING_UNLOCKED -> TensuraSkillBridge.hasMasteredThoughtCommunication(owner) ? 1 : 0;
                     case DATA_EP -> clampToInt(TensuraExistenceBridge.getEp(target));
@@ -150,6 +152,10 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
         return value >= 0 && value < values.length ? Optional.of(values[value]) : Optional.empty();
     }
 
+    public boolean isMovementUnlocked() {
+        return data.get(DATA_MOVEMENT_UNLOCKED) != 0;
+    }
+
     public SubordinateTargetingMode getTargetingMode() {
         int value = data.get(DATA_TARGETING);
         SubordinateTargetingMode[] values = SubordinateTargetingMode.values();
@@ -178,7 +184,8 @@ public final class SubordinateOverviewMenu extends AbstractContainerMenu {
             default -> null;
         };
         if (movementMode != null) {
-            return SubordinateMovementService.setMode(mob, movementMode);
+            return TensuraSkillBridge.hasTelepathyMovementAccess(player)
+                    && SubordinateMovementService.setMode(mob, movementMode);
         }
 
         if (!TensuraSkillBridge.hasMasteredThoughtCommunication(player)) {

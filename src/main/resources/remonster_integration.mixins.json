@@ -8,6 +8,7 @@
     "bettersubs.ExpandedSkillStorageMixin",
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
+    "tensura.ThoughtCommunicationSkillMixin",
     "tensura.SubordinateFollowOwnerMixin",
     "tensura.TensuraMountInventoryInteractionMixin",
     "vanilla.FollowOwnerGoalMixin",
