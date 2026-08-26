@@ -10,7 +10,8 @@
     "tensura.TelepathySkillMixin",
     "tensura.SubordinateFollowOwnerMixin",
     "vanilla.FollowOwnerGoalMixin",
-    "vanilla.AbstractHorseMixin"
+    "vanilla.AbstractHorseMixin",
+    "vanilla.PlayerInteractOnMixin"
   ],
   "client": [
     "client.AbstractContainerScreenAccessor"
