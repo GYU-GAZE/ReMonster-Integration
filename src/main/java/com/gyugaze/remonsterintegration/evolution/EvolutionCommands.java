@@ -2,10 +2,10 @@ package com.gyugaze.remonsterintegration.evolution;
 
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
@@ -32,11 +32,11 @@ public final class EvolutionCommands {
                                                 ))))
                                 .then(Commands.literal("set")
                                         .then(Commands.argument("target", EntityArgument.entity())
-                                                .then(Commands.argument("species", StringArgumentType.word())
+                                                .then(Commands.argument("species", ResourceLocationArgument.id())
                                                         .executes(context -> setSpecies(
                                                                 context.getSource(),
                                                                 EntityArgument.getEntity(context, "target"),
-                                                                StringArgumentType.getString(context, "species")
+                                                                ResourceLocationArgument.getId(context, "species")
                                                         )))))
                                 .then(Commands.literal("clear")
                                         .then(Commands.argument("target", EntityArgument.entity())
@@ -46,11 +46,11 @@ public final class EvolutionCommands {
                                                 )))))
                         .then(Commands.literal("evolve")
                                 .then(Commands.argument("target", EntityArgument.entity())
-                                        .then(Commands.argument("species", StringArgumentType.word())
+                                        .then(Commands.argument("species", ResourceLocationArgument.id())
                                                 .executes(context -> evolve(
                                                         context.getSource(),
                                                         EntityArgument.getEntity(context, "target"),
-                                                        StringArgumentType.getString(context, "species")
+                                                        ResourceLocationArgument.getId(context, "species")
                                                 )))))
                         .then(Commands.literal("evolutions")
                                 .then(Commands.argument("target", EntityArgument.entity())
@@ -79,10 +79,9 @@ public final class EvolutionCommands {
         return 1;
     }
 
-    private static int setSpecies(CommandSourceStack source, Entity target, String rawSpecies) {
+    private static int setSpecies(CommandSourceStack source, Entity target, ResourceLocation species) {
         LivingEntity living = requireLiving(source, target);
-        ResourceLocation species = parseId(source, rawSpecies);
-        if (living == null || species == null) {
+        if (living == null) {
             return 0;
         }
 
@@ -105,10 +104,9 @@ public final class EvolutionCommands {
         return 1;
     }
 
-    private static int evolve(CommandSourceStack source, Entity target, String rawSpecies) {
+    private static int evolve(CommandSourceStack source, Entity target, ResourceLocation species) {
         LivingEntity living = requireLiving(source, target);
-        ResourceLocation species = parseId(source, rawSpecies);
-        if (living == null || species == null) {
+        if (living == null) {
             return 0;
         }
 
@@ -173,13 +171,5 @@ public final class EvolutionCommands {
         }
         source.sendFailure(Component.literal("[Re:Monster] target must be a living entity"));
         return null;
-    }
-
-    private static ResourceLocation parseId(CommandSourceStack source, String raw) {
-        ResourceLocation parsed = ResourceLocation.tryParse(raw);
-        if (parsed == null) {
-            source.sendFailure(Component.literal("[Re:Monster] invalid resource id: " + raw));
-        }
-        return parsed;
     }
 }
