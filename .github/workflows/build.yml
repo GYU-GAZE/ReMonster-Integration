@@ -23,37 +23,35 @@ jobs:
         with:
           gradle-version: '9.2.1'
 
-      - name: Build
-        run: gradle build --stacktrace
+      - name: Resolve exact Tensura jar
+        run: gradle compileJava --stacktrace
 
-      - name: Inspect Better Subordinates status transition
-        if: success()
+      - name: Inspect Tensura entity contracts
         shell: bash
         run: |
-          JAR=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.client.screen.MixinHumanoidMainScreen
-          echo '=== OPEN PAYLOAD ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload
-          echo '=== THOUGHT COMM MIXIN ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
-
-      - name: Inspect Tensura goblin dwarf and mount internals
-        if: success()
-        shell: bash
-        run: |
+          set -euo pipefail
           JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
           echo "TENSURA_JAR=$JAR"
-          echo '=== MATCHING CLASSES ==='
-          jar tf "$JAR" | grep '\.class$' | grep -Ei '(goblin|dwarf|basilisk|mount|reputation|trade|profession)' | sed 's#/#.#g;s#\.class$##' | sort
-          echo '=== SELECTED BYTECODE ==='
-          for C in $(jar tf "$JAR" | grep '\.class$' | grep -Ei '(GoblinEntity|DwarfEntity|TensuraMountEntity|BasiliskEntity|DwarfReputation|DwarvenReputation)' | grep -Ev '(client|renderer|model)' | sed 's#/#.#g;s#\.class$##' | sort -u); do
-            echo "===== $C ====="
-            javap -classpath "$JAR" -p -c "$C" || true
-          done
 
-      - name: Upload built jar
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: remonster-integration
-          path: build/libs/*.jar
+          mapfile -t CLASSES < <(jar tf "$JAR" | grep '\.class$' | grep -Ei '(goblin|dwarf|basilisk|mount|reputation)' | grep -Ev '(client|renderer|model)' | sed 's#/#.#g;s#\.class$##' | sort -u)
+          printf 'CLASS %s\n' "${CLASSES[@]}"
+
+          echo '=== RELEVANT METHODS ==='
+          for C in "${CLASSES[@]}"; do
+            OUT=$(mktemp)
+            if ! javap -classpath "$JAR" -p -c "$C" > "$OUT" 2>/dev/null; then
+              rm -f "$OUT"
+              continue
+            fi
+            if grep -Eqi 'mobInteract|interactAt|openCustomInventoryScreen|startRiding|isSecondaryUseActive|trade|offer|profession|restock|breed|reputation|named|nameable|evol|work' "$OUT"; then
+              echo "===== $C ====="
+              awk '
+                /^[[:space:]]*(public|protected|private).*(mobInteract|interactAt|openCustomInventoryScreen|startRiding|isSecondaryUseActive|trade|offer|profession|restock|breed|reputation|named|nameable|evol|work)/ {show=1}
+                show {print}
+                show && /^$/ {show=0}
+              ' "$OUT"
+              echo '--- referenced interaction/progression symbols ---'
+              grep -Ei 'mobInteract|interactAt|openCustomInventoryScreen|startRiding|isSecondaryUseActive|trade|offer|profession|restock|breed|reputation|named|nameable|evol|work' "$OUT" | head -n 120 || true
+            fi
+            rm -f "$OUT"
+          done
