@@ -17,6 +17,11 @@ public final class ReMonsterNetworking {
                 SubordinateCommandPayload::handle
         );
         registrar.playToServer(
+                SubordinateTargetingCommandPayload.TYPE,
+                SubordinateTargetingCommandPayload.STREAM_CODEC,
+                SubordinateTargetingCommandPayload::handle
+        );
+        registrar.playToServer(
                 SubordinateSnapshotRequestPayload.TYPE,
                 SubordinateSnapshotRequestPayload.STREAM_CODEC,
                 SubordinateSnapshotRequestPayload::handle

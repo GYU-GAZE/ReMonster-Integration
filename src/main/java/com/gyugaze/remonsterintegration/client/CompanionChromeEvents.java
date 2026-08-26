@@ -6,7 +6,9 @@ import com.gyugaze.remonsterintegration.mixin.client.AbstractContainerScreenAcce
 import com.gyugaze.remonsterintegration.mixin.client.ScreenInvoker;
 import com.gyugaze.remonsterintegration.network.SubordinateCommandPayload;
 import com.gyugaze.remonsterintegration.network.SubordinateSnapshotRequestPayload;
+import com.gyugaze.remonsterintegration.network.SubordinateTargetingCommandPayload;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
+import com.gyugaze.remonsterintegration.subordinate.SubordinateTargetingMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -74,41 +76,52 @@ public final class CompanionChromeEvents {
                 button -> resolveTarget(entityId).ifPresent(BetterSubordinatesStatusBridge::open)
         ).bounds(layout.statusX(), layout.headerY() + 5, layout.statusWidth(), 20).build();
 
-        int firstWidth = layout.movementWidth();
-        int secondWidth = layout.movementWidth();
-        int thirdWidth = layout.chromeWidth() - firstWidth - secondWidth - 8;
+        int movementFirst = layout.movementWidth();
+        int movementSecond = layout.movementWidth();
+        int movementThird = layout.chromeWidth() - movementFirst - movementSecond - 8;
 
         Button follow = movementButton(
-                "Follow",
-                layout.chromeLeft(),
-                layout.buttonY(),
-                firstWidth,
-                entityId,
-                SubordinateMovementMode.FOLLOW
+                "Follow", layout.chromeLeft(), layout.movementY(), movementFirst, entityId, SubordinateMovementMode.FOLLOW
         );
         Button wander = movementButton(
-                "Wander",
-                layout.chromeLeft() + firstWidth + 4,
-                layout.buttonY(),
-                secondWidth,
-                entityId,
-                SubordinateMovementMode.WANDER
+                "Wander", layout.chromeLeft() + movementFirst + 4, layout.movementY(), movementSecond,
+                entityId, SubordinateMovementMode.WANDER
         );
         Button stay = movementButton(
-                "Stay",
-                layout.chromeLeft() + firstWidth + secondWidth + 8,
-                layout.buttonY(),
-                thirdWidth,
-                entityId,
-                SubordinateMovementMode.STAY
+                "Stay", layout.chromeLeft() + movementFirst + movementSecond + 8, layout.movementY(), movementThird,
+                entityId, SubordinateMovementMode.STAY
+        );
+
+        int targetingWidth = Math.max(1, (layout.chromeWidth() - 12) / 4);
+        int targetingLast = layout.chromeWidth() - targetingWidth * 3 - 12;
+        Button neutral = targetingButton(
+                "Neutral", layout.chromeLeft(), layout.targetingY(), targetingWidth, entityId, SubordinateTargetingMode.NEUTRAL
+        );
+        Button passive = targetingButton(
+                "Passive", layout.chromeLeft() + targetingWidth + 4, layout.targetingY(), targetingWidth,
+                entityId, SubordinateTargetingMode.PASSIVE
+        );
+        Button aggressive = targetingButton(
+                "Aggressive", layout.chromeLeft() + (targetingWidth + 4) * 2, layout.targetingY(), targetingWidth,
+                entityId, SubordinateTargetingMode.AGGRESSIVE
+        );
+        Button protect = targetingButton(
+                "Protect", layout.chromeLeft() + (targetingWidth + 4) * 3, layout.targetingY(), targetingLast,
+                entityId, SubordinateTargetingMode.PROTECT
         );
 
         event.addListener(status);
         event.addListener(follow);
         event.addListener(wander);
         event.addListener(stay);
+        event.addListener(neutral);
+        event.addListener(passive);
+        event.addListener(aggressive);
+        event.addListener(protect);
 
-        ChromeState state = new ChromeState(entityId, layout, follow, wander, stay, status);
+        ChromeState state = new ChromeState(
+                entityId, layout, follow, wander, stay, neutral, passive, aggressive, protect, status
+        );
         CHROME.put(screen, state);
         requestSnapshot(state, true);
     }
@@ -127,6 +140,10 @@ public final class CompanionChromeEvents {
         restoreButtonIfMissing(event.getScreen(), state.follow());
         restoreButtonIfMissing(event.getScreen(), state.wander());
         restoreButtonIfMissing(event.getScreen(), state.stay());
+        restoreButtonIfMissing(event.getScreen(), state.neutral());
+        restoreButtonIfMissing(event.getScreen(), state.passive());
+        restoreButtonIfMissing(event.getScreen(), state.aggressive());
+        restoreButtonIfMissing(event.getScreen(), state.protect());
     }
 
     @SubscribeEvent
@@ -177,6 +194,23 @@ public final class CompanionChromeEvents {
         ).bounds(x, y, Math.max(1, width), 20).build();
     }
 
+    private static Button targetingButton(
+            String label,
+            int x,
+            int y,
+            int width,
+            int entityId,
+            SubordinateTargetingMode mode
+    ) {
+        return Button.builder(
+                Component.literal(label),
+                button -> {
+                    PacketDistributor.sendToServer(new SubordinateTargetingCommandPayload(entityId, mode.ordinal()));
+                    ClientSubordinateSnapshotCache.clear(entityId);
+                }
+        ).bounds(x, y, Math.max(1, width), 20).build();
+    }
+
     private static void refreshButtons(ChromeState state) {
         Optional<ClientSubordinateSnapshotCache.Snapshot> snapshot = ClientSubordinateSnapshotCache.get(state.entityId());
         SubordinateMovementMode movement = snapshot.map(ClientSubordinateSnapshotCache.Snapshot::movement).orElse(null);
@@ -185,6 +219,15 @@ public final class CompanionChromeEvents {
         state.follow().active = controllable && movement != SubordinateMovementMode.FOLLOW;
         state.wander().active = controllable && movement != SubordinateMovementMode.WANDER;
         state.stay().active = controllable && movement != SubordinateMovementMode.STAY;
+
+        boolean targetingUnlocked = snapshot.map(ClientSubordinateSnapshotCache.Snapshot::targetingUnlocked).orElse(false);
+        SubordinateTargetingMode targeting = snapshot.map(ClientSubordinateSnapshotCache.Snapshot::targeting)
+                .orElse(SubordinateTargetingMode.NEUTRAL);
+        state.neutral().active = targetingUnlocked && targeting != SubordinateTargetingMode.NEUTRAL;
+        state.passive().active = targetingUnlocked && targeting != SubordinateTargetingMode.PASSIVE;
+        state.aggressive().active = targetingUnlocked && targeting != SubordinateTargetingMode.AGGRESSIVE;
+        state.protect().active = targetingUnlocked && targeting != SubordinateTargetingMode.PROTECT;
+
         if (state.status() != null) {
             state.status().active = BetterSubordinatesStatusBridge.isAvailable();
         }
@@ -194,6 +237,10 @@ public final class CompanionChromeEvents {
         state.follow().active = false;
         state.wander().active = false;
         state.stay().active = false;
+        state.neutral().active = false;
+        state.passive().active = false;
+        state.aggressive().active = false;
+        state.protect().active = false;
         if (state.status() != null) {
             state.status().active = false;
         }
@@ -236,14 +283,16 @@ public final class CompanionChromeEvents {
 
         ClientSubordinateSnapshotCache.Snapshot snapshot = optionalSnapshot.get();
         String movement = snapshot.movement() == null ? "NATIVE" : snapshot.movement().name();
+        String targeting = snapshot.targetingUnlocked() ? snapshot.targeting().name() : "LOCKED";
         String details = String.format(
                 Locale.ROOT,
-                "HP %.0f/%.0f  EP %s  SHP %s  %s",
+                "HP %.0f/%.0f  EP %s  SHP %s  M:%s  T:%s",
                 snapshot.health(),
                 snapshot.maxHealth(),
                 compactNumber(snapshot.ep()),
                 compactNumber(snapshot.spiritualHealth()),
-                movement
+                movement,
+                targeting
         );
         graphics.drawString(
                 font,
@@ -310,15 +359,19 @@ public final class CompanionChromeEvents {
         int chromeLeft = clamp(center - chromeWidth / 2, 4, Math.max(4, screenWidth - chromeWidth - 4));
 
         int headerY = nativeTop >= 34 ? nativeTop - 32 : 2;
-        int buttonY = nativeTop + nativeHeight + 4;
-        if (buttonY + 20 > screenHeight - 2) {
-            buttonY = Math.max(2, screenHeight - 22);
+        int movementY = nativeTop + nativeHeight + 4;
+        int targetingY = movementY + 24;
+        if (targetingY + 20 > screenHeight - 2) {
+            targetingY = Math.max(2, screenHeight - 22);
+            movementY = Math.max(2, targetingY - 24);
         }
 
         int statusWidth = 60;
         int statusX = chromeLeft + chromeWidth - statusWidth;
         int movementWidth = Math.max(1, (chromeWidth - 8) / 3);
-        return new Layout(chromeLeft, chromeWidth, headerY, buttonY, statusX, statusWidth, movementWidth);
+        return new Layout(
+                chromeLeft, chromeWidth, headerY, movementY, targetingY, statusX, statusWidth, movementWidth
+        );
     }
 
     private static int clamp(int value, int min, int max) {
@@ -329,7 +382,8 @@ public final class CompanionChromeEvents {
             int chromeLeft,
             int chromeWidth,
             int headerY,
-            int buttonY,
+            int movementY,
+            int targetingY,
             int statusX,
             int statusWidth,
             int movementWidth
@@ -342,6 +396,10 @@ public final class CompanionChromeEvents {
         private final Button follow;
         private final Button wander;
         private final Button stay;
+        private final Button neutral;
+        private final Button passive;
+        private final Button aggressive;
+        private final Button protect;
         private final Button status;
         private long lastSnapshotRequestMs;
 
@@ -351,6 +409,10 @@ public final class CompanionChromeEvents {
                 Button follow,
                 Button wander,
                 Button stay,
+                Button neutral,
+                Button passive,
+                Button aggressive,
+                Button protect,
                 Button status
         ) {
             this.entityId = entityId;
@@ -358,39 +420,24 @@ public final class CompanionChromeEvents {
             this.follow = follow;
             this.wander = wander;
             this.stay = stay;
+            this.neutral = neutral;
+            this.passive = passive;
+            this.aggressive = aggressive;
+            this.protect = protect;
             this.status = status;
         }
 
-        int entityId() {
-            return entityId;
-        }
-
-        Layout layout() {
-            return layout;
-        }
-
-        Button follow() {
-            return follow;
-        }
-
-        Button wander() {
-            return wander;
-        }
-
-        Button stay() {
-            return stay;
-        }
-
-        Button status() {
-            return status;
-        }
-
-        long lastSnapshotRequestMs() {
-            return lastSnapshotRequestMs;
-        }
-
-        void lastSnapshotRequestMs(long value) {
-            lastSnapshotRequestMs = value;
-        }
+        int entityId() { return entityId; }
+        Layout layout() { return layout; }
+        Button follow() { return follow; }
+        Button wander() { return wander; }
+        Button stay() { return stay; }
+        Button neutral() { return neutral; }
+        Button passive() { return passive; }
+        Button aggressive() { return aggressive; }
+        Button protect() { return protect; }
+        Button status() { return status; }
+        long lastSnapshotRequestMs() { return lastSnapshotRequestMs; }
+        void lastSnapshotRequestMs(long value) { lastSnapshotRequestMs = value; }
     }
 }

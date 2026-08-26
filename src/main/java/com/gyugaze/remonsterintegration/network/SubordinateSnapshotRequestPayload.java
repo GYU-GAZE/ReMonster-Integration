@@ -2,7 +2,9 @@ package com.gyugaze.remonsterintegration.network;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementService;
+import com.gyugaze.remonsterintegration.subordinate.SubordinateTargetingService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
+import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -51,11 +53,15 @@ public record SubordinateSnapshotRequestPayload(int entityId) implements CustomP
             int movement = SubordinateMovementService.getMode(target)
                     .map(Enum::ordinal)
                     .orElse(-1);
+            int targeting = SubordinateTargetingService.getMode(target).ordinal();
+            boolean targetingUnlocked = TensuraSkillBridge.hasMasteredThoughtCommunication(player);
             PacketDistributor.sendToPlayer(
                     player,
                     new SubordinateSnapshotPayload(
                             target.getId(),
                             movement,
+                            targeting,
+                            targetingUnlocked,
                             target.getHealth(),
                             target.getMaxHealth(),
                             TensuraExistenceBridge.getEp(target),

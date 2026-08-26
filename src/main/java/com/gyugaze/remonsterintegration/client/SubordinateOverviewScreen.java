@@ -2,12 +2,12 @@ package com.gyugaze.remonsterintegration.client;
 
 import com.gyugaze.remonsterintegration.menu.SubordinateOverviewMenu;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
+import com.gyugaze.remonsterintegration.subordinate.SubordinateTargetingMode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -28,6 +28,10 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
     private Button followButton;
     private Button wanderButton;
     private Button stayButton;
+    private Button neutralButton;
+    private Button passiveButton;
+    private Button aggressiveButton;
+    private Button protectButton;
     private Button statusButton;
 
     public SubordinateOverviewScreen(
@@ -36,8 +40,8 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
             Component title
     ) {
         super(menu, playerInventory, title);
-        this.imageWidth = 244;
-        this.imageHeight = 142;
+        this.imageWidth = 260;
+        this.imageHeight = 170;
     }
 
     @Override
@@ -47,28 +51,43 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
         this.statusButton = addRenderableWidget(Button.builder(
                 Component.literal("Status"),
                 button -> openStatus()
-        ).bounds(this.leftPos + 172, this.topPos + 10, 60, 20).build());
+        ).bounds(this.leftPos + this.imageWidth - 72, this.topPos + 10, 60, 20).build());
 
-        int y = this.topPos + 108;
+        int movementY = this.topPos + 108;
+        int movementWidth = (this.imageWidth - 28) / 3;
         this.followButton = addRenderableWidget(Button.builder(
                 Component.literal("Follow"),
-                button -> sendMovement(SubordinateOverviewMenu.BUTTON_FOLLOW)
-        ).bounds(this.leftPos + 10, y, 70, 20).build());
+                button -> sendCommand(SubordinateOverviewMenu.BUTTON_FOLLOW)
+        ).bounds(this.leftPos + 10, movementY, movementWidth, 20).build());
 
         this.wanderButton = addRenderableWidget(Button.builder(
                 Component.literal("Wander"),
-                button -> sendMovement(SubordinateOverviewMenu.BUTTON_WANDER)
-        ).bounds(this.leftPos + 87, y, 70, 20).build());
+                button -> sendCommand(SubordinateOverviewMenu.BUTTON_WANDER)
+        ).bounds(this.leftPos + 14 + movementWidth, movementY, movementWidth, 20).build());
 
         this.stayButton = addRenderableWidget(Button.builder(
                 Component.literal("Stay"),
-                button -> sendMovement(SubordinateOverviewMenu.BUTTON_STAY)
-        ).bounds(this.leftPos + 164, y, 70, 20).build());
+                button -> sendCommand(SubordinateOverviewMenu.BUTTON_STAY)
+        ).bounds(this.leftPos + 18 + movementWidth * 2, movementY, movementWidth, 20).build());
+
+        int targetingY = this.topPos + 136;
+        int targetingWidth = (this.imageWidth - 32) / 4;
+        this.neutralButton = targetingButton("Neutral", SubordinateOverviewMenu.BUTTON_NEUTRAL, 10, targetingY, targetingWidth);
+        this.passiveButton = targetingButton("Passive", SubordinateOverviewMenu.BUTTON_PASSIVE, 14 + targetingWidth, targetingY, targetingWidth);
+        this.aggressiveButton = targetingButton("Aggressive", SubordinateOverviewMenu.BUTTON_AGGRESSIVE, 18 + targetingWidth * 2, targetingY, targetingWidth);
+        this.protectButton = targetingButton("Protect", SubordinateOverviewMenu.BUTTON_PROTECT, 22 + targetingWidth * 3, targetingY, targetingWidth);
 
         refreshButtonState();
     }
 
-    private void sendMovement(int buttonId) {
+    private Button targetingButton(String label, int buttonId, int relativeX, int y, int width) {
+        return addRenderableWidget(Button.builder(
+                Component.literal(label),
+                button -> sendCommand(buttonId)
+        ).bounds(this.leftPos + relativeX, y, width, 20).build());
+    }
+
+    private void sendCommand(int buttonId) {
         if (minecraft == null || minecraft.gameMode == null) {
             return;
         }
@@ -90,11 +109,18 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
             return;
         }
 
-        Optional<SubordinateMovementMode> mode = menu.getMovementMode();
-        boolean controllable = mode.isPresent();
-        followButton.active = controllable && mode.get() != SubordinateMovementMode.FOLLOW;
-        wanderButton.active = controllable && mode.get() != SubordinateMovementMode.WANDER;
-        stayButton.active = controllable && mode.get() != SubordinateMovementMode.STAY;
+        Optional<SubordinateMovementMode> movement = menu.getMovementMode();
+        boolean controllable = movement.isPresent();
+        followButton.active = controllable && movement.get() != SubordinateMovementMode.FOLLOW;
+        wanderButton.active = controllable && movement.get() != SubordinateMovementMode.WANDER;
+        stayButton.active = controllable && movement.get() != SubordinateMovementMode.STAY;
+
+        boolean targetingUnlocked = menu.isTargetingUnlocked();
+        SubordinateTargetingMode targeting = menu.getTargetingMode();
+        neutralButton.active = targetingUnlocked && targeting != SubordinateTargetingMode.NEUTRAL;
+        passiveButton.active = targetingUnlocked && targeting != SubordinateTargetingMode.PASSIVE;
+        aggressiveButton.active = targetingUnlocked && targeting != SubordinateTargetingMode.AGGRESSIVE;
+        protectButton.active = targetingUnlocked && targeting != SubordinateTargetingMode.PROTECT;
 
         if (statusButton != null) {
             statusButton.active = menu.getTarget().isPresent() && BetterSubordinatesStatusBridge.isAvailable();
@@ -122,21 +148,31 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
                 .map(entity -> BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString())
                 .orElse("unknown");
 
-        graphics.drawString(this.font, this.font.plainSubstrByWidth(name, 150), 10, 12, TEXT_COLOR, false);
-        graphics.drawString(this.font, this.font.plainSubstrByWidth(type, 210), 10, 28, MUTED_COLOR, false);
+        graphics.drawString(this.font, this.font.plainSubstrByWidth(name, 166), 10, 12, TEXT_COLOR, false);
+        graphics.drawString(this.font, this.font.plainSubstrByWidth(type, 226), 10, 28, MUTED_COLOR, false);
 
         if (optionalTarget.isPresent()) {
             LivingEntity target = optionalTarget.get();
             String hp = String.format(Locale.ROOT, "HP: %.1f / %.1f", target.getHealth(), target.getMaxHealth());
-            graphics.drawString(this.font, hp, 10, 52, TEXT_COLOR, false);
+            graphics.drawString(this.font, hp, 10, 50, TEXT_COLOR, false);
         } else {
-            graphics.drawString(this.font, "HP: unavailable", 10, 52, MUTED_COLOR, false);
+            graphics.drawString(this.font, "HP: unavailable", 10, 50, MUTED_COLOR, false);
         }
 
-        graphics.drawString(this.font, "EP: " + menu.getEp(), 10, 66, TEXT_COLOR, false);
-        graphics.drawString(this.font, "SHP: " + menu.getSpiritualHealth(), 94, 66, TEXT_COLOR, false);
+        graphics.drawString(this.font, "EP: " + menu.getEp(), 10, 64, TEXT_COLOR, false);
+        graphics.drawString(this.font, "SHP: " + menu.getSpiritualHealth(), 104, 64, TEXT_COLOR, false);
 
         String movement = menu.getMovementMode().map(Enum::name).orElse("NATIVE / UNSUPPORTED");
-        graphics.drawString(this.font, "Movement: " + movement, 10, 84, ACCENT_COLOR, false);
+        graphics.drawString(this.font, "Movement: " + movement, 10, 80, ACCENT_COLOR, false);
+
+        String targeting = menu.isTargetingUnlocked() ? menu.getTargetingMode().name() : "LOCKED - master Thought Communication";
+        graphics.drawString(
+                this.font,
+                this.font.plainSubstrByWidth("Targeting: " + targeting, 238),
+                10,
+                94,
+                menu.isTargetingUnlocked() ? ACCENT_COLOR : MUTED_COLOR,
+                false
+        );
     }
 }

@@ -2,6 +2,7 @@ package com.gyugaze.remonsterintegration.client;
 
 import com.gyugaze.remonsterintegration.network.SubordinateSnapshotPayload;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
+import com.gyugaze.remonsterintegration.subordinate.SubordinateTargetingMode;
 
 import java.util.Map;
 import java.util.Optional;
@@ -16,14 +17,23 @@ public final class ClientSubordinateSnapshotCache {
 
     public static void accept(SubordinateSnapshotPayload payload) {
         SubordinateMovementMode movement = null;
-        SubordinateMovementMode[] modes = SubordinateMovementMode.values();
-        if (payload.movementMode() >= 0 && payload.movementMode() < modes.length) {
-            movement = modes[payload.movementMode()];
+        SubordinateMovementMode[] movementModes = SubordinateMovementMode.values();
+        if (payload.movementMode() >= 0 && payload.movementMode() < movementModes.length) {
+            movement = movementModes[payload.movementMode()];
         }
+
+        SubordinateTargetingMode targeting = SubordinateTargetingMode.NEUTRAL;
+        SubordinateTargetingMode[] targetingModes = SubordinateTargetingMode.values();
+        if (payload.targetingMode() >= 0 && payload.targetingMode() < targetingModes.length) {
+            targeting = targetingModes[payload.targetingMode()];
+        }
+
         SNAPSHOTS.put(
                 payload.entityId(),
                 new Snapshot(
                         movement,
+                        targeting,
+                        payload.targetingUnlocked(),
                         payload.health(),
                         payload.maxHealth(),
                         payload.ep(),
@@ -43,6 +53,8 @@ public final class ClientSubordinateSnapshotCache {
 
     public record Snapshot(
             SubordinateMovementMode movement,
+            SubordinateTargetingMode targeting,
+            boolean targetingUnlocked,
             float health,
             float maxHealth,
             double ep,

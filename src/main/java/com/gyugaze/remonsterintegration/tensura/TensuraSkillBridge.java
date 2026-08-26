@@ -8,6 +8,7 @@ import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.TensuraSkill;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.ability.skill.resist.ResistSkill;
+import io.github.manasmods.tensura.registry.skill.CommonSkills;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -31,6 +32,14 @@ public final class TensuraSkillBridge {
     public static Optional<ManasSkillInstance> getSkillInstance(LivingEntity entity, ResourceLocation skillId) {
         Objects.requireNonNull(skillId, "skillId");
         return getStorage(entity).getSkill(skillId);
+    }
+
+    /** Uses the exact gate used by ThoughtCommunicationSkill#nextMode in Tensura 2.0.1.2. */
+    public static boolean hasMasteredThoughtCommunication(LivingEntity entity) {
+        Objects.requireNonNull(entity, "entity");
+        return getSkillInstance(entity, CommonSkills.THOUGHT_COMMUNICATION.getId())
+                .map(instance -> instance.isMastered(entity))
+                .orElse(false);
     }
 
     /**
