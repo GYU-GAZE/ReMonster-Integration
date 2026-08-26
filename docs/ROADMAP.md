@@ -234,7 +234,11 @@ Thought Communication must be adapted to MCA semantics instead of replacing MCA 
 - [ ] regression-test one third-party `HasCustomInventoryScreen` mob from the pack
 - [ ] regression-test one generic fallback subordinate with no useful native menu
 - [ ] gate movement commands behind the agreed Telepathy / 2,000 EP milestone
-- [ ] add targeting modes after Thought Communication mastery: Neutral / Passive / Aggressive / Protect
+- [x] add separate targeting modes: Neutral / Passive / Aggressive / Protect
+- [x] gate targeting controls through Tensura's native Thought Communication `isMastered()` state
+- [x] route native Tensura targeting through `SubordinateHelper`
+- [x] add MCA/generic targeting compatibility state without replacing MCA Brain/schedule
+- [ ] runtime-test Neutral / Passive / Aggressive / Protect on Tensura, MCA and generic compatible subordinates
 
 See `docs/SUBORDINATE_SYSTEM.md` for the focused contract and test matrix.
 
@@ -282,23 +286,6 @@ Player gameplay remains Tensura-driven. Townstead primarily supplies visual/gene
 - [ ] skin/hair/eyes/horns/ears/markings/proportions palettes
 - [ ] multiplayer sync
 
-### MCA-backed fantasy civilian species
-
-Selected Tensura civilian races may eventually use MCA villagers as the simulation entity while preserving the Tensura-facing race/progression/economy semantics needed by the pack.
-
-- [ ] prototype MCA-backed Goblin civilian species
-- [ ] preserve Tensura Goblin trade catalog on the MCA-backed Goblin
-- [ ] preserve Goblin naming and Goblin -> Hobgoblin evolution semantics
-- [ ] preserve relevant Tensura EP / skills / race state on the MCA-backed Goblin
-- [ ] runtime-test MCA family/work/schedule compatibility for Goblin civilians
-- [ ] only after Goblin proves the architecture, design MCA-backed Dwarf adapter
-- [ ] reuse `DwarfProfession` trade listings where compatible instead of manually cloning tables
-- [ ] preserve Dwarven Reputation changes, price effects, trade refusal/hostility and Gazel Dwargo progression
-- [ ] map Tensura dwarf professions including trainers / merchant / miner / lumberjack / guard semantics
-- [ ] decide explicitly which native dwarf worktime/restock/trader-level behaviors MCA supersedes and which remain bridged
-
-Do not remove native `DwarfEntity` from the pack until the reputation/profession/Gazel compatibility contract is complete.
-
 ## Phase 11 - Expanded race evolution
 
 - [x] locate Tensura native race/evolution framework and requirement classes
@@ -316,7 +303,37 @@ Do not remove native `DwarfEntity` from the pack until the reputation/profession
 - [ ] preserve owner, EP, skills, name, equipment and state when entity replacement is unavoidable
 - [ ] MCA villagers: never replace with a Tensura entity; update Tensura race + visual state in place
 
-## Phase 13 - Polish and pack authoring tools
+## Phase 13 - MCA-backed fantasy civilizations
+
+This is intentionally late. It depends on the Townstead race/visual bridge, expanded Tensura race evolution and stable MCA subordinate progression. Do not treat it as a simple entity swap.
+
+### Goblin civilization
+
+- [ ] prototype MCA-backed Goblin civilian species only after the race/evolution bridges are stable
+- [ ] make every MCA-backed Goblin use the project Townstead Goblin race/species identity
+- [ ] restrict Goblin clothing pools to race-appropriate / tribal clothing instead of the full MCA wardrobe
+- [ ] replace MCA Goblin guard equipment/loadouts with tribal equipment
+- [ ] preserve Tensura Goblin trade catalog on the MCA-backed Goblin
+- [ ] preserve Goblin naming and Goblin -> Hobgoblin evolution semantics
+- [ ] preserve relevant Tensura EP / skills / race state on the MCA-backed Goblin
+- [ ] preserve MCA family, genetics, relationships, work, memories and schedule
+- [ ] runtime-test family inheritance, clothing, professions, guards and evolution together
+
+### Dwarf civilization
+
+Only start after Goblin proves the architecture.
+
+- [ ] design MCA-backed Dwarf species adapter
+- [ ] map the Townstead/Tensura dwarf race identity and visual genetics
+- [ ] reuse `DwarfProfession` trade listings where compatible instead of manually cloning tables
+- [ ] preserve Dwarven Reputation changes, price effects, trade refusal/hostility and Gazel Dwargo progression
+- [ ] map Tensura dwarf professions including trainers / merchant / miner / lumberjack / guard semantics
+- [ ] decide explicitly which native dwarf worktime/restock/trader-level behaviors MCA supersedes and which remain bridged
+- [ ] define dwarf clothing and guard/equipment pools separately from Goblin civilization rules
+
+Do not remove native `DwarfEntity` from the pack until the reputation/profession/Gazel compatibility contract is complete.
+
+## Phase 14 - Polish and pack authoring tools
 
 - [ ] config UX
 - [x] initial entity diagnostics command
