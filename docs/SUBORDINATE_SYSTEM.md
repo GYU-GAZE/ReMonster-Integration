@@ -51,6 +51,38 @@ Known native screens are decorated with Re:Monster companion chrome containing:
 
 The native contents remain underneath and continue to own inventory, MCA interactions and mod-specific controls.
 
+### Native input ownership
+
+Re:Monster must not steal an entity's primary interaction merely to expose subordinate controls.
+
+- ordinary right-click belongs to the owning mod's normal interaction path
+- if a mount uses ordinary right-click to ride, riding remains ordinary right-click
+- if its native inventory uses secondary-use / shift-right-click, that remains the inventory gesture
+- Re:Monster decorates the native screen after it opens rather than opening a replacement screen first
+- the lightweight fallback subordinate screen is allowed only when the complete native/item interaction chain returned `PASS`
+
+An older implementation deliberately opened the Re:Monster overview on empty-hand normal right-click for non-humanoid `TensuraTamableEntity` instances. That behavior could steal the Basilisk's riding interaction and has been removed. The current `SubordinateMenuEvents` path only sends an ownership-authorized screen context and never cancels the native interaction.
+
+Tensura 2.0.1.2 `TensuraMountEntity` implements the vanilla `HasCustomInventoryScreen` contract and owns its `MountScreen` / `MountMenu`. Exact-jar inspection shows its interaction path checks secondary use before `openCustomInventoryScreen`, so Re:Monster should preserve that upstream mount behavior rather than reimplementing it.
+
+### Generic native inventory coverage
+
+Native inventory support must be capability/data driven rather than a species whitelist.
+
+`SubordinateMenuPolicy` currently treats all of these as native-menu entities:
+
+- Tensura humanoids
+- vanilla `AbstractHorse`
+- any `HasCustomInventoryScreen`
+- MCA villagers
+- any entity type in `#remonster_integration:native_subordinate_menu`
+
+The generic client matcher also accepts `HasCustomInventoryScreen` entities whose owning mod opens an `AbstractContainerScreen`.
+
+This means Basilisk is not special-cased as the only modded inventory creature. Any third-party mob that follows the standard vanilla custom-inventory contract is automatically eligible for native-screen decoration. The entity-type tag is the escape hatch for mods with useful native GUIs that do not implement that contract.
+
+Do not add per-species Java branches merely to support another dragon, mount or pet. Add a dedicated adapter only when the owning mod's interaction or GUI contract genuinely differs from the generic paths above.
+
 ### Status
 
 `Status` routes through the Better Subordinates status bridge when available.
@@ -99,6 +131,43 @@ Thought Communication also has separate movement and targeting command paths. Re
 
 For MCA, targeting commands must be adapted deliberately. Do not transplant TensuraTamableEntity combat automation or destroy MCA scheduling just to make the four modes work.
 
+## MCA-backed fantasy humanoids
+
+Long-term pack direction may replace selected Tensura civilian humanoid entities with MCA villagers carrying a Tensura species/race identity. This is a gameplay integration, not merely a renderer swap.
+
+### Goblin candidate
+
+`GoblinEntity` is a realistic first candidate for an MCA-backed replacement, but the adapter must preserve the useful Tensura semantics that would disappear with the original entity:
+
+- Tensura goblin trade catalog
+- naming relationship
+- Goblin -> Hobgoblin name/evolution state and its gameplay effects
+- relevant EP / skills / race state
+- any pack-required goblin-specific rewards or progression hooks
+
+Exact Tensura 2.0.1.2 inspection confirms native `GoblinEntity` is a `TensuraMerchantEntity` and `INameEvolution` implementation with explicit evolution state, trades, breeding and its own SmartBrain schedule. Re:Monster should deliberately choose which simulation pieces are superseded by MCA and bridge the Tensura-facing progression pieces that must remain.
+
+### Dwarf candidate
+
+Do not replace `DwarfEntity` with MCA as a cosmetic-only change.
+
+The native dwarf is coupled to substantially more Tensura gameplay than the goblin. Exact-jar inspection exposes profession/work behavior, trade leveling, special pricing, reputation updates, guarding and multiple civilian jobs on the entity itself. Dwarf professions also include Tensura roles such as battlewill trainer, magic trainer, merchant, miner and lumberjack.
+
+The Tensura dwarf trade source is promising for a future adapter because `DwarfProfession.getProfessionTrades(VillagerProfession)` returns ordinary `VillagerTrades.ItemListing[]` tables. The exact trade catalog can therefore potentially be reused by an MCA villager rather than manually duplicated.
+
+A valid MCA dwarf replacement still needs to preserve or deliberately remap:
+
+- Dwarven Reputation gains/losses
+- reputation-based prices and trade refusal/hostility
+- Gazel Dwargo reputation progression
+- profession assignment and Tensura-specific professions
+- worktime/restock/trader-level behavior where still desired
+- guards/trainers and other profession-specific functions
+- Tensura trade catalog
+- Tensura race / EP / skills
+
+Treat this as a dedicated compatibility subsystem after the simpler MCA goblin prototype proves the species-backed-villager architecture.
+
 ## Current implementation status
 
 Already implemented:
@@ -112,6 +181,8 @@ Already implemented:
 - Better Subordinates Status bridge
 - native-screen context hand-off, including server-authoritative context for MCA
 - native inventory/menu preservation policy
+- capability-driven native inventory recognition through `HasCustomInventoryScreen`
+- data-driven native-menu escape hatch for nonstandard mod GUIs
 - fallback subordinate menu for entities without a useful native GUI
 - recovery of companion chrome after native screens clear/rebuild widgets
 
@@ -139,9 +210,11 @@ A full runtime battery for the universal subordinate system was reported passing
 ### Generic subordinate families
 
 - [ ] vanilla tameable: movement states still route correctly.
-- [ ] horse/native mount: inventory remains native and movement bridge still works.
-- [ ] Tensura mount: native mount screen remains usable with chrome.
-- [ ] fallback living entity with no useful native menu still reaches the generic subordinate menu.
+- [ ] horse/native mount: ordinary right-click still rides, shift-right-click still opens native inventory, chrome decorates inventory, movement bridge still works.
+- [ ] Tensura mount/Basilisk: ordinary right-click still reaches native riding, shift-right-click opens native `MountScreen`, chrome decorates it.
+- [ ] one third-party `HasCustomInventoryScreen` entity: native interaction gesture remains unchanged and its native container receives chrome.
+- [ ] one explicitly tagged nonstandard native GUI, when such a target is identified.
+- [ ] fallback living entity with no useful native menu still reaches the generic subordinate menu only after native interaction returned `PASS`.
 
 ## Next implementation slice
 
@@ -154,5 +227,7 @@ After the native-screen regression tests are green:
 5. expose targeting controls only after the agreed Thought Communication mastery condition
 6. add targeting mode to the subordinate snapshot/status UI
 7. runtime-test targeting behavior for Tensura mobs, MCA villagers and generic compatible subordinates
+
+The MCA-backed goblin prototype can be developed as the first fantasy-civilian/race bridge after this subordinate interaction slice is stable. The dwarf replacement should follow only after its reputation/profession compatibility contract is explicitly implemented.
 
 After that, return to the larger project roadmap: MCA subordinate EP/skills/learning/race/evolution work, ecology/profile authoring, dungeon/spawner integration and the other core systems. FTB Quests remains intentionally last.
