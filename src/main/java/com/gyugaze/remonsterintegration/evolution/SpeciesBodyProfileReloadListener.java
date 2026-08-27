@@ -92,7 +92,21 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
             ));
         }
 
-        return new SpeciesBodyProfile(species, townstead);
+        Optional<SpeciesBodyProfile.EntityBody> entityBody = Optional.empty();
+        if (object.has("entity_body")) {
+            JsonElement rawEntityBody = object.get("entity_body");
+            if (!rawEntityBody.isJsonObject()) {
+                throw new IllegalArgumentException("'entity_body' must be an object");
+            }
+            JsonObject body = rawEntityBody.getAsJsonObject();
+            entityBody = Optional.of(new SpeciesBodyProfile.EntityBody(
+                    requireId(body, "entity_type", sourceId),
+                    getBoolean(body, "preserve_equipment", true),
+                    getBoolean(body, "reinforce_base_stats", true)
+            ));
+        }
+
+        return new SpeciesBodyProfile(species, townstead, entityBody);
     }
 
     private static ResourceLocation requireId(JsonObject object, String key, ResourceLocation sourceId) {
