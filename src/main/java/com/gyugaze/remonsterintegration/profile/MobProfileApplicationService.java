@@ -1,5 +1,6 @@
 package com.gyugaze.remonsterintegration.profile;
 
+import com.gyugaze.remonsterintegration.growth.ExternalEnergyFoundationService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import net.minecraft.resources.ResourceLocation;
@@ -11,16 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Applies the gameplay-facing Tensura state declared by a Mob Profile.
- *
- * Mob Profile `ep` is progression/capacity EP, represented by Tensura's base max EP. It must not be
- * written into IExistence current EP: current EP is consumable aura + magicule and overfilling it can
- * trigger Tensura's excess-energy loss, Insanity and Magicule Poison mechanics.
- *
- * The default EP policy is deliberately conservative so official compatibility addons can remain
- * authoritative when they already supplied a positive base max EP value.
- */
+/** Applies gameplay-facing Tensura state declared by a Mob Profile. */
 public final class MobProfileApplicationService {
     private MobProfileApplicationService() {
     }
@@ -34,8 +26,9 @@ public final class MobProfileApplicationService {
         boolean epChanged = Double.compare(previousEp, targetEp) != 0;
 
         if (epChanged) {
-            TensuraExistenceBridge.setBaseMaxEpSafely(entity, targetEp);
+            TensuraExistenceBridge.setBaseMaxEpPreservingEnergyRatio(entity, targetEp);
         }
+        ExternalEnergyFoundationService.seedCapacity(entity);
 
         AttributeInstance followRange = entity.getAttribute(Attributes.FOLLOW_RANGE);
         double previousAggroRange = followRange == null ? 0.0 : followRange.getBaseValue();
