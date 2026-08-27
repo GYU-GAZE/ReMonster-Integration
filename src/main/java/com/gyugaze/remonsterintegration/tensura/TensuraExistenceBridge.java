@@ -22,6 +22,10 @@ public final class TensuraExistenceBridge {
         return get(entity).getEP();
     }
 
+    public static double getGainedEp(LivingEntity entity) {
+        return get(entity).getGainedEP();
+    }
+
     public static double getSpiritualHealth(LivingEntity entity) {
         return get(entity).getSpiritualHealth();
     }
