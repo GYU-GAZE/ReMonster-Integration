@@ -26,16 +26,33 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect Better Subordinates status transition
+      - name: Inspect universal character APIs
         if: success()
         shell: bash
         run: |
-          JAR=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.client.screen.MixinHumanoidMainScreen
-          echo '=== OPEN PAYLOAD ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload
-          echo '=== THOUGHT COMM MIXIN ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
+          TENSURA=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
+          MCA=$(find ~/.gradle/caches -type f -name '*8658484*.jar' | head -n 1)
+          BETTER=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
+          echo "TENSURA=$TENSURA"
+          echo "MCA=$MCA"
+          echo "BETTER=$BETTER"
+
+          echo '=== TENSURA CANDIDATE CLASSES: CAST / ACTIVATE / AI ==='
+          jar tf "$TENSURA" | grep '\.class$' | grep -Ei '(skill|ability).*(goal|ai|use|cast|activate)|goal.*(skill|ability)|skillhelper|skillmanager|skillstorage' | head -n 250 || true
+
+          echo '=== TENSURA CANDIDATE CLASSES: MANUAL / BATTLEWILL / MAGIC ==='
+          jar tf "$TENSURA" | grep '\.class$' | grep -Ei '(manual|battlewill|battle_will|magic.*book|book.*magic|skill.*book|book.*skill|magic.*item|item.*magic)' | head -n 250 || true
+
+          echo '=== TENSURA Skill / TensuraSkill / SkillHelper ==='
+          javap -classpath "$TENSURA" -p io.github.manasmods.tensura.ability.skill.Skill || true
+          javap -classpath "$TENSURA" -p io.github.manasmods.tensura.ability.TensuraSkill || true
+          javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.ability.SkillHelper || true
+
+          echo '=== MCA CANDIDATE CLASSES: COMBAT / PANIC / HELP / INVENTORY ==='
+          jar tf "$MCA" | grep '\.class$' | grep -Ei '(combat|fight|attack|guard|panic|flee|help|alarm|hurt|revenge|retaliat|weapon|inventory)' | head -n 350 || true
+
+          echo '=== BETTER SUBS CANDIDATE CAST / AI CLASSES ==='
+          jar tf "$BETTER" | grep '\.class$' | grep -Ei '(cast|skill.*goal|goal.*skill|skill.*ai|ai.*skill|activate|passive)' | head -n 200 || true
 
       - name: Upload built jar
         if: success()
