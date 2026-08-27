@@ -1,6 +1,8 @@
 package com.gyugaze.remonsterintegration.evolution;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
+import com.gyugaze.remonsterintegration.compat.MobChampionsBridge;
+import com.gyugaze.remonsterintegration.growth.ExternalEnergyFoundationService;
 import com.gyugaze.remonsterintegration.growth.UniversalCharacterGrowthService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
@@ -20,6 +22,7 @@ import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.event.EventHooks;
 
 import java.lang.reflect.Method;
 
@@ -47,17 +50,42 @@ public final class GenericMobEvolutionCompat {
             return ApplyResult.success(source, "entity body already " + body.entityType());
         }
 
-        Entity spawned = targetType.spawn(level, source.blockPosition(), MobSpawnType.CONVERSION);
-        if (!(spawned instanceof LivingEntity target)) {
-            if (spawned != null) {
-                spawned.discard();
+        Entity created = targetType.create(level);
+        if (!(created instanceof LivingEntity target)) {
+            if (created != null) {
+                created.discard();
             }
             return ApplyResult.failure(source, "target entity type is not a LivingEntity: " + body.entityType());
         }
 
+        boolean added = false;
         try {
             target.moveTo(source.getX(), source.getY(), source.getZ(), source.getYRot(), source.getXRot());
             target.setYHeadRot(source.getYHeadRot());
+
+            // Seed third-party spawn identity before finalizeSpawn. MobChampions otherwise sees a fresh
+            // entity and rolls a brand-new rarity during physical evolution.
+            MobChampionsBridge.prepareEvolutionSpawn(source, target);
+            if (target instanceof Mob targetMob) {
+                EventHooks.finalizeMobSpawn(
+                        targetMob,
+                        level,
+                        level.getCurrentDifficultyAt(source.blockPosition()),
+                        MobSpawnType.CONVERSION,
+                        null
+                );
+                if (targetMob.isSpawnCancelled()) {
+                    target.discard();
+                    return ApplyResult.failure(source, "target finalizeSpawn was cancelled");
+                }
+            }
+
+            if (!level.addFreshEntity(target)) {
+                target.discard();
+                return ApplyResult.failure(source, "target entity could not be added to the level");
+            }
+            added = true;
+
             target.setDeltaMovement(source.getDeltaMovement());
             target.setCustomName(source.getCustomName());
             target.setCustomNameVisible(source.isCustomNameVisible());
@@ -73,6 +101,7 @@ public final class GenericMobEvolutionCompat {
             SpeciesStateService.copyState(source, target);
             UniversalCharacterGrowthService.copyBaselineState(source, target);
             copyExistenceState(source, target);
+            ExternalEnergyFoundationService.seedCapacity(target);
             copySkills(source, target);
             copyBetterSubordinatesProgression(source, target);
             copyVanillaTameState(source, target);
@@ -80,6 +109,10 @@ public final class GenericMobEvolutionCompat {
             if (body.reinforceBaseStats()) {
                 reinforceBaseStats(source, target);
             }
+
+            // Re-apply the SOURCE champion rank to the new species after its native finalizeSpawn.
+            // Equipment is copied afterwards so MobChampions cannot invent new gear during evolution.
+            MobChampionsBridge.finishEvolutionSpawn(source, target);
             if (body.preserveEquipment()) {
                 copyEquipment(source, target);
             }
@@ -95,7 +128,9 @@ public final class GenericMobEvolutionCompat {
             source.discard();
             return ApplyResult.success(target, "entity replacement -> " + body.entityType());
         } catch (RuntimeException | LinkageError exception) {
-            target.discard();
+            if (added || target.isAlive()) {
+                target.discard();
+            }
             ReMonsterIntegration.LOGGER.error(
                     "Failed controlled evolution replacement {} -> {}",
                     source.getType(),
@@ -116,9 +151,16 @@ public final class GenericMobEvolutionCompat {
         );
         TensuraExistenceBridge.setBaseMaxEpSafely(target, targetBaseEp);
 
-        double sourceMaxEp = Math.max(1.0D, TensuraExistenceBridge.getMaxEp(source));
-        double currentRatio = Math.max(0.0D, Math.min(1.0D, from.getEP() / sourceMaxEp));
-        to.setEP(TensuraExistenceBridge.getMaxEp(target) * currentRatio);
+        double sourceMaxAura = Math.max(1.0D, TensuraExistenceBridge.getMaxAura(source));
+        double sourceMaxMagicule = Math.max(1.0D, TensuraExistenceBridge.getMaxMagicule(source));
+        double auraRatio = Math.max(0.0D, Math.min(1.0D, from.getAura() / sourceMaxAura));
+        double magiculeRatio = Math.max(0.0D, Math.min(1.0D, from.getMagicule() / sourceMaxMagicule));
+        TensuraExistenceBridge.setCurrentEnergy(
+                target,
+                TensuraExistenceBridge.getMaxAura(target) * auraRatio,
+                TensuraExistenceBridge.getMaxMagicule(target) * magiculeRatio
+        );
+
         to.setGainedEP(from.getGainedEP());
         to.setSpiritualHealth(from.getSpiritualHealth());
         to.setAlignment(from.getAlignment());
@@ -181,9 +223,7 @@ public final class GenericMobEvolutionCompat {
     private static void copyEquipment(LivingEntity source, LivingEntity target) {
         for (EquipmentSlot slot : EquipmentSlot.values()) {
             ItemStack stack = source.getItemBySlot(slot);
-            if (!stack.isEmpty()) {
-                target.setItemSlot(slot, stack.copy());
-            }
+            target.setItemSlot(slot, stack.copy());
         }
     }
 
