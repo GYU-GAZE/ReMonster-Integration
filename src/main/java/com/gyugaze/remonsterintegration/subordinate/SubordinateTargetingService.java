@@ -1,5 +1,6 @@
 package com.gyugaze.remonsterintegration.subordinate;
 
+import com.gyugaze.remonsterintegration.mca.McaBowPositioningService;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import io.github.manasmods.tensura.entity.template.subclass.ISubordinate;
@@ -52,8 +53,6 @@ public final class SubordinateTargetingService {
         }
 
         target.getPersistentData().putString(DATA_KEY, mode.name());
-        // Never carry a stale target across posture changes. The next compatibility tick resolves a
-        // target using the semantics of the newly selected mode.
         clearTargetState(target);
         return true;
     }
@@ -211,8 +210,6 @@ public final class SubordinateTargetingService {
             return false;
         }
 
-        // Proactive aggression is intentionally restricted to entities Minecraft/mods identify as
-        // enemies. A neutral entity can still become a target through retaliation or Protect.
         if (candidate instanceof Enemy) {
             return true;
         }
@@ -242,16 +239,11 @@ public final class SubordinateTargetingService {
         }
 
         if (McaSubordinateAdapter.isGuard(target)) {
-            // Guards already own a real MCA combat package. ATTACK_TARGET is the native entry point
-            // that also drives their guard equipment/clothing state.
+            // Native MCA guards already have ArcherMovementTask/BowTask or their melee package.
             target.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, candidate);
             return;
         }
 
-        // Ordinary MCA villagers do not have the guard attack package. In particular, feeding them
-        // NEAREST_HOSTILE activates MCA's defensive/panic behaviour and makes them act as if THEY are
-        // under attack. For commanded civilians we instead drive a narrow combat action, leaving their
-        // Brain, schedule, family/work memories and profession untouched.
         driveMcaCivilCombat(target, candidate);
     }
 
@@ -260,11 +252,8 @@ public final class SubordinateTargetingService {
             return;
         }
 
-        // MCA civilians intentionally use EquipmentSet.NAKED for self-defence, even though MCA's
-        // equipment code already knows how to choose the best sword from their inventory. Project the
-        // same best-sword choice into the dominant slot only while Re:Monster is commanding combat.
+        McaBowPositioningService.reset(target);
         McaSubordinateAdapter.equipBestMeleeWeaponFromInventory(target);
-
         target.getLookControl().setLookAt(candidate, 30.0F, 30.0F);
         target.getNavigation().moveTo(candidate, 0.8D);
 
@@ -285,28 +274,34 @@ public final class SubordinateTargetingService {
     }
 
     /**
-     * Mirrors the important parts of MCA 7.7.36-beta.3 BowTask without installing the guard/archer
-     * Brain package on a civilian. A carried bow takes priority over melee while commanded combat is
-     * active. The villager uses MCA's own ranged-attack implementation to create the projectile.
+     * Mirrors MCA's BowTask plus the important distance bands from ArcherMovementTask without installing
+     * the guard/archer Brain package on an ordinary civilian. Kiting keeps the bow drawn; emergency
+     * flee cancels the shot just like MCA's native archer does.
      */
     private static boolean driveMcaCivilBowCombat(Mob target, LivingEntity candidate) {
         if (!McaSubordinateAdapter.equipBestBowFromInventory(target)
                 || !(target.getMainHandItem().getItem() instanceof BowItem bow)) {
+            McaBowPositioningService.reset(target);
             return false;
         }
 
         target.getLookControl().setLookAt(candidate, 30.0F, 30.0F);
-        boolean visible = target.getSensing().hasLineOfSight(candidate);
-        double distanceSquared = target.distanceToSqr(candidate);
         double bowRange = Math.min(MCA_CIVIL_BOW_MAX_RANGE, bow.getDefaultProjectileRange());
+        McaBowPositioningService.Positioning positioning = McaBowPositioningService.update(
+                target,
+                candidate,
+                bowRange
+        );
 
-        if (!visible || distanceSquared > bowRange * bowRange) {
+        if (positioning == McaBowPositioningService.Positioning.APPROACH) {
             stopCivilBowDraw(target);
-            target.getNavigation().moveTo(candidate, 0.8D);
+            return true;
+        }
+        if (positioning == McaBowPositioningService.Positioning.EMERGENCY_FLEE) {
+            stopCivilBowDraw(target);
             return true;
         }
 
-        target.getNavigation().stop();
         long gameTime = target.level().getGameTime();
         long nextAttack = target.getPersistentData().getLong(NEXT_MCA_CIVIL_ATTACK_TICK);
         if (gameTime < nextAttack) {
@@ -319,6 +314,7 @@ public final class SubordinateTargetingService {
         }
 
         if (!(target.getUseItem().getItem() instanceof BowItem)) {
+            stopCivilBowDraw(target);
             return true;
         }
 
@@ -352,6 +348,7 @@ public final class SubordinateTargetingService {
         boolean hadCombatTarget = target.getTarget() != null
                 || target.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET);
         stopCivilBowDraw(target);
+        McaBowPositioningService.reset(target);
         target.setTarget(null);
         target.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
         target.getPersistentData().remove(NEXT_MCA_CIVIL_ATTACK_TICK);
