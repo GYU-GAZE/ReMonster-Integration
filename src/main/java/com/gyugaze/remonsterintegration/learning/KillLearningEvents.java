@@ -2,6 +2,7 @@ package com.gyugaze.remonsterintegration.learning;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.compat.MobChampionsBridge;
+import com.gyugaze.remonsterintegration.growth.ExternalEnergyFoundationService;
 import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.profile.MobProfileRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -31,6 +32,10 @@ public final class KillLearningEvents {
         }
 
         LivingEntity learner = creditedLearner.get();
+        // Tensura's own death handler may have expanded this external killer's aura/magicule capacity.
+        // Preserve its previous fill fraction before the acquisition attempt pays native energy costs.
+        ExternalEnergyFoundationService.syncCapacityGrowth(learner);
+
         Optional<MobProfile> profile = MobProfileRegistry.get(defeated);
         double championMultiplier = MobChampionsBridge.getChampionRank(defeated)
                 .map(KillLearningEvents::getChampionLearningMultiplier)
