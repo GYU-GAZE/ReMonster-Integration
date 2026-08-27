@@ -26,28 +26,58 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect Better Subordinates EP progression internals
+      - name: Capture EP drain diagnostics
         if: success()
         shell: bash
         run: |
+          set -euo pipefail
+          mkdir -p build/ep-drain-diagnostics/better-subs build/ep-drain-diagnostics/tensura
           BS=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
           TENSURA=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
-          echo "BETTER_SUBS=$BS"
-          echo "TENSURA=$TENSURA"
-          echo '=== BETTER SUBS RELEVANT CLASSES ==='
-          jar tf "$BS" | grep -Ei 'ExpandedSkillStorage|Existence|Damage|Event|Mixin.*(Living|Entity|EP)|Handler' || true
-          echo '=== EXPANDED SKILL STORAGE ==='
-          javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.entity.ExpandedSkillStorage
-          echo '=== EXPANDED SKILL CONFIG ==='
-          javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.config.ExpandedSkillConfig || true
-          echo '=== BETTER SUBS ROOT ==='
-          javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.BetterSubs
-          echo '=== TENSURA RELEVANT CLASSES ==='
-          jar tf "$TENSURA" | grep -Ei 'ExistenceStorage|EnergyHelper|Existence.*Event|Mixin.*Existence|EP.*Event' || true
-          echo '=== TENSURA EXISTENCE STORAGE ==='
-          javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.storage.ep.ExistenceStorage || true
-          echo '=== TENSURA ENERGY HELPER ==='
-          javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.util.EnergyHelper || true
+          printf 'BETTER_SUBS=%s\nTENSURA=%s\n' "$BS" "$TENSURA" > build/ep-drain-diagnostics/artifacts.txt
+
+          javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.entity.ExpandedSkillStorage \
+            > build/ep-drain-diagnostics/better-subs/ExpandedSkillStorage.txt 2>&1 || true
+          javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.BetterSubs \
+            > build/ep-drain-diagnostics/better-subs/BetterSubs.txt 2>&1 || true
+
+          jar tf "$BS" | grep '\.class$' | sed 's#/#.#g;s#\.class$##' \
+            | grep -Ei 'event|handler|mixin|damage|existence|expanded|living|entity|skill' \
+            > build/ep-drain-diagnostics/better-subs/candidate-classes.txt || true
+
+          while IFS= read -r cls; do
+            [ -z "$cls" ] && continue
+            safe=$(printf '%s' "$cls" | tr '.' '_')
+            javap -classpath "$BS" -p -c "$cls" \
+              > "build/ep-drain-diagnostics/better-subs/${safe}.txt" 2>&1 || true
+          done < build/ep-drain-diagnostics/better-subs/candidate-classes.txt
+
+          javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.storage.ep.ExistenceStorage \
+            > build/ep-drain-diagnostics/tensura/ExistenceStorage.txt 2>&1 || true
+          javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.util.EnergyHelper \
+            > build/ep-drain-diagnostics/tensura/EnergyHelper.txt 2>&1 || true
+
+          jar tf "$TENSURA" | grep '\.class$' | sed 's#/#.#g;s#\.class$##' \
+            | grep -Ei 'existence|energy|damage|ep|death|living.*event|entity.*event' \
+            > build/ep-drain-diagnostics/tensura/candidate-classes.txt || true
+
+          while IFS= read -r cls; do
+            [ -z "$cls" ] && continue
+            safe=$(printf '%s' "$cls" | tr '.' '_')
+            javap -classpath "$TENSURA" -p -c "$cls" \
+              > "build/ep-drain-diagnostics/tensura/${safe}.txt" 2>&1 || true
+          done < build/ep-drain-diagnostics/tensura/candidate-classes.txt
+
+          grep -RniE 'entityEPUpdate|existenceUpdated|setEP|setGainedEP|getEP|getGainedEP|damageTaken|\.hurt| hurt|DamageSource|setHealth|kill\(|discard\(' \
+            build/ep-drain-diagnostics \
+            > build/ep-drain-diagnostics/interesting-lines.txt || true
+
+      - name: Upload EP drain diagnostics
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ep-drain-diagnostics
+          path: build/ep-drain-diagnostics/**
 
       - name: Upload built jar
         if: success()
