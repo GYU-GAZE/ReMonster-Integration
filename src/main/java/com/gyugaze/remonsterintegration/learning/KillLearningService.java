@@ -3,7 +3,6 @@ package com.gyugaze.remonsterintegration.learning;
 import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.ArrayList;
@@ -13,28 +12,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Pure service for kill-driven Tensura skill learning.
- *
- * Re:Monster treats skills this exact defeated entity really possesses at runtime as the primary
- * learnable repertoire. This lets dynamic growth, existing compatibility addons and individual mob
- * progression feed the same isekai-style learning loop: if the mob learned a skill, killing it can
- * train/teach that skill under the normal acquisition rules.
- *
- * Mob Profile skills are unioned in as explicit project-owned additions. Baseline resistance/
- * proficiency storage entries are excluded by TensuraSkillBridge.
- */
+/** Kill-driven Tensura acquisition learning for any living combatant. */
 public final class KillLearningService {
     private KillLearningService() {
     }
 
     public static List<ResourceLocation> grantFromDefeatedEntity(
-            ServerPlayer player,
+            LivingEntity learner,
             LivingEntity defeatedEntity,
             Optional<MobProfile> defeatedMob,
             double baseLearningPoints
     ) {
-        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(learner, "learner");
         Objects.requireNonNull(defeatedEntity, "defeatedEntity");
         Objects.requireNonNull(defeatedMob, "defeatedMob");
 
@@ -50,7 +39,7 @@ public final class KillLearningService {
 
         List<ResourceLocation> progressed = new ArrayList<>();
         for (ResourceLocation skillId : effectiveSkills) {
-            if (TensuraSkillBridge.addOrStartAcquisitionLearning(player, skillId, points)) {
+            if (TensuraSkillBridge.addOrStartAcquisitionLearning(learner, skillId, points)) {
                 progressed.add(skillId);
             }
         }
@@ -59,20 +48,20 @@ public final class KillLearningService {
     }
 
     public static List<ResourceLocation> grantFromDefeatedEntity(
-            ServerPlayer player,
+            LivingEntity learner,
             LivingEntity defeatedEntity,
             MobProfile defeatedMob,
             double baseLearningPoints
     ) {
-        return grantFromDefeatedEntity(player, defeatedEntity, Optional.of(defeatedMob), baseLearningPoints);
+        return grantFromDefeatedEntity(learner, defeatedEntity, Optional.of(defeatedMob), baseLearningPoints);
     }
 
     public static List<ResourceLocation> grantFromProfile(
-            ServerPlayer player,
+            LivingEntity learner,
             MobProfile defeatedMob,
             double baseLearningPoints
     ) {
-        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(learner, "learner");
         Objects.requireNonNull(defeatedMob, "defeatedMob");
 
         if (baseLearningPoints <= 0.0 || defeatedMob.learningMultiplier() <= 0.0) {
@@ -82,7 +71,7 @@ public final class KillLearningService {
         double points = baseLearningPoints * defeatedMob.learningMultiplier();
         List<ResourceLocation> progressed = new ArrayList<>();
         for (ResourceLocation skillId : defeatedMob.skills()) {
-            if (TensuraSkillBridge.addOrStartAcquisitionLearning(player, skillId, points)) {
+            if (TensuraSkillBridge.addOrStartAcquisitionLearning(learner, skillId, points)) {
                 progressed.add(skillId);
             }
         }
