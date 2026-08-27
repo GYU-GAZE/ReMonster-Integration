@@ -4,7 +4,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public final class ReMonsterNetworking {
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "2";
 
     private ReMonsterNetworking() {
     }
@@ -26,10 +26,25 @@ public final class ReMonsterNetworking {
                 SubordinateSnapshotRequestPayload.STREAM_CODEC,
                 SubordinateSnapshotRequestPayload::handle
         );
+        registrar.playToServer(
+                SubordinateEvolutionOptionsRequestPayload.TYPE,
+                SubordinateEvolutionOptionsRequestPayload.STREAM_CODEC,
+                SubordinateEvolutionOptionsRequestPayload::handle
+        );
+        registrar.playToServer(
+                SubordinateEvolutionCommandPayload.TYPE,
+                SubordinateEvolutionCommandPayload.STREAM_CODEC,
+                SubordinateEvolutionCommandPayload::handle
+        );
         registrar.playToClient(
                 SubordinateSnapshotPayload.TYPE,
                 SubordinateSnapshotPayload.STREAM_CODEC,
                 SubordinateSnapshotPayload::handle
+        );
+        registrar.playToClient(
+                SubordinateEvolutionOptionsPayload.TYPE,
+                SubordinateEvolutionOptionsPayload.STREAM_CODEC,
+                SubordinateEvolutionOptionsPayload::handle
         );
         registrar.playToClient(
                 SubordinateScreenContextPayload.TYPE,
