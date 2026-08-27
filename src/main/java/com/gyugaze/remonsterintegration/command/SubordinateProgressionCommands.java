@@ -4,6 +4,7 @@ import com.gyugaze.remonsterintegration.compat.BetterSubordinatesBridge;
 import com.gyugaze.remonsterintegration.evolution.EvolutionDefinition;
 import com.gyugaze.remonsterintegration.evolution.EvolutionRegistry;
 import com.gyugaze.remonsterintegration.evolution.SpeciesStateService;
+import com.gyugaze.remonsterintegration.growth.ExternalEnergyFoundationService;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
@@ -74,6 +75,10 @@ public final class SubordinateProgressionCommands {
         double maxEp = TensuraExistenceBridge.getMaxEp(living);
         double baseMaxEp = TensuraExistenceBridge.getBaseMaxEp(living);
         double gainedEp = TensuraExistenceBridge.getGainedEp(living);
+        double aura = TensuraExistenceBridge.getAura(living);
+        double maxAura = TensuraExistenceBridge.getMaxAura(living);
+        double magicule = TensuraExistenceBridge.getMagicule(living);
+        double maxMagicule = TensuraExistenceBridge.getMaxMagicule(living);
 
         source.sendSuccess(() -> Component.literal(
                 "[Re:Monster] progression " + entityId + " / " + living.getUUID()
@@ -88,6 +93,10 @@ public final class SubordinateProgressionCommands {
                         + " | max=" + maxEp
                         + " | baseMax=" + baseMaxEp
                         + " | gained=" + gainedEp
+        ), false);
+        source.sendSuccess(() -> Component.literal(
+                "Tensura energy: aura=" + aura + "/" + maxAura
+                        + " | magicule=" + magicule + "/" + maxMagicule
         ), false);
 
         BetterSubordinatesBridge.ProgressionSnapshot progression =
@@ -148,14 +157,15 @@ public final class SubordinateProgressionCommands {
             return 0;
         }
 
-        TensuraExistenceBridge.MaxEpChange change = TensuraExistenceBridge.setBaseMaxEpSafely(living, ep);
+        TensuraExistenceBridge.MaxEpChange change =
+                TensuraExistenceBridge.setBaseMaxEpPreservingEnergyRatio(living, ep);
+        ExternalEnergyFoundationService.seedCapacity(living);
         source.sendSuccess(() -> Component.literal(
                 "[Re:Monster] debug base max EP " + living.getUUID()
                         + ": " + change.previousBaseMaxEp() + " -> " + change.resultingBaseMaxEp()
                         + " | effectiveMax=" + change.previousMaxEp() + " -> " + change.resultingMaxEp()
                         + " | current=" + change.previousCurrentEp() + " -> " + change.resultingCurrentEp()
-                        + (change.currentEpClamped() ? " | current clamped to capacity" : "")
-                        + " | Better Subordinates re-evaluates MAX_AURA/MAX_MAGICULE increases natively"
+                        + " | energy fill ratio preserved"
         ), true);
         return 1;
     }
@@ -166,14 +176,16 @@ public final class SubordinateProgressionCommands {
             return 0;
         }
 
-        TensuraExistenceBridge.MaxEpChange change = TensuraExistenceBridge.addBaseMaxEpSafely(living, amount);
+        double targetEp = TensuraExistenceBridge.getBaseMaxEp(living) + amount;
+        TensuraExistenceBridge.MaxEpChange change =
+                TensuraExistenceBridge.setBaseMaxEpPreservingEnergyRatio(living, targetEp);
+        ExternalEnergyFoundationService.seedCapacity(living);
         source.sendSuccess(() -> Component.literal(
                 "[Re:Monster] debug base max EP " + living.getUUID()
                         + ": " + change.previousBaseMaxEp() + " -> " + change.resultingBaseMaxEp()
                         + " | effectiveMax=" + change.previousMaxEp() + " -> " + change.resultingMaxEp()
                         + " | current=" + change.previousCurrentEp() + " -> " + change.resultingCurrentEp()
-                        + (change.currentEpClamped() ? " | current clamped to capacity" : "")
-                        + " | Better Subordinates re-evaluates MAX_AURA/MAX_MAGICULE increases natively"
+                        + " | energy fill ratio preserved"
         ), true);
         return 1;
     }
