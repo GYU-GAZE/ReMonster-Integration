@@ -6,6 +6,8 @@
   "mixins": [
     "mca.GuardEnemiesSensorMixin",
     "mca.VillagerBrainMilitiaMixin",
+    "mca.VillagerEntityMcaCombatMixin",
+    "mca.ExtendedMeleeAttackTaskMixin",
     "bettersubs.ExpandedSkillStorageMixin",
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
@@ -15,6 +17,7 @@
     "vanilla.FollowOwnerGoalMixin",
     "vanilla.AbstractHorseMixin",
     "vanilla.MobTargetingModeMixin",
+    "vanilla.VillagerPanicTriggerMixin",
     "vanilla.PlayerInteractOnMixin"
   ],
   "client": [
