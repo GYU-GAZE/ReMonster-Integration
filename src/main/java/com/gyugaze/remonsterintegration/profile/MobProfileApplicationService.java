@@ -14,8 +14,12 @@ import java.util.Objects;
 /**
  * Applies the gameplay-facing Tensura state declared by a Mob Profile.
  *
+ * Mob Profile `ep` is progression/capacity EP, represented by Tensura's base max EP. It must not be
+ * written into IExistence current EP: current EP is consumable aura + magicule and overfilling it can
+ * trigger Tensura's excess-energy loss, Insanity and Magicule Poison mechanics.
+ *
  * The default EP policy is deliberately conservative so official compatibility addons can remain
- * authoritative when they already supplied a positive EP value.
+ * authoritative when they already supplied a positive base max EP value.
  */
 public final class MobProfileApplicationService {
     private MobProfileApplicationService() {
@@ -25,12 +29,12 @@ public final class MobProfileApplicationService {
         Objects.requireNonNull(entity, "entity");
         Objects.requireNonNull(profile, "profile");
 
-        double previousEp = TensuraExistenceBridge.getEp(entity);
+        double previousEp = TensuraExistenceBridge.getBaseMaxEp(entity);
         double targetEp = resolveEp(previousEp, profile);
         boolean epChanged = Double.compare(previousEp, targetEp) != 0;
 
         if (epChanged) {
-            TensuraExistenceBridge.setEp(entity, targetEp);
+            TensuraExistenceBridge.setBaseMaxEpSafely(entity, targetEp);
         }
 
         AttributeInstance followRange = entity.getAttribute(Attributes.FOLLOW_RANGE);
@@ -64,14 +68,14 @@ public final class MobProfileApplicationService {
         );
     }
 
-    static double resolveEp(double currentEp, MobProfile profile) {
+    static double resolveEp(double baseMaxEp, MobProfile profile) {
         if (profile.ep() <= 0.0) {
-            return currentEp;
+            return baseMaxEp;
         }
 
         return switch (profile.epMode()) {
-            case FALLBACK -> currentEp > 0.0 ? currentEp : profile.ep();
-            case MINIMUM -> Math.max(currentEp, profile.ep());
+            case FALLBACK -> baseMaxEp > 0.0 ? baseMaxEp : profile.ep();
+            case MINIMUM -> Math.max(baseMaxEp, profile.ep());
             case REPLACE -> profile.ep();
         };
     }
