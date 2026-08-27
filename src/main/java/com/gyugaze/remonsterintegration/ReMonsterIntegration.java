@@ -2,6 +2,7 @@ package com.gyugaze.remonsterintegration;
 
 import com.gyugaze.remonsterintegration.command.IntegrationCommands;
 import com.gyugaze.remonsterintegration.command.SpawnDiagnosticCommands;
+import com.gyugaze.remonsterintegration.command.SubordinateProgressionCommands;
 import com.gyugaze.remonsterintegration.evolution.EvolutionCommands;
 import com.gyugaze.remonsterintegration.evolution.EvolutionReloadListener;
 import com.gyugaze.remonsterintegration.evolution.SpeciesBodyProfileReloadListener;
@@ -51,5 +52,6 @@ public final class ReMonsterIntegration {
         IntegrationCommands.register(event.getDispatcher());
         SpawnDiagnosticCommands.register(event.getDispatcher());
         EvolutionCommands.register(event.getDispatcher());
+        SubordinateProgressionCommands.register(event.getDispatcher());
     }
 }
