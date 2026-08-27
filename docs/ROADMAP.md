@@ -212,9 +212,10 @@ Add:
 - [ ] EP progression
 - [ ] skills
 - [ ] learning / mastery compatibility
-- [ ] race state
+- [x] persistent project semantic race/species state foundation
 - [ ] Harvest Festival compatibility
-- [ ] evolution compatibility
+- [x] in-place Townstead evolution/body adapter without MCA entity replacement
+- [ ] runtime-test MCA evolution persistence and preserved family/work/ownership state
 - [ ] ally/guard runtime checks
 
 Thought Communication must be adapted to MCA semantics instead of replacing MCA scheduling. Initial bytecode inspection indicates native stay/follow/wander mutation is gated behind Tensura's `ISubordinate`, which is promising for an ownership-only MCA adapter, but runtime verification is mandatory.
@@ -275,33 +276,60 @@ See `docs/SUBORDINATE_SYSTEM.md` for the focused contract and test matrix.
 - [ ] server-side validation
 - [ ] compatibility with first login, reset and reincarnation flows
 
-## Phase 10 - Townstead <-> Tensura race visual bridge
+## Phase 10 - Townstead <-> Tensura race visual bridge foundation
 
-Player gameplay remains Tensura-driven. Townstead primarily supplies visual/genetic representation for the player while its normal gameplay traits remain relevant to villagers.
+Player gameplay remains Tensura/Re:Monster-driven. Townstead is an adapter for physical/genetic representation instead of becoming the semantic source of race identity.
 
-- [ ] race mapping model
-- [ ] project-specific Townstead roots/species/lineages
-- [ ] Tensura race -> Townstead visual state sync
-- [ ] preserve visual genes where evolution permits
-- [ ] skin/hair/eyes/horns/ears/markings/proportions palettes
-- [ ] multiplayer sync
+Foundation status: **complete and runtime-proven for the player path**.
+
+- [x] keep semantic species identity separate from physical body representation
+- [x] data-driven semantic species -> Townstead body/root mapping model
+- [x] deterministic persisted phenotype seed
+- [x] preserve compatible visual loci while replacing incompatible target-race genetics
+- [x] recalculate Townstead phenotype/powers after transformation
+- [x] apply Townstead-specific body scale without overwriting other mods' scale state
+- [x] immediate Townstead root + expressed-gene multiplayer sync packets
+- [x] runtime-prove player Hobgoblin -> Orc physical evolution using `townstead_classic:wild_orc`
+- [x] runtime-prove player Ogre representation using the Townstead Tiefling body adapter
+- [x] confirm Townstead genetics can support later hybrid traits/attachments without requiring a new rendering system
+
+### Deferred content pass - Playable Race Visual Mapping
+
+Do this later as a content/design pass, after the core gameplay systems are integrated. The bridge itself does not need more architecture work first.
+
+- [ ] inventory every playable/meaningful Tensura race and evolution stage used by the pack
+- [ ] map each semantic race to a Townstead base root/species/lineage or a project-owned custom root
+- [ ] define per-race body scale
+- [ ] define skin/hair/eyes/horns/ears/tusks/markings/proportions and palettes
+- [ ] define which Townstead traits/powers are gained, lost or preserved across each evolution
+- [ ] define phenotype recipes/hybrid genetics where a stock Townstead race is only an approximation
+- [ ] author project-specific Townstead roots/genes/attachments only where stock Classic Fantasy assets are insufficient
+- [ ] validate every mapped playable race/evolution branch in-game
 
 ## Phase 11 - Expanded race evolution
 
 - [x] locate Tensura native race/evolution framework and requirement classes
+- [x] add project semantic species state separate from borrowed Townstead assets
+- [x] add data-driven directed evolution edges
+- [x] enforce minimum EP through Tensura's real `IExistence` state
+- [x] avoid replacing semantic race identity merely to borrow Townstead assets
+- [x] prove Hobgoblin -> Orc and Hobgoblin -> Ogre player evolution pipeline
 - [ ] inspect all target Tensura race branches and concrete requirement values
 - [ ] add project branches where useful
-- [ ] assign visual profile per stage
-- [ ] example: Goblin -> Hobgoblin -> Enlightened Hobgoblin / Ogre branches
-- [ ] avoid replacing semantic race identity merely to borrow Townstead assets
+- [ ] add additional non-EP evolution conditions where required
+- [ ] assign final visual profile/phenotype recipe per playable stage during the deferred mapping pass
+- [ ] example full branch: Goblin -> Hobgoblin -> Enlightened Hobgoblin / Ogre branches
 
 ## Phase 12 - Subordinate EP evolution
 
-- [ ] data-driven evolution graph
-- [ ] threshold / condition evaluation
+- [x] data-driven evolution graph foundation
+- [x] minimum-EP threshold evaluation through Tensura `IExistence`
+- [x] MCA-compatible in-place semantic species + Townstead body transformation path exists
+- [ ] runtime-test the MCA subordinate evolution path and persistence contract
+- [ ] additional evolution condition evaluation beyond minimum EP
 - [ ] normal Tensura mobs: prefer native evolution path if exposed
 - [ ] preserve owner, EP, skills, name, equipment and state when entity replacement is unavoidable
-- [ ] MCA villagers: never replace with a Tensura entity; update Tensura race + visual state in place
+- [ ] integrate evolution availability into subordinate gameplay/UI instead of pack-author debug commands
 
 ## Phase 13 - MCA-backed fantasy civilizations
 
