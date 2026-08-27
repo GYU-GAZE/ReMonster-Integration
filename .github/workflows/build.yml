@@ -26,16 +26,28 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect Better Subordinates status transition
+      - name: Inspect Better Subordinates EP progression internals
         if: success()
         shell: bash
         run: |
-          JAR=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.client.screen.MixinHumanoidMainScreen
-          echo '=== OPEN PAYLOAD ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload
-          echo '=== THOUGHT COMM MIXIN ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
+          BS=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
+          TENSURA=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
+          echo "BETTER_SUBS=$BS"
+          echo "TENSURA=$TENSURA"
+          echo '=== BETTER SUBS RELEVANT CLASSES ==='
+          jar tf "$BS" | grep -Ei 'ExpandedSkillStorage|Existence|Damage|Event|Mixin.*(Living|Entity|EP)|Handler' || true
+          echo '=== EXPANDED SKILL STORAGE ==='
+          javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.entity.ExpandedSkillStorage
+          echo '=== EXPANDED SKILL CONFIG ==='
+          javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.config.ExpandedSkillConfig || true
+          echo '=== BETTER SUBS ROOT ==='
+          javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.BetterSubs
+          echo '=== TENSURA RELEVANT CLASSES ==='
+          jar tf "$TENSURA" | grep -Ei 'ExistenceStorage|EnergyHelper|Existence.*Event|Mixin.*Existence|EP.*Event' || true
+          echo '=== TENSURA EXISTENCE STORAGE ==='
+          javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.storage.ep.ExistenceStorage || true
+          echo '=== TENSURA ENERGY HELPER ==='
+          javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.util.EnergyHelper || true
 
       - name: Upload built jar
         if: success()
