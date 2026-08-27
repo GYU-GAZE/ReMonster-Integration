@@ -34,9 +34,7 @@ public final class TensuraExistenceBridge {
         return EnergyHelper.getMaxEP(entity);
     }
 
-    /**
-     * Base progression EP used by Tensura's native EvolutionRequirement.EPRequirement.
-     */
+    /** Base progression EP used by Tensura's native EvolutionRequirement.EPRequirement. */
     public static double getBaseMaxEp(LivingEntity entity) {
         Objects.requireNonNull(entity, "entity");
         return EnergyHelper.getBaseMaxEP(entity);
@@ -68,10 +66,9 @@ public final class TensuraExistenceBridge {
     /**
      * Changes base max EP through Tensura's own MAX_AURA/MAX_MAGICULE attributes.
      *
-     * Attribute changes are intentionally used here because Better Subordinates listens to increases
-     * of those exact attributes and re-evaluates its native skill thresholds. When max EP is lowered,
-     * current energy is clamped to the resulting effective capacity so this helper cannot manufacture
-     * an artificial over-capacity poison/insanity state.
+     * Better Subordinates listens to increases of those exact attributes and re-evaluates its native
+     * skill thresholds. If capacity is reduced, aura and magicule are clamped independently to their
+     * resulting effective maxima so this helper cannot manufacture an artificial poison/insanity state.
      */
     public static MaxEpChange setBaseMaxEpSafely(LivingEntity entity, double baseMaxEp) {
         Objects.requireNonNull(entity, "entity");
@@ -87,12 +84,22 @@ public final class TensuraExistenceBridge {
 
         double resultingBaseMaxEp = getBaseMaxEp(entity);
         double resultingMaxEp = getMaxEp(entity);
-        double resultingCurrentEp = getEp(entity);
+        IExistence existence = get(entity);
+        double resultingCurrentEp = existence.getEP();
         boolean currentEpClamped = false;
 
-        if (resultingCurrentEp > resultingMaxEp) {
-            setEp(entity, Math.max(0.0D, resultingMaxEp));
-            resultingCurrentEp = getEp(entity);
+        double maxAura = Math.max(0.0D, EnergyHelper.getMaxAura(entity));
+        double maxMagicule = Math.max(0.0D, EnergyHelper.getMaxMagicule(entity));
+        double aura = existence.getAura();
+        double magicule = existence.getMagicule();
+        double clampedAura = Math.min(Math.max(0.0D, aura), maxAura);
+        double clampedMagicule = Math.min(Math.max(0.0D, magicule), maxMagicule);
+
+        if (Double.compare(aura, clampedAura) != 0 || Double.compare(magicule, clampedMagicule) != 0) {
+            existence.setAura(clampedAura);
+            existence.setMagicule(clampedMagicule);
+            existence.markDirty();
+            resultingCurrentEp = existence.getEP();
             currentEpClamped = true;
         }
 
