@@ -35,8 +35,6 @@ public final class EvolutionService {
         }
 
         EvolutionDefinition definition = definitionOptional.get();
-        // Match Tensura's native EvolutionRequirement.EPRequirement: progression checks use base max EP,
-        // never current consumable aura + magicule.
         double progressionEp = TensuraExistenceBridge.getBaseMaxEp(entity);
         if (progressionEp < definition.minimumEp()) {
             return EvolutionResult.failure(
@@ -47,8 +45,10 @@ public final class EvolutionService {
         }
 
         String bodyResult = "semantic-only";
+        LivingEntity evolvedEntity = entity;
         Optional<SpeciesBodyProfile> profile = SpeciesBodyProfileRegistry.get(targetSpecies);
         Optional<SpeciesBodyProfile.TownsteadBody> townsteadBody = profile.flatMap(SpeciesBodyProfile::townstead);
+        Optional<SpeciesBodyProfile.EntityBody> entityBody = profile.flatMap(SpeciesBodyProfile::entityBody);
         boolean townsteadTarget = entity instanceof ServerPlayer || McaSubordinateAdapter.isMcaVillager(entity);
 
         if (townsteadTarget && townsteadBody.isPresent()) {
@@ -66,20 +66,31 @@ public final class EvolutionService {
                 return EvolutionResult.failure(current, targetSpecies, physical.failure());
             }
             bodyResult = physical.description();
+        } else if (!townsteadTarget && entityBody.isPresent()) {
+            GenericMobEvolutionCompat.ApplyResult physical = GenericMobEvolutionCompat.apply(
+                    entity,
+                    entityBody.orElseThrow(),
+                    targetSpecies
+            );
+            if (!physical.success()) {
+                return EvolutionResult.failure(current, targetSpecies, physical.failure());
+            }
+            evolvedEntity = physical.entity();
+            bodyResult = physical.detail();
         }
 
         if (townsteadTarget) {
             double targetScale = townsteadBody
                     .map(SpeciesBodyProfile.TownsteadBody::scale)
                     .orElse(1.0D);
-            SpeciesScaleService.apply(entity, targetScale);
+            SpeciesScaleService.apply(evolvedEntity, targetScale);
             bodyResult += " | townsteadScale=" + targetScale;
         }
 
-        SpeciesStateService.setSpecies(entity, targetSpecies);
+        SpeciesStateService.setSpecies(evolvedEntity, targetSpecies);
         ReMonsterIntegration.LOGGER.info(
                 "Evolution applied to {}: {} -> {} ({})",
-                entity.getUUID(),
+                evolvedEntity.getUUID(),
                 current,
                 targetSpecies,
                 bodyResult
