@@ -17,10 +17,13 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-/** Adds the gameplay evolution entry point alongside the existing native-screen companion chrome. */
+/** Adds the gameplay evolution entry point without covering controls owned by the native screen. */
 @EventBusSubscriber(modid = ReMonsterIntegration.MOD_ID, value = Dist.CLIENT)
 public final class CompanionEvolutionChromeEvents {
     private static final int BUTTON_WIDTH = 58;
+    private static final int BUTTON_HEIGHT = 20;
+    private static final int GAP = 4;
+    private static final int SCREEN_MARGIN = 4;
     private static final Map<Screen, Button> BUTTONS = new WeakHashMap<>();
 
     private CompanionEvolutionChromeEvents() {
@@ -54,43 +57,78 @@ public final class CompanionEvolutionChromeEvents {
         Button evolve = Button.builder(
                 Component.literal("Evolve"),
                 button -> Minecraft.getInstance().setScreen(new SubordinateEvolutionScreen(entityId, name))
-        ).bounds(layout.evolveX(), layout.y(), BUTTON_WIDTH, 20).build();
+        ).bounds(layout.x(), layout.y(), BUTTON_WIDTH, BUTTON_HEIGHT).build();
 
         ((ScreenInvoker) screen).remonster$addRenderableWidget(evolve);
         BUTTONS.put(screen, evolve);
     }
 
+    /**
+     * Prefer a side gutter next to the native GUI. MCA screens can put their own status widgets in the
+     * header area, so sharing the old Status-button row made Evolve visually disappear into MCA UI.
+     * Only fall back above/below the native panel when neither side has enough room.
+     */
     private static Layout calculateLayout(Screen screen) {
         Minecraft minecraft = Minecraft.getInstance();
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
+        int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
         int nativeLeft;
         int nativeTop;
         int nativeWidth;
+        int nativeHeight;
 
         if (screen instanceof AbstractContainerScreen<?> && screen instanceof AbstractContainerScreenAccessor accessor) {
             nativeLeft = accessor.remonster$getLeftPos();
             nativeTop = accessor.remonster$getTopPos();
             nativeWidth = accessor.remonster$getImageWidth();
+            nativeHeight = accessor.remonster$getImageHeight();
         } else {
             nativeWidth = Math.min(240, Math.max(120, screenWidth - 16));
+            nativeHeight = Math.max(80, screenHeight - 64);
             nativeLeft = (screenWidth - nativeWidth) / 2;
             nativeTop = 32;
         }
 
-        int chromeWidth = Math.min(Math.max(nativeWidth, 240), Math.max(120, screenWidth - 8));
-        int center = nativeLeft + nativeWidth / 2;
-        int chromeLeft = clamp(center - chromeWidth / 2, 4, Math.max(4, screenWidth - chromeWidth - 4));
-        int headerY = nativeTop >= 34 ? nativeTop - 32 : 2;
-        int statusX = chromeLeft + chromeWidth - 60;
-        int evolveX = Math.max(chromeLeft, statusX - BUTTON_WIDTH - 4);
-        return new Layout(evolveX, headerY + 5);
+        int yBeside = clamp(
+                nativeTop + GAP,
+                SCREEN_MARGIN,
+                Math.max(SCREEN_MARGIN, screenHeight - BUTTON_HEIGHT - SCREEN_MARGIN)
+        );
+
+        int rightX = nativeLeft + nativeWidth + GAP;
+        if (rightX + BUTTON_WIDTH <= screenWidth - SCREEN_MARGIN) {
+            return new Layout(rightX, yBeside);
+        }
+
+        int leftX = nativeLeft - BUTTON_WIDTH - GAP;
+        if (leftX >= SCREEN_MARGIN) {
+            return new Layout(leftX, yBeside);
+        }
+
+        int x = clamp(
+                nativeLeft + nativeWidth - BUTTON_WIDTH,
+                SCREEN_MARGIN,
+                Math.max(SCREEN_MARGIN, screenWidth - BUTTON_WIDTH - SCREEN_MARGIN)
+        );
+
+        int aboveY = nativeTop - BUTTON_HEIGHT - GAP;
+        if (aboveY >= SCREEN_MARGIN) {
+            return new Layout(x, aboveY);
+        }
+
+        int belowY = clamp(
+                nativeTop + nativeHeight + GAP,
+                SCREEN_MARGIN,
+                Math.max(SCREEN_MARGIN, screenHeight - BUTTON_HEIGHT - SCREEN_MARGIN)
+        );
+        return new Layout(x, belowY);
     }
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(value, max));
     }
 
-    private record Layout(int evolveX, int y) {
+    private record Layout(int x, int y) {
     }
 }
