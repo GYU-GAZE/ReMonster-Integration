@@ -10,25 +10,22 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Keeps healthy armed MCA civilians out of the panic animation while militia combat owns the fight. */
+/** Hides only the panic pose while a healthy armed civilian is actively fighting. */
 @Mixin(targets = "net.conczin.mca.entity.ai.brain.VillagerBrain", remap = false)
 public abstract class VillagerBrainMilitiaMixin {
     @Shadow @Final private Mob entity;
     @Shadow @Final private static CDataParameter<Boolean> PANICKING;
 
-    @Inject(method = "isPanicking", at = @At("HEAD"), cancellable = true, remap = false)
-    private void remonster$suppressHealthyMilitiaPanic(CallbackInfoReturnable<Boolean> cir) {
-        if (McaMilitiaService.shouldSuppressPanic(entity)) {
-            cir.setReturnValue(false);
-        }
-    }
-
-    /** VillagerBrain#think writes the tracked PANICKING bit directly from Activity.PANIC. */
+    /**
+     * MCA intentionally uses its PANIC activity as part of civilian self-defence. Re:Monster leaves
+     * that activity, navigation and melee behavior completely untouched and only clears the tracked
+     * presentation flag while an armed healthy civilian is actively engaged. Low-health civilians
+     * therefore regain MCA's normal visible panic automatically.
+     */
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Inject(method = "think", at = @At("TAIL"), remap = false)
-    private void remonster$clearTrackedMilitiaPanic(CallbackInfo ci) {
+    private void remonster$hideHealthyArmedPanicPose(CallbackInfo ci) {
         if (McaMilitiaService.shouldSuppressPanic(entity) && entity instanceof CTrackedEntity tracked) {
             tracked.setTrackedValue(PANICKING, false);
         }
