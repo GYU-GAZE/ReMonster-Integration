@@ -26,7 +26,7 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Capture EP drain diagnostics
+      - name: Capture focused EP drain diagnostics
         if: success()
         shell: bash
         run: |
@@ -40,33 +40,17 @@ jobs:
             > build/ep-drain-diagnostics/better-subs/ExpandedSkillStorage.txt 2>&1 || true
           javap -classpath "$BS" -p -c com.trbeyond.tensura_better_subs.BetterSubs \
             > build/ep-drain-diagnostics/better-subs/BetterSubs.txt 2>&1 || true
-
           jar tf "$BS" | grep '\.class$' | sed 's#/#.#g;s#\.class$##' \
             | grep -Ei 'event|handler|mixin|damage|existence|expanded|living|entity|skill' \
             > build/ep-drain-diagnostics/better-subs/candidate-classes.txt || true
-
-          while IFS= read -r cls; do
-            [ -z "$cls" ] && continue
-            safe=$(printf '%s' "$cls" | tr '.' '_')
-            javap -classpath "$BS" -p -c "$cls" \
-              > "build/ep-drain-diagnostics/better-subs/${safe}.txt" 2>&1 || true
-          done < build/ep-drain-diagnostics/better-subs/candidate-classes.txt
 
           javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.storage.ep.ExistenceStorage \
             > build/ep-drain-diagnostics/tensura/ExistenceStorage.txt 2>&1 || true
           javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.util.EnergyHelper \
             > build/ep-drain-diagnostics/tensura/EnergyHelper.txt 2>&1 || true
-
           jar tf "$TENSURA" | grep '\.class$' | sed 's#/#.#g;s#\.class$##' \
             | grep -Ei 'existence|energy|damage|ep|death|living.*event|entity.*event' \
             > build/ep-drain-diagnostics/tensura/candidate-classes.txt || true
-
-          while IFS= read -r cls; do
-            [ -z "$cls" ] && continue
-            safe=$(printf '%s' "$cls" | tr '.' '_')
-            javap -classpath "$TENSURA" -p -c "$cls" \
-              > "build/ep-drain-diagnostics/tensura/${safe}.txt" 2>&1 || true
-          done < build/ep-drain-diagnostics/tensura/candidate-classes.txt
 
           grep -RniE 'entityEPUpdate|existenceUpdated|setEP|setGainedEP|getEP|getGainedEP|damageTaken|\.hurt| hurt|DamageSource|setHealth|kill\(|discard\(' \
             build/ep-drain-diagnostics \
