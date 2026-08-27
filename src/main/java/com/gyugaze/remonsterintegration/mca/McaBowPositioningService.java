@@ -2,6 +2,7 @@ package com.gyugaze.remonsterintegration.mca;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.util.LandRandomPos;
 import net.minecraft.world.phys.Vec3;
 
@@ -67,6 +68,11 @@ public final class McaBowPositioningService {
     }
 
     private static void moveAway(Mob shooter, LivingEntity threat, double speed, int repathTicks) {
+        if (!(shooter instanceof PathfinderMob pathfinder)) {
+            shooter.getNavigation().stop();
+            return;
+        }
+
         long gameTime = shooter.level().getGameTime();
         long nextRepath = shooter.getPersistentData().getLong(NEXT_REPATH_KEY);
         if (!shooter.getNavigation().isDone() && gameTime < nextRepath) {
@@ -79,7 +85,7 @@ public final class McaBowPositioningService {
 
         for (int attempt = 0; attempt < AWAY_PATH_ATTEMPTS; attempt++) {
             Vec3 candidate = LandRandomPos.getPosAway(
-                    shooter,
+                    pathfinder,
                     AWAY_HORIZONTAL_DISTANCE,
                     AWAY_VERTICAL_DISTANCE,
                     threat.position()
