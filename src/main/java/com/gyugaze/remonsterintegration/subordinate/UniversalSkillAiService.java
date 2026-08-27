@@ -9,6 +9,7 @@ import io.github.manasmods.manascore.skill.impl.TickingSkill;
 import io.github.manasmods.tensura.ability.skill.resist.ResistSkill;
 import io.github.manasmods.tensura.entity.template.subclass.ISubordinate;
 import io.github.manasmods.tensura.registry.skill.CommonSkills;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -20,17 +21,14 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Lightweight active-skill driver only for compatibility subordinates that lack native Tensura AI.
+ * Lightweight fallback active-skill driver for mobs that possess Tensura skills but have no native
+ * caster AI of their own.
  *
- * Native ISubordinate entities remain entirely under Tensura/Better Subordinates combat automation.
- * ManasCore remains the authority for activation events, requirements, cooldowns, held-skill ticks,
- * release behavior, energy cost and mastery. Re:Monster only supplies the missing NPC decision for
- * MCA/external owned mobs: while they have a real combat target, face it and ask native SkillStorage
- * to activate one usable learned skill.
- *
- * Passive skills are not emulated here. SkillStorage already ticks learned passive behavior for every
- * LivingEntity, including MCA and external mobs. Likewise, communication skills are explicitly kept
- * out of combat automation because their input semantics are commands/UI rather than attacks.
+ * Native Tensura mobs/subordinates remain authoritative for their own casting. External mobs, MCA
+ * villagers and other compatibility entities may use learned active skills whenever their original AI
+ * supplies a valid combat target. Owned mobs additionally respect Re:Monster STAY/PASSIVE orders.
+ * ManasCore still owns activation events, requirements, energy cost, cooldowns, mastery and held-skill
+ * lifecycle; this service supplies only the missing NPC decision to press a usable skill.
  */
 public final class UniversalSkillAiService {
     private static final String CURSOR_KEY = "remonster_skill_ai_cursor";
@@ -46,20 +44,20 @@ public final class UniversalSkillAiService {
     private UniversalSkillAiService() {
     }
 
-    /** Called from the common Mob tick mixin; exits immediately for mobs outside the compatibility gap. */
     public static void tick(Mob mob) {
-        if (mob.level().isClientSide() || !mob.isAlive() || mob instanceof ISubordinate) {
+        if (mob.level().isClientSide() || !mob.isAlive() || hasNativeTensuraCaster(mob)) {
             return;
         }
-        if (TensuraSubordinateBridge.getResolvedOwner(mob).isEmpty()) {
-            return;
-        }
-        if (SubordinateMovementService.getMode(mob).orElse(SubordinateMovementMode.WANDER)
-                == SubordinateMovementMode.STAY) {
-            return;
-        }
-        if (SubordinateTargetingService.getMode(mob) == SubordinateTargetingMode.PASSIVE) {
-            return;
+
+        boolean owned = TensuraSubordinateBridge.getResolvedOwner(mob).isPresent();
+        if (owned) {
+            if (SubordinateMovementService.getMode(mob).orElse(SubordinateMovementMode.WANDER)
+                    == SubordinateMovementMode.STAY) {
+                return;
+            }
+            if (SubordinateTargetingService.getMode(mob) == SubordinateTargetingMode.PASSIVE) {
+                return;
+            }
         }
 
         LivingEntity target = mob.getTarget();
@@ -110,8 +108,6 @@ public final class UniversalSkillAiService {
                     data.putLong(NEXT_ATTEMPT_KEY, gameTime + FAILED_ACTIVATION_BACKOFF_TICKS);
                 }
             } catch (RuntimeException | LinkageError exception) {
-                // A third-party/Tensura skill may still assume player-only input despite passing the
-                // public activation gates. One incompatible skill must never crash compatibility AI.
                 data.putLong(NEXT_ATTEMPT_KEY, gameTime + ATTEMPT_INTERVAL_TICKS);
                 ReMonsterIntegration.LOGGER.debug(
                         "Skill {} rejected universal NPC activation for {}",
@@ -124,5 +120,13 @@ public final class UniversalSkillAiService {
         }
 
         data.putInt(CURSOR_KEY, (cursor + 1) % candidates.size());
+    }
+
+    private static boolean hasNativeTensuraCaster(Mob mob) {
+        if (mob instanceof ISubordinate) {
+            return true;
+        }
+        ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
+        return "tensura".equals(entityId.getNamespace());
     }
 }
