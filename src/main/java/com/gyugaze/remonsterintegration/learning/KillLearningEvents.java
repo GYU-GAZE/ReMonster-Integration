@@ -6,16 +6,13 @@ import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.profile.MobProfileRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 
 import java.util.List;
 import java.util.Optional;
 
-/**
- * NeoForge event bridge for kill-driven skill learning.
- */
+/** NeoForge event bridge for universal kill-driven skill learning. */
 public final class KillLearningEvents {
     private static final double DEFAULT_BASE_LEARNING_POINTS = 1.0;
 
@@ -28,19 +25,19 @@ public final class KillLearningEvents {
             return;
         }
 
-        Optional<ServerPlayer> creditedPlayer = KillCreditResolver.resolve(event.getSource());
-        if (creditedPlayer.isEmpty()) {
+        Optional<LivingEntity> creditedLearner = KillCreditResolver.resolveLearner(event.getSource());
+        if (creditedLearner.isEmpty()) {
             return;
         }
 
-        ServerPlayer player = creditedPlayer.get();
+        LivingEntity learner = creditedLearner.get();
         Optional<MobProfile> profile = MobProfileRegistry.get(defeated);
         double championMultiplier = MobChampionsBridge.getChampionRank(defeated)
                 .map(KillLearningEvents::getChampionLearningMultiplier)
                 .orElse(1.0);
 
         List<ResourceLocation> progressed = KillLearningService.grantFromDefeatedEntity(
-                player,
+                learner,
                 defeated,
                 profile,
                 DEFAULT_BASE_LEARNING_POINTS * championMultiplier
@@ -49,8 +46,8 @@ public final class KillLearningEvents {
         if (!progressed.isEmpty()) {
             ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(defeated.getType());
             ReMonsterIntegration.LOGGER.debug(
-                    "Player {} gained acquisition-learning progress from {} for {} (profile={}, MobChampions multiplier x{})",
-                    player.getGameProfile().getName(),
+                    "Entity {} gained acquisition-learning progress from {} for {} (profile={}, MobChampions multiplier x{})",
+                    learner.getUUID(),
                     entityId,
                     progressed,
                     profile.isPresent(),
@@ -59,10 +56,6 @@ public final class KillLearningEvents {
         }
     }
 
-    /**
-     * MobChampions remains the sole owner of champion combat stats. Re:Monster Integration only uses
-     * the rank as additional reward context so a much harder variant is also more valuable to hunt.
-     */
     private static double getChampionLearningMultiplier(MobChampionsBridge.ChampionRank rank) {
         return switch (rank) {
             case UNCOMMON -> 1.25;
