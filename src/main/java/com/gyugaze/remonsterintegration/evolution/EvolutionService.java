@@ -35,12 +35,14 @@ public final class EvolutionService {
         }
 
         EvolutionDefinition definition = definitionOptional.get();
-        double ep = TensuraExistenceBridge.getEp(entity);
-        if (ep < definition.minimumEp()) {
+        // Match Tensura's native EvolutionRequirement.EPRequirement: progression checks use base max EP,
+        // never current consumable aura + magicule.
+        double progressionEp = TensuraExistenceBridge.getBaseMaxEp(entity);
+        if (progressionEp < definition.minimumEp()) {
             return EvolutionResult.failure(
                     current,
                     targetSpecies,
-                    "EP requirement not met: " + ep + " / " + definition.minimumEp()
+                    "EP requirement not met: " + progressionEp + " / " + definition.minimumEp()
             );
         }
 

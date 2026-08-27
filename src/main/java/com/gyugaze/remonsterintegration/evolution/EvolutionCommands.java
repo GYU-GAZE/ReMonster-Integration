@@ -136,17 +136,19 @@ public final class EvolutionCommands {
             return 0;
         }
 
-        double ep = TensuraExistenceBridge.getEp(living);
+        double progressionEp = TensuraExistenceBridge.getBaseMaxEp(living);
         List<EvolutionDefinition> definitions = EvolutionRegistry.availableFrom(current.get());
         source.sendSuccess(() -> Component.literal(
-                "[Re:Monster] " + current.get() + " | EP=" + ep + " | evolution edges=" + definitions.size()
+                "[Re:Monster] " + current.get()
+                        + " | baseMaxEP=" + progressionEp
+                        + " | evolution edges=" + definitions.size()
         ), false);
 
         for (EvolutionDefinition definition : definitions) {
             source.sendSuccess(() -> Component.literal(
                     " -> " + definition.toSpecies()
-                            + " | minEP=" + definition.minimumEp()
-                            + (ep >= definition.minimumEp() ? " | READY" : " | LOCKED")
+                            + " | minBaseMaxEP=" + definition.minimumEp()
+                            + (progressionEp >= definition.minimumEp() ? " | READY" : " | LOCKED")
             ), false);
         }
         return 1;

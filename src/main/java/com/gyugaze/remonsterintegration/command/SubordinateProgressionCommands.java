@@ -41,18 +41,18 @@ public final class SubordinateProgressionCommands {
                                                         context.getSource(),
                                                         EntityArgument.getEntity(context, "target")
                                                 ))))
-                                .then(Commands.literal("set_ep")
+                                .then(Commands.literal("set_max_ep")
                                         .then(Commands.argument("target", EntityArgument.entity())
                                                 .then(Commands.argument("ep", DoubleArgumentType.doubleArg(0.0D))
-                                                        .executes(context -> setEp(
+                                                        .executes(context -> setMaxEp(
                                                                 context.getSource(),
                                                                 EntityArgument.getEntity(context, "target"),
                                                                 DoubleArgumentType.getDouble(context, "ep")
                                                         )))))
-                                .then(Commands.literal("add_ep")
+                                .then(Commands.literal("add_max_ep")
                                         .then(Commands.argument("target", EntityArgument.entity())
                                                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.0D))
-                                                        .executes(context -> addEp(
+                                                        .executes(context -> addMaxEp(
                                                                 context.getSource(),
                                                                 EntityArgument.getEntity(context, "target"),
                                                                 DoubleArgumentType.getDouble(context, "amount")
@@ -70,7 +70,9 @@ public final class SubordinateProgressionCommands {
         ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());
         Optional<ResourceLocation> species = SpeciesStateService.getSpecies(living);
         Optional<UUID> owner = TensuraSubordinateBridge.getResolvedOwnerUuid(living);
-        double ep = TensuraExistenceBridge.getEp(living);
+        double currentEp = TensuraExistenceBridge.getEp(living);
+        double maxEp = TensuraExistenceBridge.getMaxEp(living);
+        double baseMaxEp = TensuraExistenceBridge.getBaseMaxEp(living);
         double gainedEp = TensuraExistenceBridge.getGainedEp(living);
 
         source.sendSuccess(() -> Component.literal(
@@ -82,7 +84,10 @@ public final class SubordinateProgressionCommands {
                         + " | species=" + species.map(ResourceLocation::toString).orElse("unset")
         ), false);
         source.sendSuccess(() -> Component.literal(
-                "Tensura EP: current=" + ep + " | gained=" + gainedEp
+                "Tensura EP: current=" + currentEp
+                        + " | max=" + maxEp
+                        + " | baseMax=" + baseMaxEp
+                        + " | gained=" + gainedEp
         ), false);
 
         BetterSubordinatesBridge.ProgressionSnapshot progression =
@@ -118,10 +123,10 @@ public final class SubordinateProgressionCommands {
                 source.sendSuccess(() -> Component.literal("  none"), false);
             } else {
                 for (EvolutionDefinition edge : edges) {
-                    boolean ready = ep >= edge.minimumEp();
+                    boolean ready = baseMaxEp >= edge.minimumEp();
                     source.sendSuccess(() -> Component.literal(
                             "  -> " + edge.toSpecies()
-                                    + " | minEP=" + edge.minimumEp()
+                                    + " | minBaseMaxEP=" + edge.minimumEp()
                                     + " | " + (ready ? "READY" : "LOCKED")
                     ), false);
                 }
@@ -137,33 +142,38 @@ public final class SubordinateProgressionCommands {
                 .orElse("none");
     }
 
-    private static int setEp(CommandSourceStack source, Entity target, double ep) {
+    private static int setMaxEp(CommandSourceStack source, Entity target, double ep) {
         if (!(target instanceof LivingEntity living)) {
             source.sendFailure(Component.literal("target is not a living entity"));
             return 0;
         }
 
-        double previous = TensuraExistenceBridge.getEp(living);
-        TensuraExistenceBridge.setEp(living, ep);
+        TensuraExistenceBridge.MaxEpChange change = TensuraExistenceBridge.setBaseMaxEpSafely(living, ep);
         source.sendSuccess(() -> Component.literal(
-                "[Re:Monster] debug EP " + living.getUUID() + ": " + previous + " -> " + ep
-                        + " | Better Subordinates remains responsible for reacting to the new threshold"
+                "[Re:Monster] debug base max EP " + living.getUUID()
+                        + ": " + change.previousBaseMaxEp() + " -> " + change.resultingBaseMaxEp()
+                        + " | effectiveMax=" + change.previousMaxEp() + " -> " + change.resultingMaxEp()
+                        + " | current=" + change.previousCurrentEp() + " -> " + change.resultingCurrentEp()
+                        + (change.currentEpClamped() ? " | current clamped to capacity" : "")
+                        + " | Better Subordinates re-evaluates MAX_AURA/MAX_MAGICULE increases natively"
         ), true);
         return 1;
     }
 
-    private static int addEp(CommandSourceStack source, Entity target, double amount) {
+    private static int addMaxEp(CommandSourceStack source, Entity target, double amount) {
         if (!(target instanceof LivingEntity living)) {
             source.sendFailure(Component.literal("target is not a living entity"));
             return 0;
         }
 
-        double previous = TensuraExistenceBridge.getEp(living);
-        double resulting = previous + amount;
-        TensuraExistenceBridge.setEp(living, resulting);
+        TensuraExistenceBridge.MaxEpChange change = TensuraExistenceBridge.addBaseMaxEpSafely(living, amount);
         source.sendSuccess(() -> Component.literal(
-                "[Re:Monster] debug EP " + living.getUUID() + ": " + previous + " -> " + resulting
-                        + " | Better Subordinates remains responsible for reacting to the new threshold"
+                "[Re:Monster] debug base max EP " + living.getUUID()
+                        + ": " + change.previousBaseMaxEp() + " -> " + change.resultingBaseMaxEp()
+                        + " | effectiveMax=" + change.previousMaxEp() + " -> " + change.resultingMaxEp()
+                        + " | current=" + change.previousCurrentEp() + " -> " + change.resultingCurrentEp()
+                        + (change.currentEpClamped() ? " | current clamped to capacity" : "")
+                        + " | Better Subordinates re-evaluates MAX_AURA/MAX_MAGICULE increases natively"
         ), true);
         return 1;
     }
