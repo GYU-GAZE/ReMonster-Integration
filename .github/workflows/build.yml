@@ -37,6 +37,22 @@ jobs:
           echo '=== THOUGHT COMM MIXIN ==='
           javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
 
+      - name: Collect integration API jars
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p build/integration-api-jars
+          find ~/.gradle/caches -type f \( -name '*8665599*.jar' -o -name '*8658484*.jar' -o -name '*8414486*.jar' \) -exec cp {} build/integration-api-jars/ \;
+          cp build/manascore-compile-modules/*.jar build/integration-api-jars/ || true
+
+      - name: Upload integration API jars
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-api-jars
+          path: build/integration-api-jars/*.jar
+          if-no-files-found: error
+
       - name: Upload integration source snapshot
         if: always()
         uses: actions/upload-artifact@v4
