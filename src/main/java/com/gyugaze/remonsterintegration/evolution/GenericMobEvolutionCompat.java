@@ -14,6 +14,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -61,8 +62,12 @@ public final class GenericMobEvolutionCompat {
             target.setCustomName(source.getCustomName());
             target.setCustomNameVisible(source.isCustomNameVisible());
             target.setSilent(source.isSilent());
-            target.setNoAi(source.isNoAi());
-            target.setPersistenceRequired();
+            if (target instanceof Mob targetMob) {
+                if (source instanceof Mob sourceMob) {
+                    targetMob.setNoAi(sourceMob.isNoAi());
+                }
+                targetMob.setPersistenceRequired();
+            }
 
             copyReMonsterPersistentData(source, target);
             SpeciesStateService.copyState(source, target);
