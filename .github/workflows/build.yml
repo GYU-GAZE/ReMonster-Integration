@@ -26,7 +26,7 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect universal character APIs
+      - name: Inspect final integration points
         if: success()
         shell: bash
         run: |
@@ -35,35 +35,29 @@ jobs:
           BETTER=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
           MC_CP="$TENSURA:build/manascore-compile-modules/*"
 
-          echo '=== MANASCORE SKILL ACTIVATION CONTRACT ==='
-          javap -classpath "$MC_CP" -p io.github.manasmods.manascore.skill.api.ManasSkill || true
-          javap -classpath "$MC_CP" -p io.github.manasmods.manascore.skill.api.ManasSkillInstance || true
-          javap -classpath "$MC_CP" -p io.github.manasmods.manascore.skill.impl.SkillStorage || true
+          echo '=== SKILL STORAGE HOLD / RELEASE ==='
+          javap -classpath "$MC_CP" -p -c io.github.manasmods.manascore.skill.impl.SkillStorage || true
 
-          echo '=== TENSURA ACTIVATION PAYLOADS / HANDLERS ==='
-          jar tf "$TENSURA" | grep '\.class$' | grep -Ei '(ability|skill).*(payload|packet|press|release|activate|key)|network.*(ability|skill)' | head -n 300 || true
+          echo '=== BETTER SUBS EXPANDED STORAGE ==='
+          javap -classpath "$BETTER:$MC_CP" -p -c com.trbeyond.tensura_better_subs.entity.ExpandedSkillStorage || true
 
-          echo '=== REPRESENTATIVE ACTIVE ABILITIES ==='
-          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.ability.battlewill.projectile.MagicBulletArt || true
-          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.ability.battlewill.melee.AuraSlashArt || true
-          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.ability.battlewill.utility.AuraShieldArt || true
+          echo '=== TENSURA EVOLUTION MOB IDS ==='
+          jar tf "$TENSURA" | grep -Ei 'hound|direwolf|barghest' | head -n 100 || true
+          javap -classpath "$MC_CP" -p io.github.manasmods.tensura.registry.entity.TensuraEntityTypes 2>/dev/null | grep -Ei 'hound|dire|barghest' || true
+          javap -classpath "$MC_CP" -p io.github.manasmods.tensura.registry.entity.TensuraEntities 2>/dev/null | grep -Ei 'hound|dire|barghest' || true
+          unzip -p "$TENSURA" 2>/dev/null | strings | grep -Ei 'hound_dog|direwolf|barghest' | sort -u | head -n 100 || true
 
-          echo '=== TEACHING ITEMS ==='
-          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.item.misc.BattlewillManualItem || true
-          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.item.misc.MagicTomeItem || true
+          echo '=== MCA BRAIN / TASK REGISTRATION ==='
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.VillagerBrain || true
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.VillagerTasksMCA || true
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.VillagerEntityMCA || true
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.tasks.EquipmentTask || true
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.tasks.BowTask || true
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.tasks.ArcherMovementTask || true
 
-          echo '=== BETTER SUBORDINATES STORAGE ==='
-          javap -classpath "$BETTER:$MC_CP" -p -c com.trbeyond.tensura_better_subs.storage.ExpandedSkillStorage || true
-          jar tf "$BETTER" | grep '\.class$' | grep -Ei 'ExpandedSkillStorage|SkillExpansion|Storage' | head -n 100 || true
-
-          echo '=== MCA VILLAGER / BRAIN CLASS INVENTORY ==='
-          jar tf "$MCA" | grep '\.class$' | grep -Ei 'Villager.*class$|brain/(tasks|sensor)/.*class$|Inventory' | head -n 500 || true
-
-          echo '=== MCA COMBAT TASKS ==='
-          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.tasks.ExtendedMeleeAttackTask || true
-          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.tasks.ExtendedCrossbowAttackTask || true
-          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.sensor.GuardEnemiesSensor || true
-          javap -classpath "$MCA" -p -c net.conczin.mca.entity.UpdatableInventory || true
+          echo '=== MCA HELP / PANIC STRINGS AND CALLERS ==='
+          strings "$MCA" | grep -Ei 'villager\.(help|panic|attack|hurt)|help|panic' | head -n 200 || true
+          jar tf "$MCA" | grep '\.class$' | grep -Ei '(panic|help|alarm|messenger|damage|hurt)' | head -n 250 || true
 
       - name: Upload built jar
         if: success()
