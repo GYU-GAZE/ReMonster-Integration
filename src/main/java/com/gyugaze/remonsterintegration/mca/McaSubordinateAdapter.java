@@ -7,10 +7,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.SwordItem;
 
 import java.lang.reflect.Method;
 import java.util.Locale;
@@ -24,6 +25,7 @@ import java.util.Optional;
 public final class McaSubordinateAdapter {
     private static final String MCA_VILLAGER_CLASS = "net.conczin.mca.entity.VillagerEntityMCA";
     private static final String MCA_MOVE_STATE_CLASS = "net.conczin.mca.entity.ai.MoveState";
+    private static final double MELEE_DAMAGE_EPSILON = 1.0E-6D;
 
     private McaSubordinateAdapter() {
     }
@@ -57,13 +59,16 @@ public final class McaSubordinateAdapter {
     }
 
     /**
-     * Projects MCA's best sword from the villager inventory into its dominant equipment slot.
+     * Projects the strongest actual main-hand melee item from the MCA inventory into the dominant slot.
      *
-     * MCA 7.7.36-beta.3 already uses this inventory-as-equipment model for guards: its EquipmentTask
-     * selects the best SwordItem without removing it from the MCA inventory, then exposes that stack
-     * through the dominant equipment slot. Ordinary villagers intentionally use EquipmentSet.NAKED,
-     * so commanded Re:Monster civilians need this narrow bridge if they are expected to fight with a
-     * sword they already carry. No guard AI, ranged AI, or inventory ownership is replaced here.
+     * Selection is intentionally item-class agnostic. Vanilla tools, swords and modded weapons all
+     * qualify when their gameplay MAINHAND attribute modifiers increase ATTACK_DAMAGE. The score uses
+     * the same AttributeModifier operation order as a living attribute: additive modifiers first,
+     * multiplied-base modifiers second and multiplied-total modifiers last. This avoids treating item
+     * durability as weapon strength and avoids requiring third-party weapons to extend SwordItem.
+     *
+     * MCA 7.7.36-beta.3 already uses an inventory-as-equipment model. We keep that model and merely
+     * expose the chosen stack through the dominant equipment slot while Re:Monster commands combat.
      */
     public static boolean equipBestMeleeWeaponFromInventory(LivingEntity villager) {
         Objects.requireNonNull(villager, "villager");
@@ -78,13 +83,16 @@ public final class McaSubordinateAdapter {
                 return false;
             }
 
+            double baseAttackDamage = villager.getAttributeBaseValue(Attributes.ATTACK_DAMAGE);
             ItemStack best = ItemStack.EMPTY;
-            int bestMaxDamage = -1;
+            double bestAttackDamage = baseAttackDamage;
+
             for (int i = 0; i < inventory.getContainerSize(); i++) {
                 ItemStack candidate = inventory.getItem(i);
-                if (candidate.getItem() instanceof SwordItem && candidate.getMaxDamage() > bestMaxDamage) {
+                double candidateAttackDamage = getMainHandAttackDamage(candidate, baseAttackDamage);
+                if (candidateAttackDamage > bestAttackDamage + MELEE_DAMAGE_EPSILON) {
                     best = candidate;
-                    bestMaxDamage = candidate.getMaxDamage();
+                    bestAttackDamage = candidateAttackDamage;
                 }
             }
 
@@ -102,6 +110,38 @@ public final class McaSubordinateAdapter {
             );
             return false;
         }
+    }
+
+    private static double getMainHandAttackDamage(ItemStack stack, double baseAttackDamage) {
+        if (stack.isEmpty()) {
+            return Double.NEGATIVE_INFINITY;
+        }
+
+        double[] modifiers = new double[] {0.0D, 0.0D, 1.0D, 0.0D};
+        stack.forEachModifier(EquipmentSlot.MAINHAND, (attribute, modifier) -> {
+            if (!attribute.equals(Attributes.ATTACK_DAMAGE)) {
+                return;
+            }
+
+            modifiers[3] = 1.0D;
+            switch (modifier.operation()) {
+                case ADD_VALUE -> modifiers[0] += modifier.amount();
+                case ADD_MULTIPLIED_BASE -> modifiers[1] += modifier.amount();
+                case ADD_MULTIPLIED_TOTAL -> modifiers[2] *= 1.0D + modifier.amount();
+            }
+        });
+
+        if (modifiers[3] == 0.0D) {
+            return Double.NEGATIVE_INFINITY;
+        }
+
+        double withAdditions = baseAttackDamage + modifiers[0];
+        double withMultipliedBase = withAdditions + withAdditions * modifiers[1];
+        double result = withMultipliedBase * modifiers[2];
+        if (!Double.isFinite(result) || result <= baseAttackDamage + MELEE_DAMAGE_EPSILON) {
+            return Double.NEGATIVE_INFINITY;
+        }
+        return result;
     }
 
     /**
