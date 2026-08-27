@@ -9,7 +9,7 @@ import net.minecraft.world.item.BowItem;
 
 import java.util.Comparator;
 
-/** Armed MCA civilian self-defence without replacing profession/schedule/Brain. */
+/** Armed MCA civilian support without replacing profession/schedule/Brain or native self-defence. */
 public final class McaMilitiaService {
     private static final String ENGAGED_UNTIL_KEY = "remonster_militia_engaged_until";
     private static final String NEXT_ATTACK_KEY = "remonster_militia_next_attack";
@@ -43,7 +43,6 @@ public final class McaMilitiaService {
 
         LivingEntity threat = findThreat(villager);
         if (threat == null) {
-            // A dead/despawned target must never leave the LivingEntity item-use state latched.
             stopBow(villager);
             cleanupExpiredCombat(villager, false);
             return;
@@ -60,19 +59,27 @@ public final class McaMilitiaService {
         driveCombat(villager, threat);
     }
 
-    /** True while our armed-civilian layer should own combat instead of MCA's panic+melee package. */
-    public static boolean shouldOwnSelfDefence(LivingEntity villager) {
-        return McaSubordinateAdapter.isMcaVillager(villager)
-                && !McaSubordinateAdapter.isGuard(villager)
-                && TensuraSubordinateBridge.getResolvedOwner(villager).isEmpty()
-                && healthRatio(villager) >= RETREAT_HEALTH_RATIO
-                && McaCombatWeaponPolicy.hasCombatWeaponInInventory(villager);
-    }
-
+    /**
+     * Presentation-only panic rule. MCA's actual PANIC activity and self-defence tasks remain native.
+     * We hide the arms-open panic pose only while a non-guard civilian is armed, healthy and actually
+     * fighting. Owned/commanded civilians are included because they use a Mob target too. Below 25%
+     * health this immediately becomes false and MCA's normal visible panic returns.
+     */
     public static boolean shouldSuppressPanic(LivingEntity villager) {
-        return shouldOwnSelfDefence(villager)
-                && (villager.level().getGameTime() <= villager.getPersistentData().getLong(ENGAGED_UNTIL_KEY)
-                    || hasImmediateThreat(villager));
+        if (!McaSubordinateAdapter.isMcaVillager(villager)
+                || McaSubordinateAdapter.isGuard(villager)
+                || healthRatio(villager) < RETREAT_HEALTH_RATIO
+                || !McaCombatWeaponPolicy.hasCombatWeaponInInventory(villager)) {
+            return false;
+        }
+
+        if (villager instanceof Mob mob && mob.getTarget() != null && mob.getTarget().isAlive()) {
+            return true;
+        }
+        if (villager.level().getGameTime() <= villager.getPersistentData().getLong(ENGAGED_UNTIL_KEY)) {
+            return true;
+        }
+        return hasImmediateThreat(villager);
     }
 
     private static boolean hasImmediateThreat(LivingEntity villager) {
@@ -132,6 +139,7 @@ public final class McaMilitiaService {
             return;
         }
 
+        McaBowPositioningService.reset(villager);
         McaSubordinateAdapter.equipBestMeleeWeaponFromInventory(villager);
         villager.getLookControl().setLookAt(threat, 30.0F, 30.0F);
         villager.getNavigation().moveTo(threat, 0.8D);
@@ -148,13 +156,18 @@ public final class McaMilitiaService {
     private static void driveBow(Mob villager, LivingEntity threat, BowItem bow) {
         villager.getLookControl().setLookAt(threat, 30.0F, 30.0F);
         double range = Math.min(MAX_BOW_RANGE, bow.getDefaultProjectileRange());
-        if (!villager.getSensing().hasLineOfSight(threat) || villager.distanceToSqr(threat) > range * range) {
+        McaBowPositioningService.Positioning positioning = McaBowPositioningService.update(villager, threat, range);
+
+        if (positioning == McaBowPositioningService.Positioning.APPROACH) {
             stopBow(villager);
-            villager.getNavigation().moveTo(threat, 0.8D);
+            return;
+        }
+        if (positioning == McaBowPositioningService.Positioning.EMERGENCY_FLEE) {
+            // MCA's native BowTask also cancels the shot during emergency flee. Survive first.
+            stopBow(villager);
             return;
         }
 
-        villager.getNavigation().stop();
         if (onCooldown(villager)) {
             return;
         }
@@ -192,6 +205,7 @@ public final class McaMilitiaService {
             return;
         }
         stopBow(villager);
+        McaBowPositioningService.reset(villager);
         villager.getPersistentData().remove(ENGAGED_UNTIL_KEY);
         villager.getPersistentData().remove(NEXT_ATTACK_KEY);
         villager.setTarget(null);
@@ -199,6 +213,7 @@ public final class McaMilitiaService {
 
     private static void disengage(Mob villager) {
         stopBow(villager);
+        McaBowPositioningService.reset(villager);
         villager.getPersistentData().remove(ENGAGED_UNTIL_KEY);
         villager.getPersistentData().remove(NEXT_ATTACK_KEY);
         villager.setTarget(null);
