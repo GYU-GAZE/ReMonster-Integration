@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "mca.GuardEnemiesSensorMixin",
+    "mca.VillagerBrainMilitiaMixin",
     "bettersubs.ExpandedSkillStorageMixin",
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
