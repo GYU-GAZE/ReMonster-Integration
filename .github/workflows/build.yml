@@ -33,26 +33,37 @@ jobs:
           TENSURA=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
           MCA=$(find ~/.gradle/caches -type f -name '*8658484*.jar' | head -n 1)
           BETTER=$(find ~/.gradle/caches -type f -name '*8414486*.jar' | head -n 1)
-          echo "TENSURA=$TENSURA"
-          echo "MCA=$MCA"
-          echo "BETTER=$BETTER"
+          MC_CP="$TENSURA:build/manascore-compile-modules/*"
 
-          echo '=== TENSURA CANDIDATE CLASSES: CAST / ACTIVATE / AI ==='
-          jar tf "$TENSURA" | grep '\.class$' | grep -Ei '(skill|ability).*(goal|ai|use|cast|activate)|goal.*(skill|ability)|skillhelper|skillmanager|skillstorage' | head -n 250 || true
+          echo '=== MANASCORE SKILL ACTIVATION CONTRACT ==='
+          javap -classpath "$MC_CP" -p io.github.manasmods.manascore.skill.api.ManasSkill || true
+          javap -classpath "$MC_CP" -p io.github.manasmods.manascore.skill.api.ManasSkillInstance || true
+          javap -classpath "$MC_CP" -p io.github.manasmods.manascore.skill.impl.SkillStorage || true
 
-          echo '=== TENSURA CANDIDATE CLASSES: MANUAL / BATTLEWILL / MAGIC ==='
-          jar tf "$TENSURA" | grep '\.class$' | grep -Ei '(manual|battlewill|battle_will|magic.*book|book.*magic|skill.*book|book.*skill|magic.*item|item.*magic)' | head -n 250 || true
+          echo '=== TENSURA ACTIVATION PAYLOADS / HANDLERS ==='
+          jar tf "$TENSURA" | grep '\.class$' | grep -Ei '(ability|skill).*(payload|packet|press|release|activate|key)|network.*(ability|skill)' | head -n 300 || true
 
-          echo '=== TENSURA Skill / TensuraSkill / SkillHelper ==='
-          javap -classpath "$TENSURA" -p io.github.manasmods.tensura.ability.skill.Skill || true
-          javap -classpath "$TENSURA" -p io.github.manasmods.tensura.ability.TensuraSkill || true
-          javap -classpath "$TENSURA" -p -c io.github.manasmods.tensura.ability.SkillHelper || true
+          echo '=== REPRESENTATIVE ACTIVE ABILITIES ==='
+          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.ability.battlewill.projectile.MagicBulletArt || true
+          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.ability.battlewill.melee.AuraSlashArt || true
+          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.ability.battlewill.utility.AuraShieldArt || true
 
-          echo '=== MCA CANDIDATE CLASSES: COMBAT / PANIC / HELP / INVENTORY ==='
-          jar tf "$MCA" | grep '\.class$' | grep -Ei '(combat|fight|attack|guard|panic|flee|help|alarm|hurt|revenge|retaliat|weapon|inventory)' | head -n 350 || true
+          echo '=== TEACHING ITEMS ==='
+          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.item.misc.BattlewillManualItem || true
+          javap -classpath "$MC_CP" -p -c io.github.manasmods.tensura.item.misc.MagicTomeItem || true
 
-          echo '=== BETTER SUBS CANDIDATE CAST / AI CLASSES ==='
-          jar tf "$BETTER" | grep '\.class$' | grep -Ei '(cast|skill.*goal|goal.*skill|skill.*ai|ai.*skill|activate|passive)' | head -n 200 || true
+          echo '=== BETTER SUBORDINATES STORAGE ==='
+          javap -classpath "$BETTER:$MC_CP" -p -c com.trbeyond.tensura_better_subs.storage.ExpandedSkillStorage || true
+          jar tf "$BETTER" | grep '\.class$' | grep -Ei 'ExpandedSkillStorage|SkillExpansion|Storage' | head -n 100 || true
+
+          echo '=== MCA VILLAGER / BRAIN CLASS INVENTORY ==='
+          jar tf "$MCA" | grep '\.class$' | grep -Ei 'Villager.*class$|brain/(tasks|sensor)/.*class$|Inventory' | head -n 500 || true
+
+          echo '=== MCA COMBAT TASKS ==='
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.tasks.ExtendedMeleeAttackTask || true
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.tasks.ExtendedCrossbowAttackTask || true
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.ai.brain.sensor.GuardEnemiesSensor || true
+          javap -classpath "$MCA" -p -c net.conczin.mca.entity.UpdatableInventory || true
 
       - name: Upload built jar
         if: success()
