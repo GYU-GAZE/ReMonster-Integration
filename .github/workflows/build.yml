@@ -37,6 +37,20 @@ jobs:
           echo '=== THOUGHT COMM MIXIN ==='
           javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
 
+      - name: Upload integration source snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-source-snapshot
+          path: |
+            src
+            build.gradle
+            gradle.properties
+            settings.gradle
+            README.md
+            docs
+          if-no-files-found: error
+
       - name: Upload built jar
         if: success()
         uses: actions/upload-artifact@v4
