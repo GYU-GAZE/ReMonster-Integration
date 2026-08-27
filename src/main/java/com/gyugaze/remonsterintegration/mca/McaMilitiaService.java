@@ -9,10 +9,7 @@ import net.minecraft.world.item.BowItem;
 
 import java.util.Comparator;
 
-/**
- * Temporary self-defence layer for armed MCA civilians. It never changes profession, schedule or
- * VillagerBrain packages: combat is driven only while an immediate threat exists.
- */
+/** Armed MCA civilian self-defence without replacing profession/schedule/Brain. */
 public final class McaMilitiaService {
     private static final String ENGAGED_UNTIL_KEY = "remonster_militia_engaged_until";
     private static final String NEXT_ATTACK_KEY = "remonster_militia_next_attack";
@@ -35,6 +32,7 @@ public final class McaMilitiaService {
         }
 
         if (TensuraSubordinateBridge.getResolvedOwner(villager).isPresent()) {
+            cleanupExpiredCombat(villager, true);
             return;
         }
 
@@ -44,10 +42,16 @@ public final class McaMilitiaService {
         }
 
         LivingEntity threat = findThreat(villager);
-        if (threat == null || !ensureArmed(villager)) {
-            if (villager.level().getGameTime() > villager.getPersistentData().getLong(ENGAGED_UNTIL_KEY)) {
-                villager.setTarget(null);
-            }
+        if (threat == null) {
+            // A dead/despawned target must never leave the LivingEntity item-use state latched.
+            stopBow(villager);
+            cleanupExpiredCombat(villager, false);
+            return;
+        }
+
+        if (!ensureArmed(villager)) {
+            stopBow(villager);
+            cleanupExpiredCombat(villager, true);
             return;
         }
 
@@ -56,11 +60,24 @@ public final class McaMilitiaService {
         driveCombat(villager, threat);
     }
 
-    public static boolean shouldSuppressPanic(LivingEntity villager) {
+    /** True while our armed-civilian layer should own combat instead of MCA's panic+melee package. */
+    public static boolean shouldOwnSelfDefence(LivingEntity villager) {
         return McaSubordinateAdapter.isMcaVillager(villager)
                 && !McaSubordinateAdapter.isGuard(villager)
+                && TensuraSubordinateBridge.getResolvedOwner(villager).isEmpty()
                 && healthRatio(villager) >= RETREAT_HEALTH_RATIO
-                && villager.level().getGameTime() <= villager.getPersistentData().getLong(ENGAGED_UNTIL_KEY);
+                && McaCombatWeaponPolicy.hasCombatWeaponInInventory(villager);
+    }
+
+    public static boolean shouldSuppressPanic(LivingEntity villager) {
+        return shouldOwnSelfDefence(villager)
+                && (villager.level().getGameTime() <= villager.getPersistentData().getLong(ENGAGED_UNTIL_KEY)
+                    || hasImmediateThreat(villager));
+    }
+
+    private static boolean hasImmediateThreat(LivingEntity villager) {
+        LivingEntity attacker = villager.getLastHurtByMob();
+        return attacker != null && attacker.isAlive();
     }
 
     private static LivingEntity findThreat(Mob villager) {
@@ -146,6 +163,7 @@ public final class McaMilitiaService {
             return;
         }
         if (!(villager.getUseItem().getItem() instanceof BowItem)) {
+            stopBow(villager);
             return;
         }
 
@@ -165,6 +183,18 @@ public final class McaMilitiaService {
 
     private static void setCooldown(Mob villager) {
         villager.getPersistentData().putLong(NEXT_ATTACK_KEY, villager.level().getGameTime() + ATTACK_COOLDOWN);
+    }
+
+    private static void cleanupExpiredCombat(Mob villager, boolean force) {
+        long gameTime = villager.level().getGameTime();
+        long engagedUntil = villager.getPersistentData().getLong(ENGAGED_UNTIL_KEY);
+        if (!force && gameTime <= engagedUntil) {
+            return;
+        }
+        stopBow(villager);
+        villager.getPersistentData().remove(ENGAGED_UNTIL_KEY);
+        villager.getPersistentData().remove(NEXT_ATTACK_KEY);
+        villager.setTarget(null);
     }
 
     private static void disengage(Mob villager) {
