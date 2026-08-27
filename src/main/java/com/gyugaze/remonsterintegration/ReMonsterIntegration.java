@@ -35,7 +35,7 @@ public final class ReMonsterIntegration {
         NeoForge.EVENT_BUS.addListener(this::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, MobProfileEntityEvents::onEntityJoinLevel);
-        NeoForge.EVENT_BUS.addListener(KillLearningEvents::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, KillLearningEvents::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(SubordinateMenuEvents::onEntityInteract);
         NeoForge.EVENT_BUS.addListener(SubordinateMenuEvents::onEntityInteractSpecific);
         NeoForge.EVENT_BUS.addListener(SpeciesStateEvents::onPlayerClone);
