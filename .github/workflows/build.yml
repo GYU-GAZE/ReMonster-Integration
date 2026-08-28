@@ -26,15 +26,6 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect exact Direwolf existence data
-        if: success()
-        shell: bash
-        run: |
-          JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
-          test -n "$JAR"
-          echo '=== DIREWOLF ENTITY EXISTENCE ==='
-          unzip -p "$JAR" data/tensura/entity_existence/direwolf.json
-
       - name: Inspect Better Subordinates status transition
         if: success()
         shell: bash
