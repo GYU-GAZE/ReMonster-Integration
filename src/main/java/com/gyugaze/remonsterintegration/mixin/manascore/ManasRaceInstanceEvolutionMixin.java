@@ -71,19 +71,21 @@ public abstract class ManasRaceInstanceEvolutionMixin {
 
         EvolutionDefinition edge = definition.get();
         if (EvolutionRequirementService.isSatisfied(entity, edge)) {
-            cir.setReturnValue(1.0F);
+            // The native Tensura/ManasCore race remains authoritative for its own requirement list and
+            // progress bar. Re:Monster only exposes an additional branch and optionally constrains it.
+            // In this runtime the UI progress scale is 0..100 despite the stale ManasCore javadoc.
             return;
         }
 
-        double minimumEp = edge.minimumEp();
-        if (minimumEp <= 0.0D) {
-            cir.setReturnValue(0.99F);
-            return;
+        // A project-only condition is blocking an otherwise native race branch. Never increase the
+        // native progress; only cap it below READY. When minimum_ep is authored, expose useful partial
+        // progress on the same 0..100 scale that the real Tensura race UI displays.
+        float projectCap = 99.0F;
+        if (edge.minimumEp() > 0.0D) {
+            double ep = TensuraExistenceBridge.getBaseMaxEp(entity);
+            projectCap = (float) Mth.clamp(ep / edge.minimumEp() * 100.0D, 0.0D, 99.0D);
         }
-
-        double ep = TensuraExistenceBridge.getBaseMaxEp(entity);
-        float epProgress = (float) Mth.clamp(ep / minimumEp, 0.0D, 0.99D);
-        cir.setReturnValue(epProgress);
+        cir.setReturnValue(Math.min(cir.getReturnValue(), projectCap));
     }
 
     private static Optional<EvolutionDefinition> findProjectEdge(LivingEntity entity, ManasRace targetRace) {
