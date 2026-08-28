@@ -2,7 +2,6 @@ package com.gyugaze.remonsterintegration.evolution;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
-import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
@@ -35,13 +34,9 @@ public final class EvolutionService {
         }
 
         EvolutionDefinition definition = definitionOptional.get();
-        double progressionEp = TensuraExistenceBridge.getBaseMaxEp(entity);
-        if (progressionEp < definition.minimumEp()) {
-            return EvolutionResult.failure(
-                    current,
-                    targetSpecies,
-                    "EP requirement not met: " + progressionEp + " / " + definition.minimumEp()
-            );
+        EvolutionRequirementService.Evaluation evaluation = EvolutionRequirementService.evaluate(entity, definition);
+        if (!evaluation.eligible()) {
+            return EvolutionResult.failure(current, targetSpecies, evaluation.failureReason());
         }
 
         String bodyResult = "semantic-only";
