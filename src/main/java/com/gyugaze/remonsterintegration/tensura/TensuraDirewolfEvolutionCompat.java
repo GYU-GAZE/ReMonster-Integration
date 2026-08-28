@@ -41,7 +41,9 @@ public final class TensuraDirewolfEvolutionCompat {
             "blue_fang", "mystic_water_wolf",
             "brown_fang", "mystic_earth_wolf",
             "purple_fang", "mystic_space_wolf",
-            "black_fang", "mystic_wolf"
+            "black_fang", "mystic_wolf",
+            "tempest_wolf", "star_wolf",
+            "star_wolf", "tempest_star_wolf"
     );
 
     private static final ThreadLocal<Integer> AUTHORIZED_NATIVE_DEPTH = ThreadLocal.withInitial(() -> 0);
@@ -87,24 +89,21 @@ public final class TensuraDirewolfEvolutionCompat {
         try {
             invokeNativeEvolve(entity);
 
-            // The base Direwolf's upstream evolve() selects a Fang from the environment itself. The
-            // graph already made that choice, so retain Tensura's state/stat mutation and replace only
-            // the resulting variant with the graph-selected equivalent Fang.
-            if (graphSelectedBaseFang) {
-                setVariant(entity, targetForm);
-            }
-
+            // Base Direwolf branching is authored with the exact same environmental precedence as
+            // Tensura's getEvolutionByBiomes(). Never force a different Fang after evolve(): setVariant()
+            // itself has native per-variant side effects, so a transient wrong Fang could corrupt stats.
+            // Instead, let Tensura select the body it would naturally select and assert graph agreement.
             String actualForm = currentForm(entity).orElse("");
             if (!targetForm.equals(actualForm)) {
                 ReMonsterIntegration.LOGGER.error(
-                        "Graph-owned Direwolf transition produced unexpected native form for {}: {} -> {} (expected {})",
+                        "Graph-owned Direwolf transition disagreed with native selector for {}: {} -> {} (expected {})",
                         entity.getUUID(),
                         currentForm,
                         actualForm,
                         targetForm
                 );
                 return NativeFormEvolutionCompat.ApplyResult.failure(
-                        "Native Direwolf evolve produced " + actualForm + " instead of " + targetForm
+                        "Native Direwolf evolve produced " + actualForm + " instead of graph target " + targetForm
                 );
             }
 
@@ -178,19 +177,6 @@ public final class TensuraDirewolfEvolutionCompat {
                 AUTHORIZED_NATIVE_DEPTH.set(remaining);
             }
         }
-    }
-
-    private static void setVariant(LivingEntity entity, String targetForm) throws ReflectiveOperationException {
-        Method getVariant = entity.getClass().getMethod("getVariant");
-        Object currentVariant = getVariant.invoke(entity);
-        if (!(currentVariant instanceof Enum<?> enumValue)) {
-            throw new NoSuchMethodException("Direwolf getVariant() did not return an enum");
-        }
-
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        Enum<?> targetVariant = Enum.valueOf((Class) enumValue.getDeclaringClass(), targetForm.toUpperCase(Locale.ROOT));
-        Method setVariant = entity.getClass().getMethod("setVariant", enumValue.getDeclaringClass());
-        setVariant.invoke(entity, targetVariant);
     }
 
     private static Optional<Integer> currentEvolutionState(LivingEntity entity) {
