@@ -1,0 +1,10 @@
+{
+  "from": "tensura:hound_dog",
+  "to": "tensura:direwolf",
+  "minimum_ep": 3600,
+  "conditions": {
+    "forbidden_biome_tags": [
+      "minecraft:is_nether"
+    ]
+  }
+}
