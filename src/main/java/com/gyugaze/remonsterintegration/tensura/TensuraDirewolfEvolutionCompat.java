@@ -2,6 +2,7 @@ package com.gyugaze.remonsterintegration.tensura;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.evolution.NativeFormEvolutionCompat;
+import com.gyugaze.remonsterintegration.mixin.tensura.DirewolfEvolutionAccessMixin;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -193,15 +194,18 @@ public final class TensuraDirewolfEvolutionCompat {
     }
 
     private static Optional<String> nativeBaseEvolutionSelection(LivingEntity entity) {
-        try {
-            Method method = entity.getClass().getMethod("getEvolutionByBiomes");
-            Object variant = method.invoke(entity);
-            if (variant instanceof Enum<?> enumValue) {
-                return Optional.of(normalize(enumValue.name()));
-            }
+        if (!(entity instanceof DirewolfEvolutionAccessMixin access)) {
+            ReMonsterIntegration.LOGGER.error(
+                    "Direwolf native selector invoker was not applied to {}",
+                    entity.getClass().getName()
+            );
             return Optional.empty();
-        } catch (ReflectiveOperationException | LinkageError exception) {
-            ReMonsterIntegration.LOGGER.debug(
+        }
+
+        try {
+            return Optional.of(normalize(access.remonster$invokeGetEvolutionByBiomes().name()));
+        } catch (RuntimeException | LinkageError exception) {
+            ReMonsterIntegration.LOGGER.error(
                     "Could not invoke native Direwolf environmental evolution selector for {}",
                     entity.getUUID(),
                     exception
