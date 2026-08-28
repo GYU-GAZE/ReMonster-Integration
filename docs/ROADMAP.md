@@ -11,9 +11,9 @@ Read [`AUTHORITY_MATRIX.md`](AUTHORITY_MATRIX.md) before changing cross-mod stat
 - **runtime-retest pending** a concrete fix exists and compiles but that exact corrected path still needs in-game confirmation
 - **content-authoring** infrastructure exists and remaining work is canonical data/design rather than architecture
 
-# Current milestone - final authority handoff -> canonical content
+# Current milestone - Native evolution atlas + Direwolf form authority
 
-The architecture/debug era is complete except for one narrow runtime regression: the new Townstead + MCA Capitals dialogue compositor must be confirmed in the full pack before its cleanup PR merges.
+The architecture/debug era is complete enough to begin canonical content. The immediate task is to inventory native Tensura evolution and make the universal graph capable of owning branch choice while still using upstream form/body mechanics.
 
 - [x] Re:Monster is the single universal kill-learning authority for **players and non-players**
 - [x] `tensura_skillobtain` designated for target-pack removal to avoid a second player-only EntityType -> skill table
@@ -22,15 +22,15 @@ The architecture/debug era is complete except for one narrow runtime regression:
 - [x] remove Re:Monster's redundant EP -> vanilla-stat growth implementation entirely
 - [x] pin corrected/subtle continuous EPGains rates in `TARGET_PACK_CONFIG.md`
 - [x] designate **Tensura: Unique Monsters** for removal; MobChampions is the sole generic elite system
-- [x] inspect exact Townstead / MCA Capitals `getTranslatable` overwrite collision
-- [x] implement composition order: MCA Capitals political line -> Townstead species/personality voice -> ordinary MCA fallback
+- [x] remove the out-of-scope Townstead + MCA Capitals dialogue compositor from Re:Monster Integration
 - [x] proof/test evolution content removed from production
-- [ ] **runtime-retest pending:** verify Townstead species dialogue and MCA Capitals political dialogue both work in the same full-pack launch
-- [ ] merge final authority-cleanup PR after the dialogue proof
 - [ ] remove `tensura_skillobtain` and `tr_unique_monsters` from the assembled pack
 - [ ] write target EPGains values into `config/epgains/config.toml`
+- [ ] implement native same-EntityType form targets in the universal evolution graph
+- [ ] suppress Tensura Direwolf autonomous evolution once the equivalent graph-owned path is active
+- [ ] runtime-prove the first canonical Direwolf form edge through normal Re:Monster evolution
 
-After this narrow operational cleanup, new work is canonical content authoring rather than architecture proof-of-concept work.
+Townstead and MCA Capitals may still conflict with each other on MCA dialogue, but that third-party conflict is intentionally outside this addon's scope unless a future Re:Monster feature directly requires that path.
 
 ## Completed infrastructure proof summary
 
@@ -69,7 +69,9 @@ After this narrow operational cleanup, new work is canonical content authoring r
 
 # Phase 1 - Native evolution atlas + form adapter - NEXT
 
-Before authoring thousands of evolution edges, inventory how the installed Tensura ecosystem already represents evolution. A Re:Monster edge delegates to the native mechanism whenever that mechanism already exists.
+Before authoring thousands of evolution edges, inventory how the installed Tensura ecosystem already represents evolution.
+
+For creature evolution in the target pack, Re:Monster owns **when a transition is available and which branch is selected**. When the source mod already has a real form/state implementation, Re:Monster must reuse that implementation instead of inventing a parallel body. An upstream automatic trigger may be suppressed when necessary so it cannot bypass the authored graph.
 
 ## Evolution transition taxonomy
 
@@ -86,13 +88,32 @@ A different texture/name is not sufficient reason to manufacture a new EntityTyp
 - [x] Tensura uses both same-body `INameEvolution` and true EntityType evolution
 - [x] true base-Tensura EntityType chain confirmed: `lesser_daemon -> greater_daemon -> arch_daemon -> daemon_peer`
 - [x] `tensura:direwolf` is one EntityType with a native variant/state evolution machine
-- [x] Direwolf variants include base Direwolf, Fang, Mystic and Tempest/Star-family forms
-- [x] Direwolf Fang selection uses biome/environment semantics
+- [x] Direwolf variants include base Direwolf, elemental Fang forms, Mystic forms and Tempest/Star-family forms
+- [x] Direwolf Fang selection currently uses biome/environment semantics
 - [x] native Direwolf `evolve()` increments an evolution state, buffs the same entity and mutates `DirewolfVariant`
 - [x] base Direwolf `getMaxEvolutionState()` is 3
 - [x] the same entity persists; Fang/Mystic/Tempest/Star are **not separate mob EntityTypes**
 - [x] Mysticism playable Direwolf/Fang/special-wolf **player races** are a separate ManasRace system despite similar names
 - [x] other base `INameEvolution` users include Arch Daemon, Direwolf, Goblin, Greater Daemon, Hell Moth, Landfish, Lesser Daemon, Lizardman, Orc, Salamander, Slime, Evil Centipede and Tempest Serpent
+
+## Direwolf policy - first canonical same-body family
+
+The native Direwolf form state is kept, but its autonomous evolution decision is moved into the universal Re:Monster graph.
+
+- [ ] intercept/suppress the native automatic Direwolf evolution trigger without deleting its variant/state/stat/skill implementation
+- [ ] represent native Direwolf forms as explicit graph targets while keeping `tensura:direwolf` as the physical EntityType
+- [ ] let a normal Direwolf branch into the meaningful native Fang/special families through authored conditions
+- [ ] reproduce/adopt the useful native biome/environment conditions as Re:Monster edge requirements instead of letting the upstream method silently choose the branch
+- [ ] allow owned Direwolves to choose among simultaneously eligible branches through the existing evolution UI
+- [ ] keep wild Direwolf branching deterministic from authored conditions
+- [ ] subsequent edges advance into Mystic and Tempest/Star-family forms using the real native form machinery
+- [ ] preserve UUID, owner, target, AI, Brain-equivalent state, inventory, relationships, MobChampions rank and all other individual state because the EntityType is unchanged
+
+First canonical canine spine:
+
+`minecraft:wolf -> tensura:hound_dog -> tensura:direwolf -> native Direwolf form branches`
+
+Barghest and other plausible canine branches are deferred until the native Direwolf path is working cleanly.
 
 ## Atlas / adapter work
 
@@ -102,9 +123,11 @@ A different texture/name is not sufficient reason to manufacture a new EntityTyp
 - [ ] inventory Mysticism / TNO / other installed addon race branches
 - [ ] document which native forms change texture/model only versus stats/skills/AI/body semantics
 - [ ] identify unsafe native replacement paths that copy full NBT and choose native vs controlled adapter per route
-- [ ] add a **native-form evolution adapter** so graph edges can target upstream form/variant/state without replacing EntityType
+- [ ] extend species/body data with a **native-form target** that can identify an upstream form/variant/state without replacing EntityType
+- [ ] add a **native-form evolution adapter** that applies an explicit graph target through the upstream form machinery
+- [ ] add a targeted suppression hook for upstream autonomous creature evolution where the Re:Monster graph takes authority
 - [ ] expose native form identity in diagnostics and owned evolution UI
-- [ ] runtime-prove one same-body native form edge through the unified graph/UI
+- [ ] runtime-prove Direwolf as the first same-body native form edge through the unified graph/UI
 - [ ] runtime-prove one native true EntityType edge through the appropriate authority path
 
 # Phase 2 - Player race revamp + Re:Monster branches
@@ -191,12 +214,14 @@ A tier may be represented by:
 - [ ] owned multi-branch evolution remains player-chosen
 - [ ] wild branching remains deterministic from authored conditions
 - [ ] preserve portable identity/progression across physical replacement
+- [ ] preserve the original entity directly when a native same-EntityType form can represent the target
 - [ ] destination retains its native AI/body initialization
 - [ ] MobChampions individual rank/bonuses survive every supported transition
 
 ## Batch order
 
-- [ ] Tensura native fauna/forms first because they define native-form adapter semantics
+- [ ] canonical canine family first: Wolf -> Hound Dog -> Direwolf -> native Direwolf forms
+- [ ] remaining Tensura native fauna/forms after Direwolf proves native-form adapter semantics
 - [ ] vanilla creatures as roots/bridges where useful
 - [ ] Ice and Fire CE families
 - [ ] Wyrmroost families
@@ -317,17 +342,3 @@ Start after race/body and creature progression catalogs are stable.
 - [ ] graph validation tooling
 - [ ] content-author documentation
 - [ ] pack-hygiene pass for stale optional recipes/tags/mixins in the assembled pack
-
-# Final Phase - FTB Quests
-
-Deferred until the systems it documents are stable.
-
-- [ ] Reincarnation
-- [ ] Survival/ecology
-- [ ] Skills
-- [ ] Naming/subordinates
-- [ ] Evolution
-- [ ] Civilization/MCA
-- [ ] Dungeons
-- [ ] Guild/quests
-- [ ] Awakening/world bosses/endgame
