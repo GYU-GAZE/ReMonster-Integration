@@ -12,6 +12,7 @@
     "manascore.ManasRaceInstanceEvolutionMixin",
     "manascore.RaceStorageEvolutionMixin",
     "tensura.DirewolfEvolutionAuthorityMixin",
+    "tensura.DirewolfEvolutionAccessMixin",
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
     "tensura.ThoughtCommunicationSkillMixin",
