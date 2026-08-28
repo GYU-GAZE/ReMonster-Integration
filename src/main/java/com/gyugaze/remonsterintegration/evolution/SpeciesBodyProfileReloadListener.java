@@ -107,7 +107,20 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
             ));
         }
 
-        return new SpeciesBodyProfile(species, nativeRace, townstead, entityBody);
+        Optional<SpeciesBodyProfile.NativeFormBody> nativeForm = Optional.empty();
+        if (object.has("native_form")) {
+            JsonElement rawNativeForm = object.get("native_form");
+            if (!rawNativeForm.isJsonObject()) {
+                throw new IllegalArgumentException("'native_form' must be an object");
+            }
+            JsonObject body = rawNativeForm.getAsJsonObject();
+            nativeForm = Optional.of(new SpeciesBodyProfile.NativeFormBody(
+                    requireId(body, "adapter", sourceId),
+                    requireString(body, "form", sourceId)
+            ));
+        }
+
+        return new SpeciesBodyProfile(species, nativeRace, townstead, entityBody, nativeForm);
     }
 
     private static ResourceLocation requireId(JsonObject object, String key, ResourceLocation sourceId) {
@@ -127,6 +140,17 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
             throw new IllegalArgumentException("Invalid resource id for '" + key + "' in " + sourceId);
         }
         return Optional.of(parsed);
+    }
+
+    private static String requireString(JsonObject object, String key, ResourceLocation sourceId) {
+        if (!object.has(key) || !object.get(key).isJsonPrimitive()) {
+            throw new IllegalArgumentException("Missing string '" + key + "' in " + sourceId);
+        }
+        String value = object.get(key).getAsString().trim();
+        if (value.isEmpty()) {
+            throw new IllegalArgumentException("Empty string '" + key + "' in " + sourceId);
+        }
+        return value;
     }
 
     private static List<ResourceLocation> parseIds(JsonObject object, String key, ResourceLocation sourceId) {
