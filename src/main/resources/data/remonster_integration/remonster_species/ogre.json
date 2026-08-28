@@ -1,5 +1,6 @@
 {
   "species": "remonster_integration:ogre",
+  "native_race": "tensura:ogre",
   "townstead": {
     "root_candidates": [
       "townstead_classic:tiefling"
