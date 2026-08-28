@@ -3,6 +3,7 @@ package com.gyugaze.remonsterintegration.network;
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.evolution.EvolutionDefinition;
 import com.gyugaze.remonsterintegration.evolution.EvolutionRegistry;
+import com.gyugaze.remonsterintegration.evolution.EvolutionRequirementService;
 import com.gyugaze.remonsterintegration.evolution.SpeciesStateService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
@@ -65,7 +66,7 @@ public record SubordinateEvolutionOptionsRequestPayload(int entityId) implements
                 .map(EvolutionRegistry::availableFrom)
                 .orElseGet(List::of)
                 .stream()
-                .map(definition -> toOption(definition, baseMaxEp))
+                .map(definition -> toOption(target, definition))
                 .toList();
 
         PacketDistributor.sendToPlayer(
@@ -80,13 +81,13 @@ public record SubordinateEvolutionOptionsRequestPayload(int entityId) implements
     }
 
     private static SubordinateEvolutionOptionsPayload.Option toOption(
-            EvolutionDefinition definition,
-            double baseMaxEp
+            LivingEntity target,
+            EvolutionDefinition definition
     ) {
         return new SubordinateEvolutionOptionsPayload.Option(
                 definition.toSpecies(),
                 definition.minimumEp(),
-                baseMaxEp >= definition.minimumEp()
+                EvolutionRequirementService.isSatisfied(target, definition)
         );
     }
 }

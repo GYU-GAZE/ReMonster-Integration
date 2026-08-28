@@ -5,7 +5,12 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "mca.GuardEnemiesSensorMixin",
+    "mca.VillagerBrainMilitiaMixin",
+    "mca.McaOwnedBowProjectionMixin",
     "bettersubs.ExpandedSkillStorageMixin",
+    "mobchampions.MobChampionEventHandlerMixin",
+    "manascore.ManasRaceInstanceEvolutionMixin",
+    "manascore.RaceStorageEvolutionMixin",
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
     "tensura.ThoughtCommunicationSkillMixin",

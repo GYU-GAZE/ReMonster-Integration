@@ -1,5 +1,9 @@
 package com.gyugaze.remonsterintegration.evolution;
 
+import io.github.manasmods.manascore.race.api.ManasRace;
+import io.github.manasmods.manascore.race.api.ManasRaceInstance;
+import io.github.manasmods.manascore.race.api.RaceAPI;
+import io.github.manasmods.manascore.race.api.Races;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -8,11 +12,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Persistent semantic species state owned by Re:Monster.
+ * Persistent Re:Monster species identity.
  *
- * <p>This is intentionally independent from the entity Java type and from visual/body adapters.
- * An MCA villager may therefore be semantically an Ogre while Townstead renders that same
- * individual with a Tiefling-derived body.</p>
+ * Species that declare a native_race binding are one identity with that ManasCore/Tensura race: the
+ * native race is authoritative and the persisted Re:Monster id is its project metadata/body mapping.
+ * Species without a native_race remain valid semantic identities for external creatures.
  */
 public final class SpeciesStateService {
     private static final String SPECIES_KEY = "remonster_species";
@@ -24,6 +28,31 @@ public final class SpeciesStateService {
 
     public static Optional<ResourceLocation> getSpecies(LivingEntity entity) {
         Objects.requireNonNull(entity, "entity");
+
+        Optional<ResourceLocation> nativeRace = getNativeRaceId(entity);
+        if (nativeRace.isPresent()) {
+            Optional<ResourceLocation> nativeSpecies = SpeciesBodyProfileRegistry.speciesForNativeRace(nativeRace.get());
+            if (nativeSpecies.isPresent()) {
+                return nativeSpecies;
+            }
+        }
+
+        Optional<ResourceLocation> stored = getStoredSpecies(entity);
+        if (stored.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // A stale bound species must never disagree with an existing native race. This is what removes
+        // the old Frankenstein state where semantic Hobgoblin could coexist with Enlightened Human.
+        Optional<ResourceLocation> expectedRace = SpeciesBodyProfileRegistry.nativeRaceForSpecies(stored.get());
+        if (expectedRace.isPresent() && nativeRace.isPresent() && !expectedRace.get().equals(nativeRace.get())) {
+            return Optional.empty();
+        }
+        return stored;
+    }
+
+    public static Optional<ResourceLocation> getStoredSpecies(LivingEntity entity) {
+        Objects.requireNonNull(entity, "entity");
         String raw = entity.getPersistentData().getString(SPECIES_KEY);
         if (raw.isEmpty()) {
             return Optional.empty();
@@ -31,11 +60,49 @@ public final class SpeciesStateService {
         return Optional.ofNullable(ResourceLocation.tryParse(raw));
     }
 
-    public static void setSpecies(LivingEntity entity, ResourceLocation species) {
+    /**
+     * Assigns a project species. When that species is bound to Tensura, the native race is changed too;
+     * a successful RaceStorage set will then run the common body synchronization hook.
+     */
+    public static boolean setSpecies(LivingEntity entity, ResourceLocation species) {
+        Objects.requireNonNull(entity, "entity");
+        Objects.requireNonNull(species, "species");
+
+        Optional<ResourceLocation> nativeRaceId = SpeciesBodyProfileRegistry.nativeRaceForSpecies(species);
+        if (nativeRaceId.isPresent()) {
+            ManasRace nativeRace = RaceAPI.getRaceRegistry().get(nativeRaceId.get());
+            if (nativeRace == null) {
+                return false;
+            }
+
+            Optional<ResourceLocation> currentRace = getNativeRaceId(entity);
+            if (currentRace.isEmpty() || !currentRace.get().equals(nativeRaceId.get())) {
+                Races races = RaceAPI.getRaceFrom(entity);
+                if (!races.setRace(nativeRace, false)) {
+                    return false;
+                }
+            }
+        }
+
+        setStoredSpeciesFromNative(entity, species);
+        return true;
+    }
+
+    /** Used only by the native-race bridge after RaceStorage has already made the authoritative change. */
+    static void setStoredSpeciesFromNative(LivingEntity entity, ResourceLocation species) {
         Objects.requireNonNull(entity, "entity");
         Objects.requireNonNull(species, "species");
         ensurePhenotypeSeed(entity);
         entity.getPersistentData().putString(SPECIES_KEY, species.toString());
+    }
+
+    public static Optional<ResourceLocation> getNativeRaceId(LivingEntity entity) {
+        Objects.requireNonNull(entity, "entity");
+        try {
+            return RaceAPI.getRaceFrom(entity).getRace().map(ManasRaceInstance::getRaceId);
+        } catch (RuntimeException | LinkageError ignored) {
+            return Optional.empty();
+        }
     }
 
     public static void clearSpecies(LivingEntity entity) {
@@ -43,10 +110,6 @@ public final class SpeciesStateService {
         entity.getPersistentData().remove(SPECIES_KEY);
     }
 
-    /**
-     * Stable seed used by body adapters when a transformation needs deterministic new traits.
-     * It is stored explicitly so a future controlled entity replacement can copy it.
-     */
     public static long getPhenotypeSeed(LivingEntity entity) {
         Objects.requireNonNull(entity, "entity");
         return ensurePhenotypeSeed(entity);

@@ -9,6 +9,8 @@ import io.github.manasmods.tensura.ability.TensuraSkill;
 import io.github.manasmods.tensura.ability.skill.Skill;
 import io.github.manasmods.tensura.ability.skill.resist.ResistSkill;
 import io.github.manasmods.tensura.registry.skill.CommonSkills;
+import io.github.manasmods.tensura.storage.TensuraStorages;
+import io.github.manasmods.tensura.storage.ability.IAbility;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -21,6 +23,8 @@ import java.util.Optional;
  * Boundary for ManasCore/Tensura skill storage and Tensura's native acquisition-learning flow.
  */
 public final class TensuraSkillBridge {
+    private static final int EXTERNAL_AI_ABILITY_SLOT = 0;
+
     private TensuraSkillBridge() {
     }
 
@@ -95,6 +99,30 @@ public final class TensuraSkillBridge {
     }
 
     /**
+     * Tensura rejects ACTIVATE_SKILL unless the requested skill/mode is present in the entity's active
+     * ability preset. Players and native Tensura mobs normally populate those presets through their UI/
+     * AI, but an arbitrary external mob has no such setup. Re:Monster owns slot 0 only for its fallback
+     * external NPC caster and rewrites that slot immediately before pressing the chosen skill.
+     */
+    public static boolean prepareExternalNpcAbilitySlot(
+            LivingEntity entity,
+            ManasSkillInstance instance,
+            int mode
+    ) {
+        Objects.requireNonNull(entity, "entity");
+        Objects.requireNonNull(instance, "instance");
+
+        IAbility ability = TensuraStorages.getAbilityFrom(entity);
+        ability.setAbilitySlot(EXTERNAL_AI_ABILITY_SLOT, instance.getSkill(), mode);
+        ability.markDirty();
+        return ability.isAbilityInActivePreset(EXTERNAL_AI_ABILITY_SLOT, instance.getSkill(), mode);
+    }
+
+    public static int externalNpcAbilitySlot() {
+        return EXTERNAL_AI_ABILITY_SLOT;
+    }
+
+    /**
      * Tensura uses negative mastery for a skill instance that is currently being acquired/learned.
      */
     public static boolean isAcquisitionLearning(LivingEntity entity, ResourceLocation skillId) {
@@ -137,10 +165,53 @@ public final class TensuraSkillBridge {
     }
 
     /**
-     * Starts acquisition when necessary and then adds points through Tensura's own learning method so
-     * its events, penalties, messages, sync and completion behavior remain authoritative.
-     *
-     * @return true when Tensura accepted the learning-point attempt.
+     * Kill-learning is earned by the kill and must not drain the learner's persistent aura/magicule
+     * pool. We still delegate the actual mastery mutation and completion transition to Tensura's native
+     * addLearnPoint method so skill-specific learning rules, onLearnSkill hooks and storage sync remain
+     * authoritative. The bridge temporarily supplies a full energy budget for that native call and then
+     * restores the exact pre-kill energy values (clamped only if the learning completion changed caps).
+     */
+    public static boolean addOrStartKillLearning(
+            LivingEntity learner,
+            ResourceLocation skillId,
+            double points
+    ) {
+        Objects.requireNonNull(learner, "learner");
+        Objects.requireNonNull(skillId, "skillId");
+
+        if (points <= 0.0D) {
+            return false;
+        }
+        if (getSkillInstance(learner, skillId).isEmpty() && !ensureKillLearningInstance(learner, skillId)) {
+            return false;
+        }
+
+        Optional<ManasSkillInstance> optional = getSkillInstance(learner, skillId);
+        if (optional.isEmpty()) {
+            return false;
+        }
+        ManasSkillInstance instance = optional.get();
+        if (instance.getMastery() >= 0.0D || !(instance.getSkill() instanceof TensuraSkill tensuraSkill)) {
+            return false;
+        }
+
+        double previousAura = TensuraExistenceBridge.getAura(learner);
+        double previousMagicule = TensuraExistenceBridge.getMagicule(learner);
+        try {
+            TensuraExistenceBridge.setCurrentEnergy(
+                    learner,
+                    TensuraExistenceBridge.getMaxAura(learner),
+                    TensuraExistenceBridge.getMaxMagicule(learner)
+            );
+            return tensuraSkill.addLearnPoint(instance, learner, 0, points);
+        } finally {
+            TensuraExistenceBridge.setCurrentEnergy(learner, previousAura, previousMagicule);
+        }
+    }
+
+    /**
+     * Legacy native-cost path retained for callers that explicitly want Tensura's acquisition energy
+     * charge rather than kill-earned progression.
      */
     public static boolean addOrStartAcquisitionLearning(
             LivingEntity learner,
@@ -162,9 +233,7 @@ public final class TensuraSkillBridge {
     }
 
     /**
-     * Adds points to an acquisition instance that already exists.
-     *
-     * @return true when Tensura accepted the learning-point attempt.
+     * Adds points to an acquisition instance through Tensura's native cost-bearing learning primitive.
      */
     public static boolean addAcquisitionLearning(
             LivingEntity learner,

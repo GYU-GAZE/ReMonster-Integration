@@ -3,17 +3,12 @@ package com.gyugaze.remonsterintegration.tensura;
 import io.github.manasmods.tensura.storage.TensuraStorages;
 import io.github.manasmods.tensura.storage.ep.IExistence;
 import io.github.manasmods.tensura.util.EnergyHelper;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.Objects;
 
-/**
- * Boundary for Tensura existence/energy state used by cross-mod integrations.
- *
- * Tensura distinguishes current EP (aura + magicule currently stored) from max/base-max EP
- * (the entity's progression/capacity). Race EP requirements use base max EP and Better Subordinates
- * threshold checks use max EP. Callers that mean progression must therefore never write current EP.
- */
+/** Boundary for Tensura existence/energy state used by cross-mod integrations. */
 public final class TensuraExistenceBridge {
     private TensuraExistenceBridge() {
     }
@@ -26,6 +21,22 @@ public final class TensuraExistenceBridge {
     /** Current consumable energy: current aura + current magicule. */
     public static double getEp(LivingEntity entity) {
         return get(entity).getEP();
+    }
+
+    public static double getAura(LivingEntity entity) {
+        return get(entity).getAura();
+    }
+
+    public static double getMagicule(LivingEntity entity) {
+        return get(entity).getMagicule();
+    }
+
+    public static double getMaxAura(LivingEntity entity) {
+        return Math.max(0.0D, EnergyHelper.getMaxAura(entity));
+    }
+
+    public static double getMaxMagicule(LivingEntity entity) {
+        return Math.max(0.0D, EnergyHelper.getMaxMagicule(entity));
     }
 
     /** Effective current capacity after Tensura attribute modifiers/limits. */
@@ -48,11 +59,7 @@ public final class TensuraExistenceBridge {
         return get(entity).getSpiritualHealth();
     }
 
-    /**
-     * Writes current aura + magicule only. This is an energy refill/drain primitive, not a progression
-     * setter. Writing above max EP makes Tensura bleed the excess and may trigger Insanity or
-     * Magicule Poison.
-     */
+    /** Current-energy setter; this does not change progression/capacity. */
     public static void setEp(LivingEntity entity, double ep) {
         if (ep < 0) {
             throw new IllegalArgumentException("EP cannot be negative");
@@ -63,12 +70,25 @@ public final class TensuraExistenceBridge {
         existence.markDirty();
     }
 
+    public static void setCurrentEnergy(LivingEntity entity, double aura, double magicule) {
+        IExistence existence = get(entity);
+        existence.setAura(Mth.clamp(aura, 0.0D, getMaxAura(entity)));
+        existence.setMagicule(Mth.clamp(magicule, 0.0D, getMaxMagicule(entity)));
+        existence.markDirty();
+    }
+
+    /**
+     * Re-clamps current pools after a skill/race/effect changes effective aura or magicule capacity.
+     * Tensura's over-capacity magicule path can apply Magicule Poison to any LivingEntity, so an
+     * external body must never be left with stale current magicule above a newly reduced max.
+     */
+    public static void clampCurrentEnergyToCapacity(LivingEntity entity) {
+        setCurrentEnergy(entity, getAura(entity), getMagicule(entity));
+    }
+
     /**
      * Changes base max EP through Tensura's own MAX_AURA/MAX_MAGICULE attributes.
-     *
-     * Better Subordinates listens to increases of those exact attributes and re-evaluates its native
-     * skill thresholds. If capacity is reduced, aura and magicule are clamped independently to their
-     * resulting effective maxima so this helper cannot manufacture an artificial poison/insanity state.
+     * Current aura/magicule are only clamped if capacity shrinks.
      */
     public static MaxEpChange setBaseMaxEpSafely(LivingEntity entity, double baseMaxEp) {
         Objects.requireNonNull(entity, "entity");
@@ -88,12 +108,12 @@ public final class TensuraExistenceBridge {
         double resultingCurrentEp = existence.getEP();
         boolean currentEpClamped = false;
 
-        double maxAura = Math.max(0.0D, EnergyHelper.getMaxAura(entity));
-        double maxMagicule = Math.max(0.0D, EnergyHelper.getMaxMagicule(entity));
+        double maxAura = getMaxAura(entity);
+        double maxMagicule = getMaxMagicule(entity);
         double aura = existence.getAura();
         double magicule = existence.getMagicule();
-        double clampedAura = Math.min(Math.max(0.0D, aura), maxAura);
-        double clampedMagicule = Math.min(Math.max(0.0D, magicule), maxMagicule);
+        double clampedAura = Mth.clamp(aura, 0.0D, maxAura);
+        double clampedMagicule = Mth.clamp(magicule, 0.0D, maxMagicule);
 
         if (Double.compare(aura, clampedAura) != 0 || Double.compare(magicule, clampedMagicule) != 0) {
             existence.setAura(clampedAura);
@@ -114,12 +134,54 @@ public final class TensuraExistenceBridge {
         );
     }
 
+    /**
+     * Capacity assignment for external mobs. A mob that was 80% full before a profile expands its
+     * aura/magicule pools remains 80% full afterwards instead of being stranded at its tiny constructor
+     * defaults. Native Tensura costs/regen still own all subsequent spending and recovery.
+     */
+    public static MaxEpChange setBaseMaxEpPreservingEnergyRatio(LivingEntity entity, double baseMaxEp) {
+        Objects.requireNonNull(entity, "entity");
+
+        double oldMaxAura = getMaxAura(entity);
+        double oldMaxMagicule = getMaxMagicule(entity);
+        double oldAura = getAura(entity);
+        double oldMagicule = getMagicule(entity);
+        double auraRatio = fillRatio(oldAura, oldMaxAura);
+        double magiculeRatio = fillRatio(oldMagicule, oldMaxMagicule);
+
+        MaxEpChange change = setBaseMaxEpSafely(entity, baseMaxEp);
+        if (change.resultingMaxEp() > change.previousMaxEp()) {
+            setCurrentEnergy(
+                    entity,
+                    getMaxAura(entity) * auraRatio,
+                    getMaxMagicule(entity) * magiculeRatio
+            );
+        }
+
+        return new MaxEpChange(
+                change.previousBaseMaxEp(),
+                change.resultingBaseMaxEp(),
+                change.previousMaxEp(),
+                change.resultingMaxEp(),
+                change.previousCurrentEp(),
+                getEp(entity),
+                change.currentEpClamped()
+        );
+    }
+
     public static MaxEpChange addBaseMaxEpSafely(LivingEntity entity, double amount) {
         Objects.requireNonNull(entity, "entity");
         if (amount < 0.0D) {
             throw new IllegalArgumentException("Base max EP increase cannot be negative");
         }
         return setBaseMaxEpSafely(entity, getBaseMaxEp(entity) + amount);
+    }
+
+    private static double fillRatio(double current, double maximum) {
+        if (maximum > 1.0E-9D) {
+            return Mth.clamp(current / maximum, 0.0D, 1.0D);
+        }
+        return current > 0.0D ? 1.0D : 0.0D;
     }
 
     public record MaxEpChange(

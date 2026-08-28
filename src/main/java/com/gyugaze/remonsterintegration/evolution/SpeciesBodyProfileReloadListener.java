@@ -64,6 +64,7 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
         }
         JsonObject object = element.getAsJsonObject();
         ResourceLocation species = requireId(object, "species", sourceId);
+        Optional<ResourceLocation> nativeRace = optionalId(object, "native_race", sourceId);
 
         Optional<SpeciesBodyProfile.TownsteadBody> townstead = Optional.empty();
         if (object.has("townstead")) {
@@ -92,18 +93,40 @@ public final class SpeciesBodyProfileReloadListener extends SimpleJsonResourceRe
             ));
         }
 
-        return new SpeciesBodyProfile(species, townstead);
+        Optional<SpeciesBodyProfile.EntityBody> entityBody = Optional.empty();
+        if (object.has("entity_body")) {
+            JsonElement rawEntityBody = object.get("entity_body");
+            if (!rawEntityBody.isJsonObject()) {
+                throw new IllegalArgumentException("'entity_body' must be an object");
+            }
+            JsonObject body = rawEntityBody.getAsJsonObject();
+            entityBody = Optional.of(new SpeciesBodyProfile.EntityBody(
+                    requireId(body, "entity_type", sourceId),
+                    getBoolean(body, "preserve_equipment", true),
+                    getBoolean(body, "reinforce_base_stats", true)
+            ));
+        }
+
+        return new SpeciesBodyProfile(species, nativeRace, townstead, entityBody);
     }
 
     private static ResourceLocation requireId(JsonObject object, String key, ResourceLocation sourceId) {
-        if (!object.has(key) || !object.get(key).isJsonPrimitive()) {
-            throw new IllegalArgumentException("Missing string '" + key + "' in " + sourceId);
+        return optionalId(object, key, sourceId)
+                .orElseThrow(() -> new IllegalArgumentException("Missing string '" + key + "' in " + sourceId));
+    }
+
+    private static Optional<ResourceLocation> optionalId(JsonObject object, String key, ResourceLocation sourceId) {
+        if (!object.has(key)) {
+            return Optional.empty();
+        }
+        if (!object.get(key).isJsonPrimitive()) {
+            throw new IllegalArgumentException("'" + key + "' must be a string in " + sourceId);
         }
         ResourceLocation parsed = ResourceLocation.tryParse(object.get(key).getAsString());
         if (parsed == null) {
             throw new IllegalArgumentException("Invalid resource id for '" + key + "' in " + sourceId);
         }
-        return parsed;
+        return Optional.of(parsed);
     }
 
     private static List<ResourceLocation> parseIds(JsonObject object, String key, ResourceLocation sourceId) {
