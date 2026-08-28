@@ -26,6 +26,20 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
+      - name: Inspect Direwolf physical evolution data
+        if: success()
+        shell: bash
+        run: |
+          JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
+          test -n "$JAR"
+          echo '=== DATA FILES CONTAINING DIREWOLF ==='
+          while IFS= read -r ENTRY; do
+            if unzip -p "$JAR" "$ENTRY" 2>/dev/null | grep -qi 'direwolf'; then
+              echo "--- $ENTRY"
+              unzip -p "$JAR" "$ENTRY" | grep -in -C 5 'direwolf' || true
+            fi
+          done < <(jar tf "$JAR" | grep '^data/.*\.json$')
+
       - name: Inspect Better Subordinates status transition
         if: success()
         shell: bash
@@ -35,7 +49,7 @@ jobs:
           echo '=== OPEN PAYLOAD ==='
           javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload
           echo '=== THOUGHT COMM MIXIN ==='
-          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
+          javap -classpath "$JAR" -p -c com.trbeyond/tensura_better_subs/mixin/tensura/ability/skill/common/MixinThoughtCommunicationSkill
 
       - name: Upload built jar
         if: success()
