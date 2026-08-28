@@ -7,14 +7,13 @@ import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.profile.MobProfileRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 
 import java.util.List;
 import java.util.Optional;
 
-/** NeoForge event bridge for non-player kill-driven native acquisition/mastery learning. */
+/** NeoForge event bridge for universal kill-driven native acquisition/mastery learning. */
 public final class KillLearningEvents {
     private static final double DEFAULT_BASE_LEARNING_POINTS = 1.0;
 
@@ -34,15 +33,10 @@ public final class KillLearningEvents {
 
         LivingEntity learner = creditedLearner.get();
 
-        // The target pack deliberately keeps Tensura: Skill Obtain as the player-facing kill-skill
-        // authority. It provides authored EntityType -> skill drop tables with independent chances and
-        // direct native SkillHelper.learnSkill delivery. Re:Monster owns the complementary non-player
-        // path so MCA villagers, subordinates, pets and wild compatible mobs can gradually acquire the
-        // real skills/profile skills of what they defeat. Never process players here, even if the
-        // external addon is temporarily missing, or the two semantics can silently diverge by pack.
-        if (learner instanceof ServerPlayer) {
-            return;
-        }
+        // Re:Monster is the single universal kill-learning authority. Players and non-players use the
+        // same real ManasCore/Tensura acquisition/mastery representation, while the defeated mob's
+        // actual skill storage plus Mob Profile declarations provide the source skills. The target pack
+        // removes Tensura: Skill Obtain rather than maintaining a second EntityType -> direct-drop table.
 
         // Tensura's own death handler may have expanded this external killer's aura/magicule capacity.
         // Preserve its previous fill fraction before the acquisition attempt pays native energy costs.
