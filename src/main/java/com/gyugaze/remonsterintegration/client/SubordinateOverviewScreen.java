@@ -33,6 +33,7 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
     private Button aggressiveButton;
     private Button protectButton;
     private Button statusButton;
+    private Button evolutionButton;
 
     public SubordinateOverviewScreen(
             SubordinateOverviewMenu menu,
@@ -47,6 +48,11 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
     @Override
     protected void init() {
         super.init();
+
+        this.evolutionButton = addRenderableWidget(Button.builder(
+                Component.literal("Evolution"),
+                button -> openEvolution()
+        ).bounds(this.leftPos + this.imageWidth - 142, this.topPos + 10, 66, 20).build());
 
         this.statusButton = addRenderableWidget(Button.builder(
                 Component.literal("Status"),
@@ -98,6 +104,15 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
         menu.getTarget().ifPresent(BetterSubordinatesStatusBridge::open);
     }
 
+    private void openEvolution() {
+        if (minecraft == null) {
+            return;
+        }
+        menu.getTarget().ifPresent(target -> minecraft.setScreen(
+                new SubordinateEvolutionScreen(target.getId(), target.getDisplayName())
+        ));
+    }
+
     @Override
     protected void containerTick() {
         super.containerTick();
@@ -122,8 +137,12 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
         aggressiveButton.active = targetingUnlocked && targeting != SubordinateTargetingMode.AGGRESSIVE;
         protectButton.active = targetingUnlocked && targeting != SubordinateTargetingMode.PROTECT;
 
+        boolean targetPresent = menu.getTarget().isPresent();
         if (statusButton != null) {
-            statusButton.active = menu.getTarget().isPresent() && BetterSubordinatesStatusBridge.isAvailable();
+            statusButton.active = targetPresent && BetterSubordinatesStatusBridge.isAvailable();
+        }
+        if (evolutionButton != null) {
+            evolutionButton.active = targetPresent;
         }
     }
 
@@ -148,7 +167,7 @@ public final class SubordinateOverviewScreen extends AbstractContainerScreen<Sub
                 .map(entity -> BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString())
                 .orElse("unknown");
 
-        graphics.drawString(this.font, this.font.plainSubstrByWidth(name, 166), 10, 12, TEXT_COLOR, false);
+        graphics.drawString(this.font, this.font.plainSubstrByWidth(name, 106), 10, 12, TEXT_COLOR, false);
         graphics.drawString(this.font, this.font.plainSubstrByWidth(type, 226), 10, 28, MUTED_COLOR, false);
 
         if (optionalTarget.isPresent()) {
