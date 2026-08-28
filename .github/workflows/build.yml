@@ -26,6 +26,18 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
+      - name: Inspect Tensura Direwolf evolution bytecode
+        if: success()
+        shell: bash
+        run: |
+          JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
+          echo "Tensura jar: $JAR"
+          test -n "$JAR"
+          echo '=== DIREWOLF ENTITY ==='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.monster.DirewolfEntity
+          echo '=== DIREWOLF VARIANT ==='
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.variant.DirewolfVariant
+
       - name: Inspect Better Subordinates status transition
         if: success()
         shell: bash
