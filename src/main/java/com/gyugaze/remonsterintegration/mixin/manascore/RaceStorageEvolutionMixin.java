@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Observes successful native ManasCore/Tensura race evolution and mirrors project semantic/body state. */
+/** Mirrors every successful native ManasCore/Tensura race change into Re:Monster species/body state. */
 @Mixin(value = RaceStorage.class, remap = false)
 public abstract class RaceStorageEvolutionMixin {
     @Shadow
@@ -26,9 +26,9 @@ public abstract class RaceStorageEvolutionMixin {
             @Nullable MutableComponent component,
             CallbackInfoReturnable<Boolean> cir
     ) {
-        if (!evolution || !cir.getReturnValueZ() || race == null) {
+        if (!cir.getReturnValueZ() || race == null) {
             return;
         }
-        TensuraRaceEvolutionBridge.afterNativeEvolution(getOwner(), race.getRace());
+        TensuraRaceEvolutionBridge.afterNativeRaceSet(getOwner(), race.getRace(), evolution);
     }
 }
