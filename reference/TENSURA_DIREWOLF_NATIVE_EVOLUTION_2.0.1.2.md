@@ -46,7 +46,7 @@ For a base `DIREWOLF`, `getEvolutionByBiomes()` evaluates in this exact priority
 2. Nether, ruined-portal-desert, badlands or savanna -> `RED_FANG`
 3. ocean, beach, river or ruined-portal-swamp -> `BLUE_FANG`
 4. forest or jungle -> `GREEN_FANG`
-5. End dimension or mountain -> `PURPLE_FANG`
+5. End-tagged biome or mountain -> `PURPLE_FANG`
 6. hill or block Y <= 64 -> `BROWN_FANG`
 7. fallback -> `BLACK_FANG`
 
@@ -63,7 +63,7 @@ The Re:Monster graph owns:
 - the evolution UI / owned-character choice surface
 - suppression of upstream autonomous `evolve()` calls
 
-The `tensura:direwolf` native-form adapter owns validation of native branch semantics. For a base Direwolf target it reflectively calls the exact upstream `getEvolutionByBiomes()` and exposes only the graph target that matches the native result.
+The `tensura:direwolf` native-form adapter owns validation of native branch semantics. For a base Direwolf target it invokes the exact private upstream `getEvolutionByBiomes()` through a Mixin `@Invoker` and exposes only the graph target that matches the native result.
 
 This gives one source of truth for the native environment rules while keeping transition timing under Re:Monster authority.
 
