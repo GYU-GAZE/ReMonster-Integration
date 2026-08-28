@@ -1,0 +1,8 @@
+{
+  "species": "tensura:barghest",
+  "entity_body": {
+    "entity_type": "tensura:barghest",
+    "preserve_equipment": true,
+    "reinforce_base_stats": true
+  }
+}
