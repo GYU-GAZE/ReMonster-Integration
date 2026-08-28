@@ -33,10 +33,21 @@ jobs:
           JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
           echo "Tensura jar: $JAR"
           test -n "$JAR"
-          echo '=== DIREWOLF ENTITY ==='
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.monster.DirewolfEntity
-          echo '=== DIREWOLF VARIANT ==='
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.variant.DirewolfVariant
+
+          javap -classpath "$JAR" -p io.github.manasmods.tensura.entity.monster.DirewolfEntity > /tmp/direwolf.methods
+          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.monster.DirewolfEntity > /tmp/direwolf.bytecode
+
+          echo '=== RELEVANT DIREWOLF METHODS ==='
+          grep -Ei 'evol|variant|biome|state' /tmp/direwolf.methods || true
+
+          echo '=== evolve() BYTECODE ==='
+          grep -F -A 240 'public void evolve();' /tmp/direwolf.bytecode || true
+
+          echo '=== getEvolutionByBiomes BYTECODE ==='
+          grep -F -A 220 'getEvolutionByBiomes' /tmp/direwolf.bytecode || true
+
+          echo '=== DIREWOLF VARIANT DECLARATION ==='
+          javap -classpath "$JAR" -p io.github.manasmods.tensura.entity.variant.DirewolfVariant
 
       - name: Inspect Better Subordinates status transition
         if: success()
