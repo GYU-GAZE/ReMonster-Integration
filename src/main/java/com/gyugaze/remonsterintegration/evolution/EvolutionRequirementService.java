@@ -11,6 +11,8 @@ import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
 
+import java.util.Optional;
+
 public final class EvolutionRequirementService {
     private EvolutionRequirementService() {
     }
@@ -87,25 +89,22 @@ public final class EvolutionRequirementService {
             return Evaluation.failure("Block light is above maximum: " + blockLight + " / " + conditions.maxBlockLight());
         }
 
-        SpeciesBodyProfileRegistry.get(definition.toSpecies())
-                .flatMap(SpeciesBodyProfile::nativeForm)
-                .ifPresent(nativeForm -> {
-                    NativeFormEvolutionCompat.Eligibility nativeEligibility =
-                            NativeFormEvolutionCompat.evaluateEligibility(entity, nativeForm);
-                    if (!nativeEligibility.eligible()) {
-                        throw new NativeFormRequirementFailure(nativeEligibility.detail());
-                    }
-                });
+        Optional<SpeciesBodyProfile.NativeFormBody> nativeForm = SpeciesBodyProfileRegistry
+                .get(definition.toSpecies())
+                .flatMap(SpeciesBodyProfile::nativeForm);
+        if (nativeForm.isPresent()) {
+            NativeFormEvolutionCompat.Eligibility nativeEligibility =
+                    NativeFormEvolutionCompat.evaluateEligibility(entity, nativeForm.orElseThrow());
+            if (!nativeEligibility.eligible()) {
+                return Evaluation.failure(nativeEligibility.detail());
+            }
+        }
 
         return Evaluation.success();
     }
 
     public static boolean isSatisfied(LivingEntity entity, EvolutionDefinition definition) {
-        try {
-            return evaluate(entity, definition).eligible();
-        } catch (NativeFormRequirementFailure ignored) {
-            return false;
-        }
+        return evaluate(entity, definition).eligible();
     }
 
     public record Evaluation(boolean eligible, String failureReason) {
@@ -115,12 +114,6 @@ public final class EvolutionRequirementService {
 
         public static Evaluation failure(String reason) {
             return new Evaluation(false, reason);
-        }
-    }
-
-    private static final class NativeFormRequirementFailure extends RuntimeException {
-        private NativeFormRequirementFailure(String message) {
-            super(message);
         }
     }
 }
