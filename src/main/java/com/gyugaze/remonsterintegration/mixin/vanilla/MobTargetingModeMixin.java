@@ -2,7 +2,6 @@ package com.gyugaze.remonsterintegration.mixin.vanilla;
 
 import com.gyugaze.remonsterintegration.evolution.NaturalEvolutionService;
 import com.gyugaze.remonsterintegration.growth.ExternalEnergyFoundationService;
-import com.gyugaze.remonsterintegration.growth.UniversalCharacterGrowthService;
 import com.gyugaze.remonsterintegration.learning.NpcSkillTeachingService;
 import com.gyugaze.remonsterintegration.mca.McaMilitiaService;
 import com.gyugaze.remonsterintegration.subordinate.SubordinateTargetingService;
@@ -21,7 +20,6 @@ public abstract class MobTargetingModeMixin {
         Mob mob = (Mob) (Object) this;
         SubordinateTargetingService.tickExternal(mob);
         McaMilitiaService.tick(mob);
-        UniversalCharacterGrowthService.tick(mob);
         ExternalEnergyFoundationService.tick(mob);
         NpcSkillTeachingService.tick(mob);
         UniversalSkillAiService.tick(mob);

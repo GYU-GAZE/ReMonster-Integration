@@ -86,6 +86,7 @@ public final class EvolutionService {
         Optional<SpeciesBodyProfile> profile = SpeciesBodyProfileRegistry.get(targetSpecies);
         Optional<SpeciesBodyProfile.TownsteadBody> townsteadBody = profile.flatMap(SpeciesBodyProfile::townstead);
         Optional<SpeciesBodyProfile.EntityBody> entityBody = profile.flatMap(SpeciesBodyProfile::entityBody);
+        Optional<SpeciesBodyProfile.NativeFormBody> nativeForm = profile.flatMap(SpeciesBodyProfile::nativeForm);
         boolean townsteadTarget = entity instanceof ServerPlayer || McaSubordinateAdapter.isMcaVillager(entity);
 
         if (townsteadTarget && townsteadBody.isPresent()) {
@@ -103,6 +104,16 @@ public final class EvolutionService {
                 return EvolutionResult.failure(current, targetSpecies, physical.failure());
             }
             bodyResult = physical.description();
+        } else if (!townsteadTarget && nativeForm.isPresent()) {
+            NativeFormEvolutionCompat.ApplyResult physical = NativeFormEvolutionCompat.apply(
+                    entity,
+                    nativeForm.orElseThrow(),
+                    targetSpecies
+            );
+            if (!physical.success()) {
+                return EvolutionResult.failure(current, targetSpecies, physical.detail());
+            }
+            bodyResult = physical.detail();
         } else if (!townsteadTarget && entityBody.isPresent()) {
             GenericMobEvolutionCompat.ApplyResult physical = GenericMobEvolutionCompat.apply(
                     entity,

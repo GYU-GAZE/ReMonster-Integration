@@ -4,7 +4,6 @@ import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.compat.MobChampionProgressionService;
 import com.gyugaze.remonsterintegration.compat.MobChampionsBridge;
 import com.gyugaze.remonsterintegration.growth.ExternalEnergyFoundationService;
-import com.gyugaze.remonsterintegration.growth.UniversalCharacterGrowthService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
@@ -106,7 +105,6 @@ public final class GenericMobEvolutionCompat {
 
             copyReMonsterPersistentData(source, target);
             SpeciesStateService.copyState(source, target);
-            UniversalCharacterGrowthService.copyBaselineState(source, target);
             copyExistenceState(source, target);
             ExternalEnergyFoundationService.seedCapacity(target);
             copySkills(source, target);
@@ -129,7 +127,6 @@ public final class GenericMobEvolutionCompat {
                     ? Math.max(0.0D, Math.min(1.0D, source.getHealth() / source.getMaxHealth()))
                     : 1.0D;
             SpeciesStateService.setSpecies(target, targetSpecies);
-            UniversalCharacterGrowthService.reapply(target);
             target.setHealth((float) Math.max(0.01D, target.getMaxHealth() * healthRatio));
 
             source.stopRiding();

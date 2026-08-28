@@ -7,17 +7,14 @@ import com.gyugaze.remonsterintegration.profile.MobProfile;
 import com.gyugaze.remonsterintegration.profile.MobProfileRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 
 import java.util.List;
 import java.util.Optional;
 
-/** NeoForge event bridge for universal kill-driven skill learning. */
+/** NeoForge event bridge for universal kill-driven native acquisition/mastery learning. */
 public final class KillLearningEvents {
-    private static final String LEGACY_SKILL_OBTAIN_MOD_ID = "tensura_skillobtain";
     private static final double DEFAULT_BASE_LEARNING_POINTS = 1.0;
 
     private KillLearningEvents() {
@@ -35,13 +32,11 @@ public final class KillLearningEvents {
         }
 
         LivingEntity learner = creditedLearner.get();
-        // Legacy Tensura: Skill Obtain directly grants configured skills to players on kill. While that
-        // mod is still present during pack migration, let it own the player path so one kill cannot both
-        // direct-grant and advance a second Re:Monster acquisition for the same event. Non-player
-        // LivingEntity learners remain Re:Monster-owned. The target pack should remove the legacy addon.
-        if (learner instanceof ServerPlayer && ModList.get().isLoaded(LEGACY_SKILL_OBTAIN_MOD_ID)) {
-            return;
-        }
+
+        // Re:Monster is the single universal kill-learning authority. Players and non-players use the
+        // same real ManasCore/Tensura acquisition/mastery representation, while the defeated mob's
+        // actual skill storage plus Mob Profile declarations provide the source skills. The target pack
+        // removes Tensura: Skill Obtain rather than maintaining a second EntityType -> direct-drop table.
 
         // Tensura's own death handler may have expanded this external killer's aura/magicule capacity.
         // Preserve its previous fill fraction before the acquisition attempt pays native energy costs.

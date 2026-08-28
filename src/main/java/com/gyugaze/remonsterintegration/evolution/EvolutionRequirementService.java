@@ -11,6 +11,8 @@ import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
 
+import java.util.Optional;
+
 public final class EvolutionRequirementService {
     private EvolutionRequirementService() {
     }
@@ -54,9 +56,20 @@ public final class EvolutionRequirementService {
             }
         }
 
-        if (!conditions.dimensions().isEmpty()
-                && !conditions.dimensions().contains(entity.level().dimension().location())) {
+        ResourceLocation dimension = entity.level().dimension().location();
+        if (!conditions.dimensions().isEmpty() && !conditions.dimensions().contains(dimension)) {
             return Evaluation.failure("Current dimension is not eligible");
+        }
+        if (conditions.forbiddenDimensions().contains(dimension)) {
+            return Evaluation.failure("Current dimension is forbidden: " + dimension);
+        }
+
+        int y = entity.blockPosition().getY();
+        if (conditions.minY() != null && y < conditions.minY()) {
+            return Evaluation.failure("Y level is below minimum: " + y + " / " + conditions.minY());
+        }
+        if (conditions.maxY() != null && y > conditions.maxY()) {
+            return Evaluation.failure("Y level is above maximum: " + y + " / " + conditions.maxY());
         }
 
         boolean owned = TensuraSubordinateBridge.getResolvedOwnerUuid(entity).isPresent()
@@ -74,6 +87,17 @@ public final class EvolutionRequirementService {
         }
         if (conditions.maxBlockLight() != null && blockLight > conditions.maxBlockLight()) {
             return Evaluation.failure("Block light is above maximum: " + blockLight + " / " + conditions.maxBlockLight());
+        }
+
+        Optional<SpeciesBodyProfile.NativeFormBody> nativeForm = SpeciesBodyProfileRegistry
+                .get(definition.toSpecies())
+                .flatMap(SpeciesBodyProfile::nativeForm);
+        if (nativeForm.isPresent()) {
+            NativeFormEvolutionCompat.Eligibility nativeEligibility =
+                    NativeFormEvolutionCompat.evaluateEligibility(entity, nativeForm.orElseThrow());
+            if (!nativeEligibility.eligible()) {
+                return Evaluation.failure(nativeEligibility.detail());
+            }
         }
 
         return Evaluation.success();

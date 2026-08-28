@@ -11,12 +11,16 @@ public record EvolutionConditions(
         List<ResourceLocation> anyBiomeTags,
         List<ResourceLocation> forbiddenBiomeTags,
         List<ResourceLocation> dimensions,
+        List<ResourceLocation> forbiddenDimensions,
         OwnershipRequirement ownership,
         Integer minBlockLight,
-        Integer maxBlockLight
+        Integer maxBlockLight,
+        Integer minY,
+        Integer maxY
 ) {
     public static final EvolutionConditions NONE = new EvolutionConditions(
-            List.of(), List.of(), List.of(), List.of(), List.of(), OwnershipRequirement.ANY, null, null
+            List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+            OwnershipRequirement.ANY, null, null, null, null
     );
 
     public EvolutionConditions {
@@ -25,11 +29,15 @@ public record EvolutionConditions(
         anyBiomeTags = anyBiomeTags == null ? List.of() : List.copyOf(anyBiomeTags);
         forbiddenBiomeTags = forbiddenBiomeTags == null ? List.of() : List.copyOf(forbiddenBiomeTags);
         dimensions = dimensions == null ? List.of() : List.copyOf(dimensions);
+        forbiddenDimensions = forbiddenDimensions == null ? List.of() : List.copyOf(forbiddenDimensions);
         ownership = ownership == null ? OwnershipRequirement.ANY : ownership;
         validateLight(minBlockLight, "minBlockLight");
         validateLight(maxBlockLight, "maxBlockLight");
         if (minBlockLight != null && maxBlockLight != null && minBlockLight > maxBlockLight) {
             throw new IllegalArgumentException("minBlockLight cannot exceed maxBlockLight");
+        }
+        if (minY != null && maxY != null && minY > maxY) {
+            throw new IllegalArgumentException("minY cannot exceed maxY");
         }
     }
 
