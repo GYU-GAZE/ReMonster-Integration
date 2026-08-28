@@ -126,15 +126,13 @@ var extractManasCoreModules = tasks.register('extractManasCoreModules', Sync) {
     into layout.buildDirectory.dir('manascore-compile-modules')
 }
 
-// TEMPORARY RECONNAISSANCE: print the exact Direwolf class path from the pinned Tensura 2.0.1.2 jar.
-// Remove this task immediately after the package is captured from CI.
+// TEMPORARY RECONNAISSANCE: print every Direwolf-named class from the resolved compile jars.
+// Task inputs carry the classpath into execution so Gradle's configuration cache remains valid.
 var inspectTensuraDirewolfClass = tasks.register('inspectTensuraDirewolfClass') {
+    inputs.files(configurations.compileClasspath)
     doLast {
-        configurations.compileClasspath.files.each { candidate ->
+        inputs.files.files.each { candidate ->
             if (!candidate.isFile() || !candidate.name.endsWith('.jar')) {
-                return
-            }
-            if (!candidate.name.toLowerCase(Locale.ROOT).contains('tensura')) {
                 return
             }
 
