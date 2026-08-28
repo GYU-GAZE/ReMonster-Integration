@@ -1,0 +1,7 @@
+{
+  "species": "remonster_integration:direwolf/mystic_earth_wolf",
+  "native_form": {
+    "adapter": "tensura:direwolf",
+    "form": "mystic_earth_wolf"
+  }
+}
