@@ -165,12 +165,11 @@ public final class TensuraSkillBridge {
     }
 
     /**
-     * Kill-learning is an earned progression source, not an attempted manual cast. Tensura's normal
-     * addLearnPoint method charges acquisition energy on every call; arbitrary external mobs can then
-     * create many acquisition entries but permanently stall them after their small current pool is
-     * depleted. We keep the real negative-mastery representation and SkillHelper unlock transition,
-     * but advance the earned kill points directly instead of charging a cast/learning energy cost for
-     * every kill.
+     * Kill-learning is earned by the kill and must not drain the learner's persistent aura/magicule
+     * pool. We still delegate the actual mastery mutation and completion transition to Tensura's native
+     * addLearnPoint method so skill-specific learning rules, onLearnSkill hooks and storage sync remain
+     * authoritative. The bridge temporarily supplies a full energy budget for that native call and then
+     * restores the exact pre-kill energy values (clamped only if the learning completion changed caps).
      */
     public static boolean addOrStartKillLearning(
             LivingEntity learner,
@@ -192,29 +191,22 @@ public final class TensuraSkillBridge {
             return false;
         }
         ManasSkillInstance instance = optional.get();
-        double oldMastery = instance.getMastery();
-        if (oldMastery >= 0.0D) {
+        if (instance.getMastery() >= 0.0D || !(instance.getSkill() instanceof TensuraSkill tensuraSkill)) {
             return false;
         }
 
-        double nextMastery = oldMastery + points;
-        SkillStorage storage = getStorage(learner);
-        if (nextMastery < 0.0D) {
-            instance.setMastery(nextMastery);
-            instance.markDirty();
-            storage.markDirty();
-            return true;
+        double previousAura = TensuraExistenceBridge.getAura(learner);
+        double previousMagicule = TensuraExistenceBridge.getMagicule(learner);
+        try {
+            TensuraExistenceBridge.setCurrentEnergy(
+                    learner,
+                    TensuraExistenceBridge.getMaxAura(learner),
+                    TensuraExistenceBridge.getMaxMagicule(learner)
+            );
+            return tensuraSkill.addLearnPoint(instance, learner, 0, points);
+        } finally {
+            TensuraExistenceBridge.setCurrentEnergy(learner, previousAura, previousMagicule);
         }
-
-        // Let Tensura/ManasCore perform the actual acquisition -> learned replacement so unlock hooks,
-        // onLearnSkill behavior and storage synchronization remain authoritative.
-        ManasSkillInstance completed = instance.copy();
-        completed.setMastery(0.0D);
-        boolean learned = SkillHelper.learnSkill(learner, completed);
-        if (learned) {
-            storage.markDirty();
-        }
-        return learned;
     }
 
     /**
