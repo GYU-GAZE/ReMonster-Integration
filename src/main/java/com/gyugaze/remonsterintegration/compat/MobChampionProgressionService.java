@@ -229,7 +229,7 @@ public final class MobChampionProgressionService {
                 if (supplier == null) {
                     continue;
                 }
-                Method getId = supplier.getClass().getMethod("getId");
+                Method getId = field.getType().getMethod("getId");
                 Object id = getId.invoke(supplier);
                 if (id instanceof ResourceLocation resourceLocation) {
                     result.add(resourceLocation);
