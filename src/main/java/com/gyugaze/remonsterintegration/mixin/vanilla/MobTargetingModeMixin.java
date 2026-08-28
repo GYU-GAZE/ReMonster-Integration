@@ -1,5 +1,6 @@
 package com.gyugaze.remonsterintegration.mixin.vanilla;
 
+import com.gyugaze.remonsterintegration.evolution.NaturalEvolutionService;
 import com.gyugaze.remonsterintegration.growth.ExternalEnergyFoundationService;
 import com.gyugaze.remonsterintegration.growth.UniversalCharacterGrowthService;
 import com.gyugaze.remonsterintegration.learning.NpcSkillTeachingService;
@@ -24,5 +25,6 @@ public abstract class MobTargetingModeMixin {
         ExternalEnergyFoundationService.tick(mob);
         NpcSkillTeachingService.tick(mob);
         UniversalSkillAiService.tick(mob);
+        NaturalEvolutionService.tick(mob);
     }
 }
