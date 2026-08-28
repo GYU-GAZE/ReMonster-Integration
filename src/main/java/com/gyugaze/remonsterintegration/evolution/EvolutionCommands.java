@@ -72,8 +72,13 @@ public final class EvolutionCommands {
         String species = SpeciesStateService.getSpecies(living)
                 .map(ResourceLocation::toString)
                 .orElse("unset");
+        String nativeRace = SpeciesStateService.getNativeRaceId(living)
+                .map(ResourceLocation::toString)
+                .orElse("unset");
         source.sendSuccess(() -> Component.literal(
-                "[Re:Monster] species " + living.getUUID() + " = " + species
+                "[Re:Monster] identity " + living.getUUID()
+                        + " | species=" + species
+                        + " | nativeRace=" + nativeRace
                         + " | phenotypeSeed=" + SpeciesStateService.getPhenotypeSeed(living)
         ), false);
         return 1;
@@ -85,9 +90,20 @@ public final class EvolutionCommands {
             return 0;
         }
 
-        SpeciesStateService.setSpecies(living, species);
+        if (!SpeciesStateService.setSpecies(living, species)) {
+            source.sendFailure(Component.literal(
+                    "[Re:Monster] could not synchronize species/race identity to " + species
+            ));
+            return 0;
+        }
+
+        String nativeRace = SpeciesStateService.getNativeRaceId(living)
+                .map(ResourceLocation::toString)
+                .orElse("unset");
         source.sendSuccess(() -> Component.literal(
-                "[Re:Monster] semantic species set: " + living.getUUID() + " -> " + species
+                "[Re:Monster] identity set: " + living.getUUID()
+                        + " -> species=" + species
+                        + " | nativeRace=" + nativeRace
         ), true);
         return 1;
     }
@@ -98,8 +114,12 @@ public final class EvolutionCommands {
             return 0;
         }
         SpeciesStateService.clearSpecies(living);
+        String resolved = SpeciesStateService.getSpecies(living)
+                .map(ResourceLocation::toString)
+                .orElse("unset");
         source.sendSuccess(() -> Component.literal(
-                "[Re:Monster] cleared semantic species from " + living.getUUID()
+                "[Re:Monster] cleared stored species from " + living.getUUID()
+                        + " | resolved identity=" + resolved
         ), true);
         return 1;
     }
@@ -132,7 +152,7 @@ public final class EvolutionCommands {
 
         Optional<ResourceLocation> current = SpeciesStateService.getSpecies(living);
         if (current.isEmpty()) {
-            source.sendFailure(Component.literal("[Re:Monster] target has no semantic species state"));
+            source.sendFailure(Component.literal("[Re:Monster] target has no Re:Monster species identity"));
             return 0;
         }
 
