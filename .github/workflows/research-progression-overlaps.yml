@@ -1,0 +1,55 @@
+name: research-progression-overlaps
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/research-progression-overlaps.yml'
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Download exact runtime jars
+        shell: bash
+        run: |
+          curl -fL 'https://edge.forgecdn.net/files/8012/168/tensura_skillobtain-neoforge-1.1.jar' -o /tmp/skillobtain.jar
+          curl -fL 'https://edge.forgecdn.net/files/8001/608/epgains-0.0.18.jar' -o /tmp/epgains.jar
+          echo '=== SKILL OBTAIN FILES ==='
+          jar tf /tmp/skillobtain.jar
+          echo '=== EPGAINS FILES ==='
+          jar tf /tmp/epgains.jar
+      - name: Decompile all Skill Obtain classes
+        shell: bash
+        run: |
+          for entry in $(jar tf /tmp/skillobtain.jar | grep '\.class$'); do
+            cls=${entry%.class}; cls=${cls//\//.}
+            echo "===== $cls ====="
+            javap -classpath /tmp/skillobtain.jar -p -c "$cls" || true
+          done
+          echo '=== SKILL OBTAIN CONFIG/RESOURCE TEXT ==='
+          for entry in $(jar tf /tmp/skillobtain.jar | grep -Ev '/$|\.class$|META-INF/.*\.(SF|RSA|DSA)$'); do
+            echo "===== $entry ====="
+            unzip -p /tmp/skillobtain.jar "$entry" 2>/dev/null || true
+            echo
+          done
+      - name: Decompile all EPGains classes
+        shell: bash
+        run: |
+          for entry in $(jar tf /tmp/epgains.jar | grep '\.class$'); do
+            cls=${entry%.class}; cls=${cls//\//.}
+            echo "===== $cls ====="
+            javap -classpath /tmp/epgains.jar -p -c "$cls" || true
+          done
+          echo '=== EPGAINS CONFIG/RESOURCE TEXT ==='
+          for entry in $(jar tf /tmp/epgains.jar | grep -Ev '/$|\.class$|META-INF/.*\.(SF|RSA|DSA)$'); do
+            echo "===== $entry ====="
+            unzip -p /tmp/epgains.jar "$entry" 2>/dev/null || true
+            echo
+          done
