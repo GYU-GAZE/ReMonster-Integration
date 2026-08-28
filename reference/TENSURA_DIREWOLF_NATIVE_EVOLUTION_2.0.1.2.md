@@ -64,6 +64,31 @@ Naming itself, pack taming, ownership, naming rewards and other unrelated upstre
 
 Because upstream provides no Direwolf EP threshold to copy, canonical Re:Monster EP/progression requirements for the canine graph are project-authored balance rules and must be decided explicitly before runtime edges are activated.
 
+### No EntityExistenceData replacement back door
+
+`RaceHelper.evolveMobs(...)` has a second phase after the `INameEvolution.evolve()` call: it looks up the mob's `EntityExistenceData` and, if its optional `evolution` field exists, can replace the current EntityType with another EntityType.
+
+The exact pinned Tensura data file `data/tensura/entity_existence/direwolf.json` was inspected in CI. Its full upstream content is:
+
+```json
+{
+  "type": "tensura:direwolf",
+  "abilities": [
+    "tensura:coercion",
+    "tensura:thought_communication"
+  ],
+  "max_magicule": 4300,
+  "min_magicule": 3600,
+  "spiritualHealth": 100
+}
+```
+
+There is no `evolution` field.
+
+Therefore the second `RaceHelper.evolveMobs(...)` EntityType-replacement phase has no Direwolf target and cannot bypass Re:Monster's native-form authority gate. For Direwolves, successful non-LOW naming and Harvest Festival processing can only attempt the same-entity `INameEvolution.evolve()` route, which is the route gated by `DirewolfEvolutionAuthorityMixin`.
+
+The `min_magicule: 3600` and `max_magicule: 4300` values are upstream entity-existence baseline data. They are **not** Direwolf evolution thresholds and must not be treated as such when Re:Monster authors progression balance.
+
 ## Variant IDs
 
 | ID | Variant |
