@@ -5,13 +5,15 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 import java.util.Optional;
 
-/** Data-driven physical representation of one semantic Re:Monster species. */
+/** Data-driven physical/runtime representation of one Re:Monster species identity. */
 public record SpeciesBodyProfile(
         ResourceLocation species,
+        Optional<ResourceLocation> nativeRace,
         Optional<TownsteadBody> townstead,
         Optional<EntityBody> entityBody
 ) {
     public SpeciesBodyProfile {
+        nativeRace = nativeRace == null ? Optional.empty() : nativeRace;
         townstead = townstead == null ? Optional.empty() : townstead;
         entityBody = entityBody == null ? Optional.empty() : entityBody;
     }
