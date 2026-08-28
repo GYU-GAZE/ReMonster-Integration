@@ -6,6 +6,7 @@
   "mixins": [
     "mca.GuardEnemiesSensorMixin",
     "mca.VillagerBrainMilitiaMixin",
+    "mca.McaOwnedBowProjectionMixin",
     "bettersubs.ExpandedSkillStorageMixin",
     "mobchampions.MobChampionEventHandlerMixin",
     "manascore.ManasRaceInstanceEvolutionMixin",
