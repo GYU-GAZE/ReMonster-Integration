@@ -32,13 +32,14 @@ jobs:
         run: |
           JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
           test -n "$JAR"
-          echo '=== DATA FILES CONTAINING DIREWOLF ==='
-          while IFS= read -r ENTRY; do
-            if unzip -p "$JAR" "$ENTRY" 2>/dev/null | grep -qi 'direwolf'; then
-              echo "--- $ENTRY"
-              unzip -p "$JAR" "$ENTRY" | grep -in -C 5 'direwolf' || true
-            fi
-          done < <(jar tf "$JAR" | grep '^data/.*\.json$')
+          TMP=$(mktemp -d)
+          (
+            cd "$TMP"
+            jar xf "$JAR" data
+            echo '=== DATA FILES CONTAINING DIREWOLF ==='
+            grep -Rin -C 5 --include='*.json' 'direwolf' data || true
+          )
+          rm -rf "$TMP"
 
       - name: Inspect Better Subordinates status transition
         if: success()
