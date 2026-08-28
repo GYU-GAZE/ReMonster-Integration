@@ -1,0 +1,7 @@
+{
+  "species": "remonster_integration:direwolf/red_fang",
+  "native_form": {
+    "adapter": "tensura:direwolf",
+    "form": "red_fang"
+  }
+}
