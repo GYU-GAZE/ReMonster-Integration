@@ -3,6 +3,7 @@ package com.gyugaze.remonsterintegration.mixin.manascore;
 import com.gyugaze.remonsterintegration.evolution.EvolutionDefinition;
 import com.gyugaze.remonsterintegration.evolution.EvolutionRegistry;
 import com.gyugaze.remonsterintegration.evolution.EvolutionRequirementService;
+import com.gyugaze.remonsterintegration.evolution.SpeciesBodyProfileRegistry;
 import com.gyugaze.remonsterintegration.evolution.SpeciesStateService;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import io.github.manasmods.manascore.race.api.ManasRace;
@@ -20,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/** Makes authored Re:Monster player branches visible/valid in ManasCore's normal evolution UI. */
+/** Makes authored Re:Monster branches first-class options in ManasCore's normal evolution UI. */
 @Mixin(value = ManasRaceInstance.class, remap = false)
 public abstract class ManasRaceInstanceEvolutionMixin {
     @Inject(method = "getNextEvolutions", at = @At("RETURN"), cancellable = true, remap = false, require = 0)
@@ -41,8 +42,11 @@ public abstract class ManasRaceInstanceEvolutionMixin {
         List<ManasRace> result = new ArrayList<>(cir.getReturnValue());
         boolean changed = false;
         for (EvolutionDefinition edge : projectEdges) {
-            ResourceLocation nativeTargetId = ResourceLocation.fromNamespaceAndPath("tensura", edge.toSpecies().getPath());
-            ManasRace nativeTarget = RaceAPI.getRaceRegistry().get(nativeTargetId);
+            Optional<ResourceLocation> nativeTargetId = SpeciesBodyProfileRegistry.nativeRaceForSpecies(edge.toSpecies());
+            if (nativeTargetId.isEmpty()) {
+                continue;
+            }
+            ManasRace nativeTarget = RaceAPI.getRaceRegistry().get(nativeTargetId.get());
             if (nativeTarget != null && !result.contains(nativeTarget)) {
                 result.add(nativeTarget);
                 changed = true;
@@ -73,14 +77,12 @@ public abstract class ManasRaceInstanceEvolutionMixin {
 
         double minimumEp = edge.minimumEp();
         if (minimumEp <= 0.0D) {
-            // A non-EP condition is still blocking the branch. Keep it visible but unavailable.
             cir.setReturnValue(0.99F);
             return;
         }
 
         double ep = TensuraExistenceBridge.getBaseMaxEp(entity);
         float epProgress = (float) Mth.clamp(ep / minimumEp, 0.0D, 0.99D);
-        // Even when EP is full, environmental/skill/ownership conditions keep this below ready.
         cir.setReturnValue(epProgress);
     }
 
@@ -91,7 +93,9 @@ public abstract class ManasRaceInstanceEvolutionMixin {
         ResourceLocation nativeTargetId = targetRace.getRegistryName();
         return SpeciesStateService.getSpecies(entity).stream()
                 .flatMap(source -> EvolutionRegistry.availableFrom(source).stream())
-                .filter(edge -> edge.toSpecies().getPath().equals(nativeTargetId.getPath()))
+                .filter(edge -> SpeciesBodyProfileRegistry.nativeRaceForSpecies(edge.toSpecies())
+                        .filter(nativeTargetId::equals)
+                        .isPresent())
                 .findFirst();
     }
 }
