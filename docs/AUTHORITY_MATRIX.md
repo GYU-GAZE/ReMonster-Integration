@@ -12,6 +12,8 @@ The target runtime was audited from the real 1.21.1 load list and exact runtime 
 | --- | --- | --- |
 | Native player race | ManasCore / Tensura | Bind project semantic/body content to the real `ManasRace`; synchronize presentation after native changes |
 | Native player race evolution | ManasCore / Tensura or the addon registering the race | Discover/compose native requirements; add only genuinely new project branches |
+| Creature evolution branch graph / eligibility | Re:Monster Integration | Own canonical cross-mod lifecycle edges, branch choice and authored requirements for creature evolution in this pack |
+| Native same-EntityType form implementation | The source mob mod, especially Tensura | Keep the real variant/state/model/stat/skill machinery; when a native automatic transition is adopted into the Re:Monster graph, suppress only its autonomous trigger and invoke the native form mutation through an explicit graph edge |
 | Tensura skills / mastery / activation | ManasCore / Tensura | Use real `SkillStorage`, acquisition/mastery, costs, cooldowns and effects |
 | Innate/effective mob skills | Dedicated compatibility addon first, otherwise Re:Monster Mob Profile | Put authored skills on the mob's real native skill storage |
 | Kill-driven skill learning | Re:Monster Integration | Exact `LivingEntity` killer, real/profile source skills and native acquisition/mastery for players and non-players |
@@ -25,8 +27,8 @@ The target runtime was audited from the real 1.21.1 load list and exact runtime 
 | MCA Brain / family / profession / schedule / village state | MCA | Add narrow compatibility hooks only |
 | MCA inventory | MCA | Read/project the real MCA inventory; no shadow inventory |
 | MCA phenotype/genetics/body rendering | Townstead | Map native race to Townstead body/root recipes and request recalculation/sync |
-| MCA species/personality voice | Townstead | Preserve species/personality voice after capital-specific dialogue gets first refusal |
-| Capital dialogue / monarchy / politics | MCA Capitals | Capital line gets first refusal; political state remains MCA Capitals-owned |
+| MCA species/personality voice | Townstead | No Re:Monster mediation unless a future Re:Monster feature directly needs this domain |
+| Capital dialogue / monarchy / politics | MCA Capitals | No Re:Monster mediation unless a future Re:Monster feature directly needs this domain |
 | Generic elite/champion rank | MobChampions | Universal eligibility, Tensura EP/skill/scale consequences and rank preservation |
 | Bosses'Rise Tensura behavior | Bosses'Rise x Tensura Compatibility | Use its real EP/skill behavior; Mob Profiles add only cross-system metadata |
 | Mysticism / other addon races + skills | Their addon + ManasCore registry | Discover/bind the real registered IDs |
@@ -83,17 +85,23 @@ Keep both because their scopes differ: Tensura Guild owns adventurer progression
 
 ### MCA Capitals + Townstead
 
-Keep both.
+Keep both as independent MCA extensions.
 
-The exact target runtime logs an overwrite conflict on `VillagerEntityMCA#getTranslatable`. MCA Capitals and Townstead both replace that same MCA choke point for legitimate but different reasons.
+The exact target runtime logs an overwrite conflict on `VillagerEntityMCA#getTranslatable`, but that conflict is between two third-party dialogue systems and is outside Re:Monster Integration's gameplay responsibility. Re:Monster intentionally does **not** add a compositor or third-party compatibility patch for it. If one mod wins the overwrite, that is left to those mods/the assembled pack unless a future Re:Monster feature directly depends on the dialogue path.
 
-Re:Monster composes them in this order:
+### Tensura native creature forms under the Re:Monster evolution graph
 
-1. MCA Capitals capital/political phrase, if one exists
-2. Townstead species/personality voice, if one exists
-3. the already-authoritative ordinary MCA Capitals/MCA fallback
+Keep the native form machinery, but do not let an upstream autonomous evolution bypass the authored Re:Monster lifecycle when that creature has been adopted into the universal graph.
 
-Re:Monster owns only the composition bridge, not either dialogue dataset.
+For a same-EntityType creature such as `tensura:direwolf`:
+
+1. Re:Monster owns which evolution edges exist, which target form is selected and whether its conditions are satisfied.
+2. Native Tensura variant/evolution state remains the real physical form state.
+3. Native automatic triggering is suppressed for graph-owned transitions.
+4. Re:Monster reproduces/adopts the meaningful native requirements as graph conditions, then explicitly invokes the native form mutation for the selected target.
+5. The entity is not destroyed/recreated merely to represent another Direwolf form.
+
+This lets owned creatures choose among eligible branches while wild creatures remain deterministic from authored conditions, without inventing fake EntityTypes or a second form state.
 
 ## Non-conflicting/complementary groups
 
@@ -116,6 +124,8 @@ Structure mods retain worldgen authority. Loot/equipment mods retain item/loot a
 11. Debug commands may inspect/force pack-author state, but ordinary gameplay must not require them.
 12. Proof/test datapack content never ships in production.
 13. Native same-EntityType forms/variants are modeled as native form transitions, not blindly converted into replacement EntityTypes.
+14. When a native automatic creature evolution is adopted into the Re:Monster graph, suppress the upstream trigger rather than replacing the upstream form state/mechanics.
+15. Re:Monster does not accumulate compatibility patches for unrelated third-party conflicts that do not intersect its own systems.
 
 ## Runtime-proven infrastructure checkpoints
 
@@ -129,4 +139,4 @@ Structure mods retain worldgen authority. Loot/equipment mods retain item/loot a
 - owned external evolution choice worked through subordinate UI
 - MCA subordinate save/reload preserved 39,999 EP and Water Current Control
 
-Proof-only evolution recipes/species mappings were removed after validation. Canonical race and bestiary content is the next authoring stage after the final Townstead/MCA Capitals composition regression is confirmed.
+Proof-only evolution recipes/species mappings were removed after validation. Canonical race/bestiary/evolution authoring can now proceed from the native evolution atlas without any Townstead/MCA Capitals dialogue regression gate.
