@@ -1,0 +1,24 @@
+name: research-mca-dialogue
+
+on:
+  pull_request:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Download exact MCA Capitals 1.2.1
+        run: |
+          curl -fL 'https://cdn.modrinth.com/data/tHmppiXj/versions/5AFIwSlU/mcacapitals-1.2.1.jar' -o /tmp/mcacapitals.jar
+          jar tf /tmp/mcacapitals.jar | grep -E 'Messenger.*Mixin|mixins.json'
+      - name: Inspect conflicting dialogue mixin
+        run: |
+          javap -classpath /tmp/mcacapitals.jar -p -c com.majesttyx.mcacapitals.mixin.MessengerCapitalDialogueMixin
+          echo '=== MIXIN CONFIG ==='
+          unzip -p /tmp/mcacapitals.jar mcacapitals.mixins.json || true
