@@ -67,19 +67,19 @@ public abstract class ManasRaceInstanceEvolutionMixin {
 
         EvolutionDefinition edge = definition.get();
         if (EvolutionRequirementService.isSatisfied(entity, edge)) {
-            cir.setReturnValue(100.0F);
+            cir.setReturnValue(1.0F);
             return;
         }
 
         double minimumEp = edge.minimumEp();
         if (minimumEp <= 0.0D) {
             // A non-EP condition is still blocking the branch. Keep it visible but unavailable.
-            cir.setReturnValue(99.0F);
+            cir.setReturnValue(0.99F);
             return;
         }
 
         double ep = TensuraExistenceBridge.getBaseMaxEp(entity);
-        float epProgress = (float) Mth.clamp(ep / minimumEp * 100.0D, 0.0D, 99.0D);
+        float epProgress = (float) Mth.clamp(ep / minimumEp, 0.0D, 0.99D);
         // Even when EP is full, environmental/skill/ownership conditions keep this below ready.
         cir.setReturnValue(epProgress);
     }
