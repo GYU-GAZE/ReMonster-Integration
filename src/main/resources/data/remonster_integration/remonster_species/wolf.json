@@ -1,0 +1,8 @@
+{
+  "species": "remonster_integration:wolf",
+  "entity_body": {
+    "entity_type": "minecraft:wolf",
+    "preserve_equipment": true,
+    "reinforce_base_stats": true
+  }
+}
