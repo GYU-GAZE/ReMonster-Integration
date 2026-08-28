@@ -129,6 +129,7 @@ var extractManasCoreModules = tasks.register('extractManasCoreModules', Sync) {
 // TEMPORARY RECONNAISSANCE: print every Direwolf-named class from the resolved compile jars.
 // Task inputs carry the classpath into execution so Gradle's configuration cache remains valid.
 var inspectTensuraDirewolfClass = tasks.register('inspectTensuraDirewolfClass') {
+    dependsOn extractManasCoreModules
     inputs.files(configurations.compileClasspath)
     doLast {
         inputs.files.files.each { candidate ->
