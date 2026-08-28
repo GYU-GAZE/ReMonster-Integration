@@ -16,25 +16,26 @@ import java.util.Set;
 /**
  * Narrow adapter for Tensura 2.0.1.2's same-EntityType Direwolf evolution machine.
  *
- * Re:Monster owns eligibility and target selection. Tensura still owns the real Direwolf entity,
- * evolution state, stat buff and variant implementation. Native autonomous calls to evolve() are
- * blocked by DirewolfEvolutionAuthorityMixin; this service temporarily authorizes exactly one native
- * step after the Re:Monster graph has approved a target.
+ * Re:Monster owns eligibility timing and the authored graph. Tensura remains authoritative for the
+ * exact native body selector and in-place evolve() mechanics. Native autonomous calls to evolve()
+ * are blocked by DirewolfEvolutionAuthorityMixin; this adapter authorizes exactly one native step
+ * only after the graph has approved a destination that the native state machine agrees is valid.
  */
 public final class TensuraDirewolfEvolutionCompat {
     private static final ResourceLocation DIREWOLF_ENTITY =
             ResourceLocation.fromNamespaceAndPath("tensura", "direwolf");
 
-    private static final Set<String> BASE_FANG_TARGETS = Set.of(
+    private static final Set<String> BASE_NATIVE_SELECTOR_TARGETS = Set.of(
             "red_fang",
             "green_fang",
             "blue_fang",
             "brown_fang",
             "purple_fang",
-            "black_fang"
+            "black_fang",
+            "star_wolf"
     );
 
-    /** Deterministic native follow-up steps confirmed in the target Tensura Direwolf state machine. */
+    /** Deterministic follow-up transitions confirmed from Tensura 2.0.1.2 bytecode. */
     private static final Map<String, String> DETERMINISTIC_NATIVE_STEPS = Map.of(
             "red_fang", "mystic_fire_wolf",
             "green_fang", "mystic_wind_wolf",
@@ -51,13 +52,12 @@ public final class TensuraDirewolfEvolutionCompat {
     private TensuraDirewolfEvolutionCompat() {
     }
 
-    public static NativeFormEvolutionCompat.ApplyResult apply(
+    public static NativeFormEvolutionCompat.Eligibility evaluateTransition(
             LivingEntity entity,
-            String requestedForm,
-            ResourceLocation targetSpecies
+            String requestedForm
     ) {
         if (!isDirewolf(entity)) {
-            return NativeFormEvolutionCompat.ApplyResult.failure(
+            return NativeFormEvolutionCompat.Eligibility.failure(
                     "Native Direwolf form target requires physical entity " + DIREWOLF_ENTITY
             );
         }
@@ -65,38 +65,78 @@ public final class TensuraDirewolfEvolutionCompat {
         String targetForm = normalize(requestedForm);
         Optional<String> currentOptional = currentForm(entity);
         if (currentOptional.isEmpty()) {
-            return NativeFormEvolutionCompat.ApplyResult.failure(
+            return NativeFormEvolutionCompat.Eligibility.failure(
                     "Could not read native Tensura Direwolf variant from " + entity.getClass().getName()
             );
         }
 
         String currentForm = currentOptional.get();
         if (currentForm.equals(targetForm)) {
-            return NativeFormEvolutionCompat.ApplyResult.failure(
+            return NativeFormEvolutionCompat.Eligibility.failure(
                     "Direwolf is already in native form " + targetForm
             );
         }
 
-        boolean graphSelectedBaseFang = "direwolf".equals(currentForm) && BASE_FANG_TARGETS.contains(targetForm);
-        boolean deterministicNativeStep = targetForm.equals(DETERMINISTIC_NATIVE_STEPS.get(currentForm));
-        if (!graphSelectedBaseFang && !deterministicNativeStep) {
-            return NativeFormEvolutionCompat.ApplyResult.failure(
-                    "Unsupported Direwolf native form transition: " + currentForm + " -> " + targetForm
+        Optional<Integer> currentState = currentEvolutionState(entity);
+        Optional<Integer> maxState = maxEvolutionState(entity);
+        if (currentState.isPresent() && maxState.isPresent() && currentState.get() >= maxState.get()) {
+            return NativeFormEvolutionCompat.Eligibility.failure(
+                    "Direwolf native evolution state is already maxed: " + currentState.get() + " / " + maxState.get()
             );
         }
 
+        if ("direwolf".equals(currentForm) && BASE_NATIVE_SELECTOR_TARGETS.contains(targetForm)) {
+            Optional<String> selected = nativeBaseEvolutionSelection(entity);
+            if (selected.isEmpty()) {
+                return NativeFormEvolutionCompat.Eligibility.failure(
+                        "Could not evaluate Tensura Direwolf native environmental selector"
+                );
+            }
+            if (!targetForm.equals(selected.get())) {
+                return NativeFormEvolutionCompat.Eligibility.failure(
+                        "Native Direwolf environment currently selects " + selected.get() + ", not " + targetForm
+                );
+            }
+            return NativeFormEvolutionCompat.Eligibility.success(
+                    "native-selector=" + selected.get()
+            );
+        }
+
+        String deterministicTarget = DETERMINISTIC_NATIVE_STEPS.get(currentForm);
+        if (targetForm.equals(deterministicTarget)) {
+            return NativeFormEvolutionCompat.Eligibility.success(
+                    "native-state-step=" + currentForm + "->" + targetForm
+            );
+        }
+
+        return NativeFormEvolutionCompat.Eligibility.failure(
+                "Unsupported Direwolf native form transition: " + currentForm + " -> " + targetForm
+        );
+    }
+
+    public static NativeFormEvolutionCompat.ApplyResult apply(
+            LivingEntity entity,
+            String requestedForm,
+            ResourceLocation targetSpecies
+    ) {
+        NativeFormEvolutionCompat.Eligibility eligibility = evaluateTransition(entity, requestedForm);
+        if (!eligibility.eligible()) {
+            return NativeFormEvolutionCompat.ApplyResult.failure(eligibility.detail());
+        }
+
+        String targetForm = normalize(requestedForm);
+        String currentForm = currentForm(entity).orElse("");
         int beforeState = currentEvolutionState(entity).orElse(-1);
         try {
             invokeNativeEvolve(entity);
 
-            // Base Direwolf branching is authored with the exact same environmental precedence as
-            // Tensura's getEvolutionByBiomes(). Never force a different Fang after evolve(): setVariant()
-            // itself has native per-variant side effects, so a transient wrong Fang could corrupt stats.
-            // Instead, let Tensura select the body it would naturally select and assert graph agreement.
+            // Never force a graph-selected variant after evolve(). setVariant() itself has native
+            // per-variant side effects. The graph's native-form eligibility delegates base branching
+            // to getEvolutionByBiomes(), so the native result must already equal the authored target.
             String actualForm = currentForm(entity).orElse("");
             if (!targetForm.equals(actualForm)) {
                 ReMonsterIntegration.LOGGER.error(
-                        "Graph-owned Direwolf transition disagreed with native selector for {}: {} -> {} (expected {})",
+                        "Graph-owned Direwolf transition disagreed with native state machine for {}: {} -> {} (expected {})",
                         entity.getUUID(),
                         currentForm,
                         actualForm,
@@ -152,6 +192,24 @@ public final class TensuraDirewolfEvolutionCompat {
         return AUTHORIZED_NATIVE_DEPTH.get() > 0;
     }
 
+    private static Optional<String> nativeBaseEvolutionSelection(LivingEntity entity) {
+        try {
+            Method method = entity.getClass().getMethod("getEvolutionByBiomes");
+            Object variant = method.invoke(entity);
+            if (variant instanceof Enum<?> enumValue) {
+                return Optional.of(normalize(enumValue.name()));
+            }
+            return Optional.empty();
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            ReMonsterIntegration.LOGGER.debug(
+                    "Could not invoke native Direwolf environmental evolution selector for {}",
+                    entity.getUUID(),
+                    exception
+            );
+            return Optional.empty();
+        }
+    }
+
     private static void invokeNativeEvolve(LivingEntity entity) throws ReflectiveOperationException {
         Method evolve = entity.getClass().getMethod("evolve");
         AUTHORIZED_NATIVE_DEPTH.set(AUTHORIZED_NATIVE_DEPTH.get() + 1);
@@ -180,8 +238,16 @@ public final class TensuraDirewolfEvolutionCompat {
     }
 
     private static Optional<Integer> currentEvolutionState(LivingEntity entity) {
+        return invokeIntGetter(entity, "getCurrentEvolutionState");
+    }
+
+    private static Optional<Integer> maxEvolutionState(LivingEntity entity) {
+        return invokeIntGetter(entity, "getMaxEvolutionState");
+    }
+
+    private static Optional<Integer> invokeIntGetter(LivingEntity entity, String methodName) {
         try {
-            Method method = entity.getClass().getMethod("getCurrentEvolutionState");
+            Method method = entity.getClass().getMethod(methodName);
             Object value = method.invoke(entity);
             return value instanceof Number number ? Optional.of(number.intValue()) : Optional.empty();
         } catch (ReflectiveOperationException | LinkageError ignored) {
