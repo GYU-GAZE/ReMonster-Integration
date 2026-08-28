@@ -1,6 +1,7 @@
 package com.gyugaze.remonsterintegration.profile;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
+import com.gyugaze.remonsterintegration.compat.MobChampionProgressionService;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 
@@ -32,5 +33,9 @@ public final class MobProfileEntityEvents {
                 );
             }
         });
+
+        // This listener runs at LOWEST priority so MobChampions has already assigned a rank and any
+        // Re:Monster Mob Profile has established the intended starting EP before the rank multiplier.
+        MobChampionProgressionService.applySpawnBonuses(living);
     }
 }
