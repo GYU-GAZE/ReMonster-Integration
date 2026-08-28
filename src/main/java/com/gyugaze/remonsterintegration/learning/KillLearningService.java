@@ -39,7 +39,7 @@ public final class KillLearningService {
 
         List<ResourceLocation> progressed = new ArrayList<>();
         for (ResourceLocation skillId : effectiveSkills) {
-            if (TensuraSkillBridge.addOrStartAcquisitionLearning(learner, skillId, points)) {
+            if (TensuraSkillBridge.addOrStartKillLearning(learner, skillId, points)) {
                 progressed.add(skillId);
             }
         }
@@ -71,7 +71,7 @@ public final class KillLearningService {
         double points = baseLearningPoints * defeatedMob.learningMultiplier();
         List<ResourceLocation> progressed = new ArrayList<>();
         for (ResourceLocation skillId : defeatedMob.skills()) {
-            if (TensuraSkillBridge.addOrStartAcquisitionLearning(learner, skillId, points)) {
+            if (TensuraSkillBridge.addOrStartKillLearning(learner, skillId, points)) {
                 progressed.add(skillId);
             }
         }
