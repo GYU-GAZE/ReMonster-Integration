@@ -8,6 +8,7 @@
     "mca.VillagerBrainMilitiaMixin",
     "bettersubs.ExpandedSkillStorageMixin",
     "mobchampions.MobChampionEventHandlerMixin",
+    "tensura.EnergyHelperChampionMixin",
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
     "tensura.ThoughtCommunicationSkillMixin",
