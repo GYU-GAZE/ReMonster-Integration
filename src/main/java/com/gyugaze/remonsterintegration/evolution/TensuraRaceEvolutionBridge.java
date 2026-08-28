@@ -10,72 +10,53 @@ import net.neoforged.fml.ModList;
 import java.util.Optional;
 
 /**
- * Keeps player/native ManasCore race evolution and Re:Monster semantic/Townstead state in one flow.
- *
- * Native Tensura remains authoritative for the actual race. Re:Monster observes a successful native
- * evolution, maps it to a project species when one exists, applies the project physical body recipe,
- * and emits the same evolution presentation used by MCA/external creature evolution.
+ * Makes an authored Re:Monster species binding and its ManasCore/Tensura race one runtime identity.
+ * Native RaceStorage remains authoritative for the race lifecycle; Re:Monster supplies body metadata,
+ * extra evolution edges and common presentation around that exact native identity.
  */
 public final class TensuraRaceEvolutionBridge {
     private TensuraRaceEvolutionBridge() {
     }
 
-    public static void afterNativeEvolution(LivingEntity entity, ManasRace newRace) {
+    public static void afterNativeRaceSet(LivingEntity entity, ManasRace newRace, boolean evolution) {
         if (entity.level().isClientSide() || newRace == null) {
             return;
         }
 
         ResourceLocation nativeRaceId = newRace.getRegistryName();
-        Component actorName = entity.getDisplayName().copy();
-        Optional<ResourceLocation> projectTarget = resolveProjectTarget(entity, nativeRaceId);
+        Optional<ResourceLocation> projectTarget = SpeciesBodyProfileRegistry.speciesForNativeRace(nativeRaceId);
 
         if (projectTarget.isPresent()) {
             ResourceLocation targetSpecies = projectTarget.get();
+            Component actorName = entity.getDisplayName().copy();
             applyProjectBody(entity, targetSpecies);
-            SpeciesStateService.setSpecies(entity, targetSpecies);
+            SpeciesStateService.setStoredSpeciesFromNative(entity, targetSpecies);
             SpeciesScaleService.applyCurrent(entity);
-            EvolutionFeedbackService.announce(entity, actorName, targetSpecies);
+
+            if (evolution) {
+                EvolutionFeedbackService.announce(entity, actorName, targetSpecies);
+            }
             ReMonsterIntegration.LOGGER.info(
-                    "Native race evolution synchronized for {}: race={} -> semantic={}",
+                    "Native race synchronized for {}: race={} <-> species={} evolution={}",
                     entity.getUUID(),
                     nativeRaceId,
-                    targetSpecies
+                    targetSpecies,
+                    evolution
             );
             return;
         }
 
-        // Even ordinary Tensura-only evolutions should use the common Re:Monster presentation.
-        EvolutionFeedbackService.announce(entity, actorName, nativeRaceId);
-    }
-
-    /**
-     * Prefer a concrete outgoing project edge from the entity's current semantic species. This is what
-     * allows a semantic Hobgoblin to select native tensura:orc / tensura:ogre from the Tensura menu.
-     * If there is no outgoing edge, fall back to a project species with the same race path when one is
-     * explicitly authored (for example native Hobgoblin becoming the project Hobgoblin body).
-     */
-    public static Optional<ResourceLocation> resolveProjectTarget(
-            LivingEntity entity,
-            ResourceLocation nativeRaceId
-    ) {
-        Optional<ResourceLocation> current = SpeciesStateService.getSpecies(entity);
-        if (current.isPresent()) {
-            Optional<ResourceLocation> edgeTarget = EvolutionRegistry.availableFrom(current.get()).stream()
-                    .map(EvolutionDefinition::toSpecies)
-                    .filter(target -> target.getPath().equals(nativeRaceId.getPath()))
-                    .findFirst();
-            if (edgeTarget.isPresent()) {
-                return edgeTarget;
+        // If a bound project species was left behind by an admin/debug race replacement, remove that
+        // stale mirror. Project-only species remain untouched because they deliberately have no race.
+        SpeciesStateService.getStoredSpecies(entity).ifPresent(stored -> {
+            if (SpeciesBodyProfileRegistry.nativeRaceForSpecies(stored).isPresent()) {
+                SpeciesStateService.clearSpecies(entity);
             }
-        }
+        });
 
-        ResourceLocation samePath = ResourceLocation.fromNamespaceAndPath(
-                ReMonsterIntegration.MOD_ID,
-                nativeRaceId.getPath()
-        );
-        return SpeciesBodyProfileRegistry.get(samePath).isPresent()
-                ? Optional.of(samePath)
-                : Optional.empty();
+        if (evolution) {
+            EvolutionFeedbackService.announce(entity, entity.getDisplayName().copy(), nativeRaceId);
+        }
     }
 
     private static void applyProjectBody(LivingEntity entity, ResourceLocation targetSpecies) {
