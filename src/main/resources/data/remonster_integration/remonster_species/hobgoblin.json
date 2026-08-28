@@ -1,5 +1,6 @@
 {
   "species": "remonster_integration:hobgoblin",
+  "native_race": "tensura:hobgoblin",
   "townstead": {
     "root_candidates": [
       "townstead_classic:goblin"
