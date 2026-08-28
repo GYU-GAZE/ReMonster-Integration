@@ -34,7 +34,11 @@ public final class McaMilitiaService {
         }
 
         if (TensuraSubordinateBridge.getResolvedOwner(villager).isPresent()) {
-            cleanupExpiredCombat(villager, true);
+            // Owned MCA villagers are driven by SubordinateTargetingService. The old cleanup path
+            // stopped bow use and erased the target immediately after that service started a draw,
+            // which made melee appear to work while every ranged shot was cancelled at 0-5 ticks.
+            villager.getPersistentData().remove(ENGAGED_UNTIL_KEY);
+            villager.getPersistentData().remove(NEXT_ATTACK_KEY);
             return;
         }
 
