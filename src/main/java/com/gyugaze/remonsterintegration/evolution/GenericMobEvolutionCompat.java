@@ -1,6 +1,7 @@
 package com.gyugaze.remonsterintegration.evolution;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
+import com.gyugaze.remonsterintegration.compat.MobChampionProgressionService;
 import com.gyugaze.remonsterintegration.compat.MobChampionsBridge;
 import com.gyugaze.remonsterintegration.growth.ExternalEnergyFoundationService;
 import com.gyugaze.remonsterintegration.growth.UniversalCharacterGrowthService;
@@ -64,7 +65,9 @@ public final class GenericMobEvolutionCompat {
             target.setYHeadRot(source.getYHeadRot());
 
             // Seed third-party spawn identity before finalizeSpawn. MobChampions otherwise sees a fresh
-            // entity and rolls a brand-new rarity during physical evolution.
+            // entity and rolls a brand-new rarity during physical evolution. The temporary guard also
+            // prevents Re:Monster's champion birth-skill hook from rerolling the individual mid-evolution.
+            MobChampionProgressionService.markEvolutionTransfer(target);
             MobChampionsBridge.prepareEvolutionSpawn(source, target);
             if (target instanceof Mob targetMob) {
                 EventHooks.finalizeMobSpawn(
@@ -93,6 +96,10 @@ public final class GenericMobEvolutionCompat {
             if (target instanceof Mob targetMob) {
                 if (source instanceof Mob sourceMob) {
                     targetMob.setNoAi(sourceMob.isNoAi());
+                    LivingEntity combatTarget = sourceMob.getTarget();
+                    if (combatTarget != null && combatTarget.isAlive()) {
+                        targetMob.setTarget(combatTarget);
+                    }
                 }
                 targetMob.setPersistenceRequired();
             }
@@ -113,6 +120,7 @@ public final class GenericMobEvolutionCompat {
             // Re-apply the SOURCE champion rank to the new species after its native finalizeSpawn.
             // Equipment is copied afterwards so MobChampions cannot invent new gear during evolution.
             MobChampionsBridge.finishEvolutionSpawn(source, target);
+            MobChampionProgressionService.finishEvolutionTransfer(target);
             if (body.preserveEquipment()) {
                 copyEquipment(source, target);
             }
