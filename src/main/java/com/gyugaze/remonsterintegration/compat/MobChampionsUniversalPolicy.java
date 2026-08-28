@@ -34,6 +34,9 @@ public final class MobChampionsUniversalPolicy {
             Object entityTypeId,
             LivingEntity entity
     ) {
+        if (entity.getType().is(EXCLUDED)) {
+            return false;
+        }
         return configuredWhitelist.contains(entityTypeId) || isEligible(entity);
     }
 }
