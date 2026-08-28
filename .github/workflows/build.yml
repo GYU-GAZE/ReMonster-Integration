@@ -26,33 +26,6 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
-      - name: Inspect native name-evolution trigger
-        if: success()
-        shell: bash
-        run: |
-          JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
-          test -n "$JAR"
-
-          echo '=== INameEvolution ==='
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.template.subclass.INameEvolution
-
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.monster.DirewolfEntity > /tmp/direwolf.bytecode
-          echo '=== DIREWOLF canBeNamed ==='
-          grep -F -A 80 'public boolean canBeNamed' /tmp/direwolf.bytecode || true
-          echo '=== DIREWOLF evolution state accessors ==='
-          grep -E -A 35 'public int get(Max|Current)EvolutionState|public void setCurrentEvolutionState' /tmp/direwolf.bytecode || true
-          echo '=== DIREWOLF onPreNamed ==='
-          grep -F -A 180 'public void onPreNamed' /tmp/direwolf.bytecode || true
-
-          echo '=== REQUEST NAMING MENU ==='
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.network.c2s.RequestNamingMenuPacket | grep -E -B 35 -A 90 'INameEvolution|onPreNamed|evolve|canBeNamed' || true
-
-          echo '=== REQUEST NAMING KEY ==='
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.network.c2s.RequestNamingKeyPacket | grep -E -B 35 -A 90 'INameEvolution|onPreNamed|evolve|canBeNamed' || true
-
-          echo '=== RACE HELPER ==='
-          javap -classpath "$JAR" -p -c io.github.manasmods.tensura.race.RaceHelper | grep -E -B 35 -A 90 'INameEvolution|onPreNamed|evolve' || true
-
       - name: Inspect Better Subordinates status transition
         if: success()
         shell: bash
