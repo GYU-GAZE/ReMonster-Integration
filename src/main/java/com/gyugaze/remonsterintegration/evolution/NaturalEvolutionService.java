@@ -13,15 +13,14 @@ import java.util.Optional;
  * Graduates the data-driven evolution graph from pack-author commands into ordinary mob gameplay.
  *
  * Entity-body profiles provide a reversible entity-type -> semantic-species seed. Wild mobs then
- * automatically take exactly one unambiguous eligible evolution edge after a short out-of-combat
- * debounce. Owned mobs never auto-pick a branch; their existing server-authoritative evolution UI
- * remains the choice surface.
+ * automatically take exactly one unambiguous eligible evolution edge after a short debounce. Combat
+ * is deliberately not a blocker: a creature can evolve in the middle of a fight when its authored
+ * conditions become valid. Owned mobs never auto-pick a branch; their existing server-authoritative
+ * evolution UI remains the choice surface.
  */
 public final class NaturalEvolutionService {
     private static final String READY_EDGE_KEY = "remonster_natural_evolution_ready_edge";
     private static final String READY_SINCE_KEY = "remonster_natural_evolution_ready_since";
-    private static final String LAST_COMBAT_KEY = "remonster_natural_evolution_last_combat";
-    private static final long OUT_OF_COMBAT_TICKS = 100L;
     private static final long READY_DEBOUNCE_TICKS = 100L;
 
     private NaturalEvolutionService() {
@@ -39,17 +38,6 @@ public final class NaturalEvolutionService {
         }
 
         long gameTime = mob.level().getGameTime();
-        if (isInCombat(mob)) {
-            mob.getPersistentData().putLong(LAST_COMBAT_KEY, gameTime);
-            clearReadyState(mob);
-            return;
-        }
-
-        long lastCombat = mob.getPersistentData().getLong(LAST_COMBAT_KEY);
-        if (lastCombat > 0L && gameTime - lastCombat < OUT_OF_COMBAT_TICKS) {
-            clearReadyState(mob);
-            return;
-        }
 
         // Never silently transform another character's companion. Owned branch choices already have UI.
         if (isOwned(mob)) {
@@ -111,10 +99,6 @@ public final class NaturalEvolutionService {
             return true;
         }
         return mob instanceof OwnableEntity ownable && ownable.getOwnerUUID() != null;
-    }
-
-    private static boolean isInCombat(Mob mob) {
-        return mob.getTarget() != null || mob.hurtTime > 0 || mob.isAggressive();
     }
 
     private static void clearReadyState(Mob mob) {
