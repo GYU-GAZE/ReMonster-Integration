@@ -1,7 +1,7 @@
 package com.gyugaze.remonsterintegration.mixin.tensura;
 
 import com.gyugaze.remonsterintegration.tensura.TensuraDirewolfEvolutionCompat;
-import io.github.manasmods.tensura.entity.DirewolfEntity;
+import io.github.manasmods.tensura.entity.monster.DirewolfEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
