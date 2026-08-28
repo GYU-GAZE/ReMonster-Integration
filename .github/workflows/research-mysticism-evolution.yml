@@ -1,0 +1,44 @@
+name: research-mysticism-evolution
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/research-mysticism-evolution.yml'
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Download exact Mysticism runtime jar
+        shell: bash
+        run: |
+          curl -fL 'https://edge.forgecdn.net/files/8379/529/mysticism-neoforge-2.1.2.jar' -o /tmp/mysticism.jar
+          echo '=== FILES MATCHING RACE / WOLF / EVOLUTION ==='
+          jar tf /tmp/mysticism.jar | grep -Ei 'race|wolf|dire|evol|mixin' || true
+          echo '=== ALL MIXINS JSON ==='
+          for f in $(jar tf /tmp/mysticism.jar | grep 'mixins.*json$'); do echo =====$f=====; unzip -p /tmp/mysticism.jar "$f"; echo; done
+      - name: Decompile race and wolf related classes
+        shell: bash
+        run: |
+          for entry in $(jar tf /tmp/mysticism.jar | grep '\.class$' | grep -Ei 'race|wolf|dire|evol|mixin'); do
+            cls=${entry%.class}; cls=${cls//\//.}
+            echo "===== $cls ====="
+            javap -classpath /tmp/mysticism.jar -p -c "$cls" || true
+          done
+      - name: Search binary references to base Direwolf mob APIs
+        shell: bash
+        run: |
+          rm -rf /tmp/mysticism-classes && mkdir /tmp/mysticism-classes
+          cd /tmp/mysticism-classes
+          jar xf /tmp/mysticism.jar
+          for needle in 'DirewolfEntity' 'DirewolfVariant' 'INameEvolution' 'RaceHelper' 'tensura:direwolf'; do
+            echo "=== REFERENCES: $needle ==="
+            grep -RIl --binary-files=text "$needle" . || true
+          done
