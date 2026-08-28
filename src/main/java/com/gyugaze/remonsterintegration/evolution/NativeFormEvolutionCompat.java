@@ -14,6 +14,21 @@ public final class NativeFormEvolutionCompat {
     private NativeFormEvolutionCompat() {
     }
 
+    /**
+     * Lets the native adapter validate state/branch constraints before an edge is exposed as eligible.
+     * The graph still owns whether an edge exists and its authored Re:Monster requirements; the source
+     * mod remains the source of truth for native form-selection semantics that would otherwise be copied.
+     */
+    public static Eligibility evaluateEligibility(
+            LivingEntity entity,
+            SpeciesBodyProfile.NativeFormBody body
+    ) {
+        if (TENSURA_DIREWOLF.equals(body.adapter())) {
+            return TensuraDirewolfEvolutionCompat.evaluateTransition(entity, body.form());
+        }
+        return Eligibility.failure("Unsupported native-form adapter: " + body.adapter());
+    }
+
     public static ApplyResult apply(
             LivingEntity entity,
             SpeciesBodyProfile.NativeFormBody body,
@@ -36,6 +51,16 @@ public final class NativeFormEvolutionCompat {
             return SpeciesBodyProfileRegistry.speciesForNativeForm(TENSURA_DIREWOLF, direwolfForm.get());
         }
         return Optional.empty();
+    }
+
+    public record Eligibility(boolean eligible, String detail) {
+        public static Eligibility success(String detail) {
+            return new Eligibility(true, detail);
+        }
+
+        public static Eligibility failure(String detail) {
+            return new Eligibility(false, detail);
+        }
     }
 
     public record ApplyResult(boolean success, String detail) {
