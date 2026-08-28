@@ -13,6 +13,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Comparator;
 import java.util.List;
@@ -69,7 +70,6 @@ public final class SubordinateTargetingService {
             try {
                 return SubordinateTargetingMode.valueOf(data.getString(DATA_KEY).toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException ignored) {
-                // Fall through to the neutral compatibility default.
             }
         }
         return SubordinateTargetingMode.NEUTRAL;
@@ -79,7 +79,6 @@ public final class SubordinateTargetingService {
         return !(target instanceof ISubordinate) && target.getPersistentData().contains(DATA_KEY);
     }
 
-    /** Called by a very small Mob tick mixin; exits immediately for native/unconfigured mobs. */
     public static void tickExternal(Mob target) {
         if (target.level().isClientSide()
                 || target instanceof ISubordinate
@@ -239,7 +238,6 @@ public final class SubordinateTargetingService {
         }
 
         if (McaSubordinateAdapter.isGuard(target)) {
-            // Native MCA guards already have ArcherMovementTask/BowTask or their melee package.
             target.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, candidate);
             return;
         }
@@ -273,14 +271,14 @@ public final class SubordinateTargetingService {
         target.getPersistentData().putLong(NEXT_MCA_CIVIL_ATTACK_TICK, gameTime + MCA_CIVIL_ATTACK_COOLDOWN);
     }
 
-    /**
-     * Mirrors MCA's BowTask plus the important distance bands from ArcherMovementTask without installing
-     * the guard/archer Brain package on an ordinary civilian. Kiting keeps the bow drawn; emergency
-     * flee cancels the shot just like MCA's native archer does.
-     */
     private static boolean driveMcaCivilBowCombat(Mob target, LivingEntity candidate) {
-        if (!McaSubordinateAdapter.equipBestBowFromInventory(target)
-                || !(target.getMainHandItem().getItem() instanceof BowItem bow)) {
+        if (!McaSubordinateAdapter.equipBestBowFromInventory(target)) {
+            McaBowPositioningService.reset(target);
+            return false;
+        }
+
+        Optional<ItemStack> heldBow = McaSubordinateAdapter.getHeldBowStack(target);
+        if (heldBow.isEmpty() || !(heldBow.get().getItem() instanceof BowItem bow)) {
             McaBowPositioningService.reset(target);
             return false;
         }
@@ -309,7 +307,7 @@ public final class SubordinateTargetingService {
         }
 
         if (!target.isUsingItem()) {
-            target.startUsingItem(InteractionHand.MAIN_HAND);
+            McaSubordinateAdapter.getHeldBowHand(target).ifPresent(target::startUsingItem);
             return true;
         }
 
