@@ -96,6 +96,12 @@ public final class MobChampionProgressionService {
                 data.putString(UNIQUE_ID_KEY, granted.toString());
             }
         }
+
+        // Some Tensura skills change effective magicule/aura capacity as soon as they are learned.
+        // ExistenceStorage applies Magicule Poison to ANY LivingEntity when stale current magicule is
+        // above the new effective maximum, which made certain MCA villagers/dragons die instantly based
+        // on the random champion skill they rolled. Normalize current pools after every birth package.
+        TensuraExistenceBridge.clampCurrentEnergyToCapacity(entity);
     }
 
     /**
