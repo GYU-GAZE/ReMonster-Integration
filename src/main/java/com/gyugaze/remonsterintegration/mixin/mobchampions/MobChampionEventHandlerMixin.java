@@ -1,14 +1,11 @@
 package com.gyugaze.remonsterintegration.mixin.mobchampions;
 
-import com.gyugaze.remonsterintegration.compat.MobChampionProgressionService;
 import com.gyugaze.remonsterintegration.compat.MobChampionsUniversalPolicy;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
@@ -29,11 +26,6 @@ public abstract class MobChampionEventHandlerMixin {
             LivingEntity entity
     ) {
         return MobChampionsUniversalPolicy.allowConfiguredOrUniversal(configuredWhitelist, entityTypeId, entity);
-    }
-
-    @Inject(method = "addRandomChampion", at = @At("RETURN"), remap = false)
-    private static void remonster$applyChampionBirthBonuses(LivingEntity entity, CallbackInfo ci) {
-        MobChampionProgressionService.applySpawnBonuses(entity);
     }
 
     @Redirect(
