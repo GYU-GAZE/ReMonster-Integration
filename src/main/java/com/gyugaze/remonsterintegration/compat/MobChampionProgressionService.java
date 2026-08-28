@@ -1,6 +1,7 @@
 package com.gyugaze.remonsterintegration.compat;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
+import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import io.github.manasmods.tensura.registry.skill.CommonSkills;
 import io.github.manasmods.tensura.registry.skill.ExtraSkills;
@@ -26,11 +27,13 @@ import java.util.Set;
  *
  * MobChampions remains authoritative for rank generation and its own stat/equipment/effect package.
  * Re:Monster adds three rank-facing consequences:
- * - bonus EP reward when this entity is defeated (applied in the Tensura EnergyHelper mixin),
+ * - a one-time higher Tensura baseMaxEP floor, making the individual itself stronger,
  * - a visible size modifier,
  * - one random Common/Extra skill for every champion and one additional Unique skill for Legendary.
  *
- * Skill rolls are persisted on the individual so chunk reloads and physical evolution never reroll them.
+ * The rank EP floor and skill rolls are persisted on the individual so chunk reloads and physical
+ * evolution never stack or reroll them. Native Tensura EP gained later remains ordinary progression
+ * above that birth floor.
  */
 public final class MobChampionProgressionService {
     private static final ResourceLocation SCALE_MODIFIER_ID = ResourceLocation.fromNamespaceAndPath(
@@ -38,6 +41,8 @@ public final class MobChampionProgressionService {
             "mobchampions_rank_scale"
     );
 
+    private static final String RANK_EP_APPLIED_KEY = "remonster_mobchampions_rank_ep_applied";
+    private static final String RANK_EP_FLOOR_KEY = "remonster_mobchampions_rank_ep_floor";
     private static final String ABILITY_ROLLED_KEY = "remonster_mobchampions_ability_rolled";
     private static final String ABILITY_ID_KEY = "remonster_mobchampions_ability_id";
     private static final String UNIQUE_ROLLED_KEY = "remonster_mobchampions_unique_rolled";
@@ -55,7 +60,7 @@ public final class MobChampionProgressionService {
     private MobChampionProgressionService() {
     }
 
-    /** Called after MobChampions has initialized/synchronized the entity's rank. */
+    /** Called after MobChampions and Re:Monster Mob Profiles have established the entity's spawn state. */
     public static void applySpawnBonuses(LivingEntity entity) {
         if (entity.level().isClientSide() || !entity.isAlive()) {
             return;
@@ -73,6 +78,7 @@ public final class MobChampionProgressionService {
         }
 
         MobChampionsBridge.ChampionRank rank = rankOptional.get();
+        applyRankEpFloor(entity, rank, data);
         applyScaleModifier(entity, scaleFor(rank));
 
         if (!data.getBoolean(ABILITY_ROLLED_KEY)) {
@@ -93,18 +99,38 @@ public final class MobChampionProgressionService {
     }
 
     /**
-     * Native Tensura EP reward multiplier for the defeated champion.
-     * Common/non-champion entities remain exactly 1x.
+     * Applies the rank percentage to the individual's starting baseMaxEP exactly once.
+     * Later native Tensura growth is not multiplied again; the persisted result only acts as a floor.
      */
-    public static double epRewardMultiplier(LivingEntity defeated) {
-        return MobChampionsBridge.getChampionRank(defeated)
-                .map(rank -> switch (rank) {
-                    case UNCOMMON -> 1.25D;   // +25%
-                    case RARE -> 1.50D;       // +50%
-                    case EPIC -> 2.00D;       // +100%
-                    case LEGENDARY -> 3.00D;  // +200%
-                })
-                .orElse(1.0D);
+    private static void applyRankEpFloor(
+            LivingEntity entity,
+            MobChampionsBridge.ChampionRank rank,
+            CompoundTag data
+    ) {
+        double current = TensuraExistenceBridge.getBaseMaxEp(entity);
+        if (!data.getBoolean(RANK_EP_APPLIED_KEY)) {
+            double floor = current * baseEpMultiplierFor(rank);
+            if (floor > current) {
+                TensuraExistenceBridge.setBaseMaxEpPreservingEnergyRatio(entity, floor);
+            }
+            data.putBoolean(RANK_EP_APPLIED_KEY, true);
+            data.putDouble(RANK_EP_FLOOR_KEY, Math.max(current, floor));
+            return;
+        }
+
+        double floor = data.getDouble(RANK_EP_FLOOR_KEY);
+        if (floor > current + 1.0E-9D) {
+            TensuraExistenceBridge.setBaseMaxEpPreservingEnergyRatio(entity, floor);
+        }
+    }
+
+    public static double baseEpMultiplierFor(MobChampionsBridge.ChampionRank rank) {
+        return switch (rank) {
+            case UNCOMMON -> 1.25D;
+            case RARE -> 1.50D;
+            case EPIC -> 2.00D;
+            case LEGENDARY -> 3.00D;
+        };
     }
 
     public static double scaleFor(MobChampionsBridge.ChampionRank rank) {
@@ -116,12 +142,12 @@ public final class MobChampionProgressionService {
         };
     }
 
-    /** Prevents a replacement body from rolling a fresh champion skill during finalizeSpawn. */
+    /** Prevents a replacement body from rolling a fresh champion skill/EP bonus during finalizeSpawn. */
     public static void markEvolutionTransfer(LivingEntity target) {
         target.getPersistentData().putBoolean(EVOLUTION_TRANSFER_KEY, true);
     }
 
-    /** Clears the temporary transfer guard and restores the source individual's rank scale. */
+    /** Clears the temporary transfer guard and restores the source individual's persisted rank bonuses. */
     public static void finishEvolutionTransfer(LivingEntity target) {
         target.getPersistentData().remove(EVOLUTION_TRANSFER_KEY);
         applySpawnBonuses(target);
