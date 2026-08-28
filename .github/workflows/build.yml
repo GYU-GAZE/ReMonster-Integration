@@ -37,6 +37,10 @@ jobs:
           javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.template.subclass.INameEvolution
 
           javap -classpath "$JAR" -p -c io.github.manasmods.tensura.entity.monster.DirewolfEntity > /tmp/direwolf.bytecode
+          echo '=== DIREWOLF canBeNamed ==='
+          grep -F -A 80 'public boolean canBeNamed' /tmp/direwolf.bytecode || true
+          echo '=== DIREWOLF evolution state accessors ==='
+          grep -E -A 35 'public int get(Max|Current)EvolutionState|public void setCurrentEvolutionState' /tmp/direwolf.bytecode || true
           echo '=== DIREWOLF onPreNamed ==='
           grep -F -A 180 'public void onPreNamed' /tmp/direwolf.bytecode || true
 
