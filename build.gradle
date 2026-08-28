@@ -126,36 +126,8 @@ var extractManasCoreModules = tasks.register('extractManasCoreModules', Sync) {
     into layout.buildDirectory.dir('manascore-compile-modules')
 }
 
-// TEMPORARY RECONNAISSANCE: print every Direwolf-named class from the resolved compile jars.
-// Task inputs carry the classpath into execution so Gradle's configuration cache remains valid.
-var inspectTensuraDirewolfClass = tasks.register('inspectTensuraDirewolfClass') {
-    dependsOn extractManasCoreModules
-    inputs.files(configurations.compileClasspath)
-    doLast {
-        inputs.files.files.each { candidate ->
-            if (!candidate.isFile() || !candidate.name.endsWith('.jar')) {
-                return
-            }
-
-            def zip = new java.util.zip.ZipFile(candidate)
-            try {
-                zip.entries().each { entry ->
-                    if (!entry.directory
-                            && entry.name.endsWith('.class')
-                            && entry.name.toLowerCase(Locale.ROOT).contains('direwolf')) {
-                        println "[Direwolf class probe] ${candidate.name} :: ${entry.name}"
-                    }
-                }
-            } finally {
-                zip.close()
-            }
-        }
-    }
-}
-
 tasks.named('compileJava').configure {
     dependsOn extractManasCoreModules
-    dependsOn inspectTensuraDirewolfClass
 }
 
 var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
