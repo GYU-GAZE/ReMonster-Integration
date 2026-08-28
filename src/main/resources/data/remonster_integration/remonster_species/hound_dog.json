@@ -1,0 +1,8 @@
+{
+  "species": "tensura:hound_dog",
+  "entity_body": {
+    "entity_type": "tensura:hound_dog",
+    "preserve_equipment": true,
+    "reinforce_base_stats": true
+  }
+}
