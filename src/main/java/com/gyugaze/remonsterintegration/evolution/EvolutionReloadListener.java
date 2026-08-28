@@ -87,9 +87,12 @@ public final class EvolutionReloadListener extends SimpleJsonResourceReloadListe
                 parseIds(object, "any_biome_tags", sourceId),
                 parseIds(object, "forbidden_biome_tags", sourceId),
                 parseIds(object, "dimensions", sourceId),
+                parseIds(object, "forbidden_dimensions", sourceId),
                 ownership,
                 getOptionalInt(object, "min_block_light"),
-                getOptionalInt(object, "max_block_light")
+                getOptionalInt(object, "max_block_light"),
+                getOptionalInt(object, "min_y"),
+                getOptionalInt(object, "max_y")
         );
     }
 
