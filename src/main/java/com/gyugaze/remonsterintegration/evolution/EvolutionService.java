@@ -2,6 +2,9 @@ package com.gyugaze.remonsterintegration.evolution;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
+import io.github.manasmods.manascore.race.api.ManasRace;
+import io.github.manasmods.manascore.race.api.RaceAPI;
+import io.github.manasmods.manascore.race.api.Races;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,7 +28,7 @@ public final class EvolutionService {
 
         Optional<ResourceLocation> currentOptional = SpeciesStateService.getSpecies(entity);
         if (currentOptional.isEmpty()) {
-            return EvolutionResult.failure(null, targetSpecies, "Target has no Re:Monster semantic species state");
+            return EvolutionResult.failure(null, targetSpecies, "Target has no Re:Monster species identity");
         }
 
         ResourceLocation current = currentOptional.get();
@@ -38,6 +41,43 @@ public final class EvolutionService {
         EvolutionRequirementService.Evaluation evaluation = EvolutionRequirementService.evaluate(entity, definition);
         if (!evaluation.eligible()) {
             return EvolutionResult.failure(current, targetSpecies, evaluation.failureReason());
+        }
+
+        // Bound species are native Tensura races, not a second semantic race layered on top. Delegate the
+        // authoritative transition to RaceStorage so onRaceEvolution, intrinsic skills, attributes and all
+        // native hooks run exactly once. RaceStorageEvolutionMixin mirrors the project body and feedback.
+        Optional<ResourceLocation> nativeRaceId = SpeciesBodyProfileRegistry.nativeRaceForSpecies(targetSpecies);
+        if (nativeRaceId.isPresent()) {
+            ManasRace nativeRace = RaceAPI.getRaceRegistry().get(nativeRaceId.get());
+            if (nativeRace == null) {
+                return EvolutionResult.failure(
+                        current,
+                        targetSpecies,
+                        "Bound native race is not registered: " + nativeRaceId.get()
+                );
+            }
+
+            Races races = RaceAPI.getRaceFrom(entity);
+            if (!races.evolveRace(nativeRace)) {
+                return EvolutionResult.failure(
+                        current,
+                        targetSpecies,
+                        "Native RaceStorage rejected evolution to " + nativeRaceId.get()
+                );
+            }
+
+            ReMonsterIntegration.LOGGER.info(
+                    "Evolution delegated to native race for {}: {} -> {} ({})",
+                    entity.getUUID(),
+                    current,
+                    targetSpecies,
+                    nativeRaceId.get()
+            );
+            return EvolutionResult.success(
+                    current,
+                    targetSpecies,
+                    "native-race=" + nativeRaceId.get() + " | project body synchronized"
+            );
         }
 
         Component actorName = entity.getDisplayName().copy();
@@ -84,7 +124,9 @@ public final class EvolutionService {
             bodyResult += " | townsteadScale=" + targetScale;
         }
 
-        SpeciesStateService.setSpecies(evolvedEntity, targetSpecies);
+        if (!SpeciesStateService.setSpecies(evolvedEntity, targetSpecies)) {
+            return EvolutionResult.failure(current, targetSpecies, "Failed to synchronize target species identity");
+        }
         EvolutionFeedbackService.announce(evolvedEntity, actorName, targetSpecies);
         ReMonsterIntegration.LOGGER.info(
                 "Evolution applied to {}: {} -> {} ({})",
