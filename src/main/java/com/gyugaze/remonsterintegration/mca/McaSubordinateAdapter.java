@@ -5,9 +5,9 @@ import com.gyugaze.remonsterintegration.subordinate.SubordinateMovementMode;
 import com.gyugaze.remonsterintegration.tensura.TensuraSubordinateBridge;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BowItem;
@@ -60,15 +60,6 @@ public final class McaSubordinateAdapter {
 
     /**
      * Projects the strongest actual main-hand melee item from the MCA inventory into the dominant slot.
-     *
-     * Selection is intentionally item-class agnostic. Vanilla tools, swords and modded weapons all
-     * qualify when their gameplay MAINHAND attribute modifiers increase ATTACK_DAMAGE. The score uses
-     * the same AttributeModifier operation order as a living attribute: additive modifiers first,
-     * multiplied-base modifiers second and multiplied-total modifiers last. This avoids treating item
-     * durability as weapon strength and avoids requiring third-party weapons to extend SwordItem.
-     *
-     * MCA 7.7.36-beta.3 already uses an inventory-as-equipment model. We keep that model and merely
-     * expose the chosen stack through the dominant equipment slot while Re:Monster commands combat.
      */
     public static boolean equipBestMeleeWeaponFromInventory(LivingEntity villager) {
         Objects.requireNonNull(villager, "villager");
@@ -145,9 +136,9 @@ public final class McaSubordinateAdapter {
     }
 
     /**
-     * Projects the best BowItem already stored in an MCA civilian's inventory into its dominant slot.
-     * This mirrors MCA's own inventory-backed equipment model while keeping ordinary-villager Brain
-     * activities unchanged.
+     * Projects the best BowItem already stored in an MCA civilian's inventory into MCA's own dominant
+     * equipment slot. Re:Monster deliberately does not force MAIN_HAND: MCA's native ranged attack is
+     * hand-agnostic and resolves whichever hand actually holds the bow.
      */
     public static boolean equipBestBowFromInventory(LivingEntity villager) {
         Objects.requireNonNull(villager, "villager");
@@ -188,11 +179,27 @@ public final class McaSubordinateAdapter {
         }
     }
 
+    /** Returns the actual hand currently holding a bow, matching MCA's native hand-agnostic ranged logic. */
+    public static Optional<InteractionHand> getHeldBowHand(LivingEntity villager) {
+        Objects.requireNonNull(villager, "villager");
+        if (villager.getMainHandItem().getItem() instanceof BowItem) {
+            return Optional.of(InteractionHand.MAIN_HAND);
+        }
+        if (villager.getOffhandItem().getItem() instanceof BowItem) {
+            return Optional.of(InteractionHand.OFF_HAND);
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<ItemStack> getHeldBowStack(LivingEntity villager) {
+        return getHeldBowHand(villager).map(villager::getItemInHand);
+    }
+
     /** Invokes MCA's own VillagerEntityMCA#performRangedAttack implementation. */
     public static boolean performHeldBowAttack(LivingEntity villager, LivingEntity target, float pullProgress) {
         Objects.requireNonNull(villager, "villager");
         Objects.requireNonNull(target, "target");
-        if (!isMcaVillager(villager) || isGuard(villager) || !(villager.getMainHandItem().getItem() instanceof BowItem)) {
+        if (!isMcaVillager(villager) || isGuard(villager) || getHeldBowHand(villager).isEmpty()) {
             return false;
         }
 
@@ -242,8 +249,6 @@ public final class McaSubordinateAdapter {
     /**
      * Maps the common movement vocabulary to MCA's native MoveState enum:
      * WANDER -> MOVE, STAY -> STAY, FOLLOW -> FOLLOW.
-     *
-     * Reflection keeps MCA an optional runtime integration and avoids a hard classloading dependency.
      */
     public static boolean setMovementMode(LivingEntity villager, SubordinateMovementMode mode, Player owner) {
         Objects.requireNonNull(villager, "villager");
