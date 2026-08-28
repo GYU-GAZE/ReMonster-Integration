@@ -26,6 +26,25 @@ jobs:
       - name: Build
         run: gradle build --stacktrace
 
+      - name: Locate native name-evolution trigger
+        if: success()
+        shell: bash
+        run: |
+          JAR=$(find ~/.gradle/caches -type f -name '*8665599*.jar' | head -n 1)
+          test -n "$JAR"
+          TMP=$(mktemp -d)
+          cd "$TMP"
+          jar xf "$JAR"
+
+          echo '=== NAME-EVOLUTION CLASSES ==='
+          find . -type f -iname '*Name*Evol*.class' -o -iname '*Evol*Name*.class' | sort
+
+          echo '=== CLASSES REFERENCING INameEvolution ==='
+          grep -R -a -l 'INameEvolution' io/github/manasmods/tensura 2>/dev/null | sort | head -n 80
+
+          echo '=== DIREWOLF NAME / EVOLUTION METHODS ==='
+          javap -classpath "$JAR" -p io.github.manasmods.tensura.entity.monster.DirewolfEntity | grep -Ei 'name|evol|variant|star' || true
+
       - name: Inspect Better Subordinates status transition
         if: success()
         shell: bash
