@@ -1,400 +1,383 @@
 # Roadmap
 
-This roadmap is ordered by dependency and risk. Existing mods remain authoritative for the gameplay state they already own; Re:Monster Integration bridges those systems instead of creating parallel sources of truth.
+This roadmap is ordered by dependency and content-authoring risk. Existing mods remain authoritative for gameplay state they already own; Re:Monster Integration composes those systems rather than creating competing copies.
 
-See [`AUTHORITY_MATRIX.md`](AUTHORITY_MATRIX.md) before adding or changing cross-mod state.
+Read [`AUTHORITY_MATRIX.md`](AUTHORITY_MATRIX.md) before changing cross-mod state and [`TARGET_PACK_CONFIG.md`](TARGET_PACK_CONFIG.md) before changing target-pack progression balance.
 
 ## Status convention
 
-- `[x]` means implementation exists.
-- **runtime-proven** means the behavior was observed working in the actual 1.21.1 target modpack.
-- **runtime-retest pending** means a concrete fix exists and compiles but that exact corrected path still needs an in-game confirmation.
-- **pack cleanup** means a redundant external mod/config/data artifact should be removed from the assembled modpack rather than duplicated in Re:Monster.
+- `[x]` implementation exists
+- **runtime-proven** behavior was observed in the real 1.21.1 target modpack
+- **runtime-retest pending** a concrete fix exists and compiles but that exact corrected path still needs in-game confirmation
+- **content-authoring** infrastructure exists and the remaining work is canonical data/design rather than architecture
 
-# Current milestone - Ecology / spawn / aggro handoff
+# Current milestone - final authority handoff, then canonical content
 
-The progression/subordinate/evolution infrastructure batch is complete enough to leave architecture-first development. The next major gameplay pass is world ecology: deciding what can spawn, where, how often, how far from the player and how aggressively it can acquire targets.
+The architecture/debug era is effectively complete. One final compatibility build remains intentionally unmerged until the combined Townstead + MCA Capitals dialogue path is confirmed in-game.
 
-Before starting new ecology content, the assembled pack should remove the two audited legacy overlaps:
+- [x] keep **Tensura: Skill Obtain 1.1** as the player-facing authored kill-skill drop system
+- [x] make Re:Monster kill acquisition permanently **non-player only**
+- [x] keep **EPGains 0.0.18** as the sole existence-to-combat-power scaler
+- [x] remove Re:Monster's redundant EP-to-vanilla-stat growth implementation
+- [x] pin corrected EPGains target-pack rates in `TARGET_PACK_CONFIG.md`
+- [x] designate **Tensura: Unique Monsters** for removal; MobChampions is the sole generic elite system
+- [x] inspect the real Townstead / MCA Capitals `getTranslatable` overwrite collision
+- [x] implement composition order: MCA Capitals political line -> Townstead species/personality voice -> ordinary MCA fallback
+- [x] final authority-cleanup branch compiles successfully in CI
+- [ ] **runtime-retest pending:** verify the Townstead + MCA Capitals dialogue composition in the full pack
+- [ ] merge final authority-cleanup PR after that runtime proof
+- [ ] remove `tr_unique_monsters` from the assembled modpack
+- [ ] write corrected EPGains values into the assembled pack config
 
-- [ ] **pack cleanup:** remove `Tensura: Skill Obtain` (`tensura_skillobtain`); Re:Monster now owns universal kill-driven acquisition/mastery
-- [ ] **pack cleanup:** remove `Tensura: Unique Monsters` (`tr_unique_monsters`); MobChampions is the sole generic random elite authority
+After those operational cleanup items, new work is canonical content authoring rather than proof-of-concept architecture.
 
-Compatibility guards remain in the addon so migration does not require both removals in the same launch.
+## Completed infrastructure batch - runtime proof summary
 
-## Completed progression batch - runtime proof summary
-
-- [x] arbitrary living killers use native Tensura EP/existence rather than a parallel XP system
+- [x] arbitrary compatible living entities use native Tensura existence/EP rather than parallel XP
 - [x] wild third-party mobs gain individual EP and acquisition state (**runtime-proven: Mobs of Mythology Chupacabra**)
-- [x] repeated kill acquisition can reach a fully learned skill (**runtime-proven: Iron Golem learned Voice Cannon**)
-- [x] external active-skill AI can activate real learned Tensura skills through native ability preset/cost/cooldown/lifecycle (**runtime-proven: Zombie cast Voice Cannon**)
+- [x] repeated non-player acquisition can reach a learned skill (**runtime-proven: Iron Golem learned Voice Cannon**)
+- [x] external active-skill AI invokes real ManasCore/Tensura activation/cost/cooldown lifecycle (**runtime-proven: Zombie cast Voice Cannon**)
 - [x] external aura/magicule compatibility foundation supports native learning and active-skill costs
-- [x] MobChampions eligibility is universal for compatible `Mob` entities with a datapack opt-out tag (**runtime-proven across vanilla/MCA/modded mobs**)
-- [x] MobChampions rank increases the individual's real base Max EP, physical scale and birth-skill package
-- [x] Legendary champions additionally receive one native Unique Skill
-- [x] MCA champions discard MobChampions-generated invisible equipment while preserving MCA inventory authority
-- [x] champion rank, EP bonus and rolled skills persist across controlled physical evolution (**runtime-proven**)
-- [x] MCA armed civilian self-defence preserves native MCA simulation and panic semantics (**runtime-proven**)
-- [x] ordinary MCA civilian bow approach/kite/emergency spacing works (**runtime-proven**)
-- [x] commanded/owned MCA bow conflict was fixed so civilian militia cleanup no longer cancels subordinate draw (**runtime-retest pending for this exact post-fix path**)
-- [x] MCA subordinate save/reload preserves native existence and learned skills (**runtime-proven with 39,999 EP + Water Current Control**)
-- [x] MCA Battlewill manual learning works through the real Tensura learning path (**runtime-proven**)
-- [x] generic external manual/tome bridge only consumes an item after real storage confirmation (**runtime-retest pending on non-MCA body**)
-- [x] controlled cross-EntityType evolution preserves portable identity/progression while target body keeps native initialization (**runtime-proven**)
-- [x] natural single-edge wild evolution, reusable branch conditions and owned evolution choice UI are implemented and were runtime-proven with temporary canine proof data
-- [x] evolution is allowed during combat and controlled replacement preserves the current combat target
-- [x] common evolution particles/sound/message work for controlled creature evolution and native ManasCore/Tensura race evolution
-- [x] player/native race binding uses ManasCore/Tensura as the source of truth; project semantic/body state synchronizes to it (**runtime-proven**)
-- [x] proof-only canine and Hobgoblin->Orc authored evolution recipes were removed after validation; the generic engine remains
-- [x] compatibility authority audit added; startup reports authoritative systems and legacy overlaps
-- [x] Re:Monster EP-to-vanilla-stat fallback automatically disables itself when EPGains is installed
+- [x] Tensura: Skill Obtain and Re:Monster now have deliberately separate player-vs-non-player kill-learning authority
+- [x] MobChampions eligibility is universal for compatible `Mob` entities with datapack opt-out
+- [x] MobChampions rank projects into real base Max EP, physical scale and native birth skills
+- [x] Legendary champions can receive a native Unique Skill
+- [x] MCA champions preserve MCA inventory authority rather than invisible MobChampions gear
+- [x] champion rank/EP bonus/skills survive controlled physical evolution
+- [x] MCA civilian melee/bow/panic compatibility preserves MCA simulation
+- [x] MCA subordinate save/reload preserved 39,999 EP + Water Current Control
+- [x] MCA Battlewill manual learning uses native Tensura storage
+- [x] controlled cross-EntityType evolution preserves portable progression while target body keeps native initialization
+- [x] natural single-edge evolution, reusable conditions and owned branch-choice UI were runtime-proven using temporary proof content
+- [x] proof-only evolution recipes/species mappings were removed after validation
+- [x] player/native race binding uses ManasCore/Tensura as source of truth and synchronizes project/Townstead presentation
+- [x] compatibility authority matrix covers the current target modpack
 
-Remaining narrow regression work from the batch is tracked in the relevant phases below and does not block starting the ecology pass.
+# Phase 0 - Foundation / authority - COMPLETE
 
-# Phase 0 - Foundation
-
-- [x] project repository and CI
-- [x] target runtime frozen: Minecraft 1.21.1 / NeoForge 21.1.248 / Java 21
-- [x] exact Tensura 2.0.1.2 / ManasCore 4.0.0.2 compile integration
-- [x] actual full-modpack runtime validation
-- [x] `/remonster inspect <entity>` diagnostics
-- [x] `/remonster progression status <entity>` diagnostics
-- [x] pack-wide compatibility authority matrix
-- [ ] add the complete local runtime dependency set for launching the full pack directly from the development workspace
-
-# Phase 1 - Shared Mob Profile system
-
-- [x] central `MobProfile` model
-- [x] JSON parsing/validation/reload registry
+- [x] repository + CI + Java 21 / NeoForge 21.1.248 target
+- [x] exact Tensura 2.0.1.2 / ManasCore 4.0.0.2 integration
+- [x] actual full-pack runtime validation
+- [x] entity/profile/existence/skill/ownership/MobChampions diagnostics
+- [x] Mob Profile model + JSON reload registry
 - [x] optional-mod-safe entity resolution
-- [x] disposition and tier classification
-- [x] EP values with `FALLBACK` / `MINIMUM` / `REPLACE` policy
-- [x] effective Tensura skill declarations
-- [x] learning multiplier
-- [x] dungeon/spawner weight
-- [x] MCA guard hostility policy
-- [x] ecology / habitat profile
-- [x] optional aggro/FOLLOW_RANGE override
-- [x] semantic themes/tags
-- [x] initial Wyrmroost catalog
-- [x] initial Legendary Monsters boss profiles
-- [ ] automatically reapply changed profiles to already-loaded matching entities after datapack reload
-- [ ] author/balance the broader final profile catalog for the installed target roster
-- [ ] add profile validation/reporting suitable for pack-author content passes
+- [x] real Tensura existence/skill bridges for arbitrary compatible LivingEntity
+- [x] Better Subordinates external/MCA storage preservation
+- [x] MCA identity/Brain/family/profession/schedule/inventory preservation contract
+- [x] native race <-> project body synchronization
+- [x] generic controlled physical evolution adapter
+- [x] reusable evolution conditions + owned choice UI + natural single-edge trigger
+- [x] explicit cross-mod authority matrix
+- [x] no production proof/test evolution content
+- [ ] add the complete full-pack runtime dependency set for direct local dev launches when useful
 
-# Phase 2 - Tensura / cross-mod existence integration
+# Phase 1 - Native evolution atlas and form adapter - NEXT
 
-Authority: Tensura owns existence/EP and skills; dedicated compatibility addons own their specific mod pair.
+Before authoring thousands of evolution edges, inventory how the installed Tensura ecosystem already represents evolution. A Re:Monster edge must delegate to the native mechanism whenever that mechanism already exists.
 
-- [x] resolve Tensura existence for arbitrary `LivingEntity`
-- [x] safe external EP/existence bridge
-- [x] ownership/alliance bridge
-- [x] generic profile application on entity join
-- [x] safe EP application preserving positive native values by default
-- [x] native ManasCore/Tensura skill assignment without duplicates
-- [x] consume skills actually present at runtime so dedicated compatibility addons remain authoritative
-- [x] Bosses'Rise x Tensura Compatibility designated authoritative for Bosses'Rise Tensura behavior
-- [x] Mysticism / SlimeThroneExtras native race+skill registries designated authoritative for their content
-- [x] EPGains designated authoritative for EP/MP/AP combat power scaling
-- [x] Tensura Modifications designated authoritative for participant EP distribution and regeneration
-- [x] explicit authority matrix for current overlapping systems
-- [ ] author/balance final EP/profile metadata for remaining third-party mobs
-- [ ] author project-owned effective skills only when no dedicated compatibility path exists
-- [ ] investigate any remaining roster-specific dedicated Tensura compatibility addons before writing project overrides
+## Evolution transition taxonomy
 
-Target roster includes Tensura/addons, Cataclysm, Mowzie's Mobs, Mowzie's Cataclysm, Mobs of Mythology, Bosses'Rise, Ice and Fire CE, Wyrmroost, Born in Chaos and future compatible fantasy-mob additions.
+Every canonical evolution transition must be classified as one of these forms:
 
-# Phase 3 - Universal skill learning from kills
+1. **native player race transition** - real ManasCore `ManasRace` evolution
+2. **native same-EntityType form transition** - variant/state/name evolution on the existing creature body
+3. **physical EntityType transition** - source body becomes a genuinely different registered creature body
 
-Authority: Re:Monster owns universal acquisition/mastery kill progression; ManasCore/Tensura owns the actual skill instance/storage/lifecycle.
+Re:Monster must never manufacture a new EntityType merely because a stronger native variant has a different name or texture.
 
-- [x] acquisition state identified as native mastery `< 0`
-- [x] exact `LivingEntity` kill credit
-- [x] profile-declared + actually-present defeated skills
-- [x] profile learning multiplier
-- [x] MobChampions learning multiplier
-- [x] native `TensuraSkill.addLearnPoint(...)` lifecycle used
-- [x] external learning energy handling without permanent artificial cost
-- [x] wild third-party acquisition (**runtime-proven**)
-- [x] repeated acquisition reaches learned state (**runtime-proven: Iron Golem -> Voice Cannon**)
-- [x] legacy `tensura_skillobtain` player path is suppressed while that redundant mod remains installed
-- [ ] remove `tensura_skillobtain` from the assembled pack
-- [ ] runtime-test unusual skill-specific mode-learning overrides
-- [ ] runtime-validate unusual clone/projectile/summon kill-credit implementations
-- [ ] expose base learning amount as configurable balance data
-- [ ] evaluate EP/profile-tier learning scaling only after ecology/balance playtests
+## Exact Tensura findings already confirmed
 
-# Phase 4 - Ecology / Spawn / Aggro Director - NEXT MAJOR PASS
+- [x] Tensura has both same-body `INameEvolution` and true EntityType evolution
+- [x] true base-Tensura EntityType chain confirmed: `lesser_daemon -> greater_daemon -> arch_daemon -> daemon_peer`
+- [x] base `tensura:direwolf` is one EntityType with a native variant/state evolution machine
+- [x] Direwolf native forms include base, Fang, Mystic, Tempest/Star-family variants rather than separate mob EntityTypes
+- [x] Direwolf native Fang selection uses biome/environment semantics
+- [x] native Direwolf evolution also changes stats/skills/state on the same individual
+- [x] other base `INameEvolution` users identified: Arch Daemon, Direwolf, Goblin, Greater Daemon, Hell Moth, Landfish, Lesser Daemon, Lizardman, Orc, Salamander, Slime, Evil Centipede and Tempest Serpent
+- [x] Mysticism 2.1.2 playable `DirewolfRace` / Fang / special wolf races contain no hooks into base Tensura `DirewolfEntity`, `DirewolfVariant` or `INameEvolution`
+- [x] therefore **Mysticism playable wolf races and base Tensura Direwolf mob forms are separate authorities despite similar names**
 
-Goal: make the world feel like one authored isekai ecosystem instead of independent mod spawn tables stacked together.
+## Atlas work
 
-## Spawn authority policy
+- [ ] inventory every native Tensura `INameEvolution` state machine and its requirements/results
+- [ ] inventory every Tensura existence-data EntityType evolution mapping
+- [ ] inventory every playable Tensura ManasRace branch and requirement
+- [ ] inventory every Mysticism playable race branch/requirement
+- [ ] inventory every SlimeThroneExtras/TNO/addon race branch/requirement
+- [ ] document which native forms change model/texture only versus stats/skills/AI/body semantics
+- [ ] identify native evolution calls that dangerously copy full old-body NBT and decide per route whether direct native execution or the controlled Re:Monster adapter is safer
+- [ ] implement a **native-form evolution adapter** so a Re:Monster graph edge can invoke/target an upstream form/variant/state without replacing EntityType
+- [ ] expose native-form identity in diagnostics and evolution choice UI
+- [ ] runtime-prove at least one same-body form edge through the unified evolution UI/graph
+- [ ] runtime-prove one native true EntityType edge through the appropriate authority path
 
-1. source-mod datapack/biome tags/modifiers first;
-2. Re:Monster/Paxi datapack override second;
-3. InControl only for conditions data cannot cleanly express;
-4. custom runtime spawn hook only as a last resort.
+# Phase 2 - Player race revamp and Re:Monster branches
 
-One mob/biome should end with one effective spawn policy.
+Goal: make the playable race ecosystem feel authored for this pack rather than a loose union of Tensura addons.
+
+Authority: ManasCore/Tensura/addon `ManasRace` remains the real player-race state. Re:Monster supplies visual mapping, cross-mod traits and genuinely new branches where native content has a gap.
+
+## Full race catalog
+
+- [ ] build a machine-readable atlas of every playable race in Tensura + Mysticism + SlimeThroneExtras/TNO/other installed race addons
+- [ ] record native parents, evolution requirements, EP bands, skills, attributes and special mechanics
+- [ ] classify overlapping/near-duplicate races before authoring new ones
+- [ ] identify lore/gameplay dead ends that deserve new Re:Monster-inspired branches
+
+## Visual revamp
+
+- [ ] bind every meaningful native race to a Townstead/project visual body recipe
+- [ ] define body scale and proportions
+- [ ] define palettes/skin/fur/scales
+- [ ] define horns/ears/tusks/tails/wings/markings and other attachments
+- [ ] define preserved/gained/lost phenotype traits across evolution
+- [ ] add project-owned Townstead roots/genes/attachments only where stock content cannot represent the race
+- [ ] validate every final visual mapping in-game
+
+## Trait / branch revamp
+
+- [ ] audit each native race's actual skills/traits before adding anything
+- [ ] add only complementary Re:Monster traits where native/addon behavior leaves a real gap
+- [ ] design new branches inspired by Re:Monster logic while fitting Tensura's existence/skill model
+- [ ] keep native requirement authority when a native target already exists
+- [ ] use project conditions for genuinely new branches or deliberate additional restrictions
+- [ ] build final Goblin -> Hobgoblin -> higher branch family first as the proving catalog
+- [ ] expand race families iteratively until every relevant playable lineage has coherent progression
+
+# Phase 3 - Bestiary Tensura skill integration
+
+Goal: every creature should participate coherently in Tensura's real skill ecosystem.
+
+## Authority order
+
+1. dedicated Tensura compatibility addon for that creature mod
+2. skills actually present on the entity at runtime
+3. Re:Monster Mob Profile authored effective/innate skills only for uncovered gaps
+
+## Content pass
+
+- [ ] inventory every living creature EntityType in the final target mod roster
+- [ ] record native AI, attacks, elements, resistances, habitats, boss status and existing Tensura compatibility
+- [ ] assign sensible real Tensura skills to uncovered mobs
+- [ ] prefer skills that describe behavior the mob visibly performs rather than arbitrary power inflation
+- [ ] avoid assigning skills that dedicated compatibility addons already provide
+- [ ] balance kill-acquisition value around the rarity/difficulty of the creature
+- [ ] feed final skill identities into Mob Profile themes, learning multipliers, dungeons and future quest metadata
+
+Target creature sources include Tensura/addons, Ice and Fire CE, Wyrmroost, Mowzie's Mobs, Mowzie's Cataclysm, L_Ender's Cataclysm, Mobs of Mythology, Bosses'Rise, Born in Chaos, Legendary Monsters and any later approved fantasy additions.
+
+# Phase 4 - Universal creature evolution atlas
+
+Goal: author coherent evolutionary lifecycles across the entire playable bestiary rather than treating every mod's creatures as isolated content islands.
+
+## Coverage target
+
+- [ ] every relevant living mob in the final game receives an evolution classification
+- [ ] creatures that semantically support evolution should generally aim for **at least four meaningful progression tiers** across their full lifecycle
+- [ ] the four-tier target is not a mechanical obligation for bosses, constructs, unique beings or creatures where invented filler forms would damage the fiction
+- [ ] every dead-end or exception must be intentional and documented
+
+A tier can be represented by:
+
+- another EntityType/body
+- a native same-body variant/form/state
+- a native player-race transition when working on player lineages
+- a deliberately authored new project form/body only when existing content cannot express the lifecycle
+
+## Authoring rules
+
+- [ ] reuse native Tensura form transitions before inventing substitutes
+- [ ] reuse compatible creatures from different installed mods when they form a believable stronger/weaker lineage
+- [ ] create new Re:Monster-inspired forms only where the roster has a genuine missing link
+- [ ] define EP, biome, dimension, skill, light, ownership and other branch conditions where meaningful
+- [ ] do not use unexplained random branching when a semantic/environmental condition can distinguish paths
+- [ ] keep owned multi-branch evolution player-chosen
+- [ ] keep wild branching deterministic from authored conditions
+- [ ] preserve portable identity/progression across unavoidable body replacement
+- [ ] preserve native AI/body initialization of the destination species
+- [ ] preserve MobChampions individual rank/bonuses
+
+## Batch order
+
+- [ ] Tensura native fauna/forms first, because they define the canonical adapter semantics
+- [ ] vanilla Minecraft creatures as roots/bridges where useful
+- [ ] Ice and Fire CE lifecycle families
+- [ ] Wyrmroost lifecycle families
+- [ ] Mowzie's Mobs / Mowzie's Cataclysm
+- [ ] L_Ender's Cataclysm
+- [ ] Mobs of Mythology
+- [ ] Born in Chaos
+- [ ] Bosses'Rise / Legendary Monsters and other boss-heavy packs with explicit unique/terminal classification
+- [ ] cross-mod gap analysis and project-owned missing forms
+- [ ] full evolution graph validation for cycles, unreachable nodes, ambiguous wild branches and nonsensical tier regressions
+
+# Phase 5 - Ecology / spawn / aggro director
+
+Ecology now follows the race/bestiary taxonomy rather than preceding it. Final lifecycle tiers, habitats and rarity semantics should inform spawn policy.
+
+## Spawn authority
+
+1. source-mod datapack/biome tags/modifiers first
+2. Re:Monster/Paxi data override second
+3. InControl only for conditions data cannot express
+4. custom runtime spawn hook last
+
+One mob/biome ends with one effective spawn policy.
 
 ## Existing foundation
 
-- [x] inventory Tensura natural spawn mechanism and 42 natural spawn modifiers
-- [x] inventory Wyrmroost spawn mechanism, weights, groups and biome tags
-- [x] prove clean Tensura biome override with Horned Rabbit
-- [x] confirm Wyrmroost is data-overridable
-- [x] semantic habitat groups + frequency/group-size model
-- [x] policy keeping bosses/elites out of ordinary spawn soup unless explicitly authored
-- [x] initial Horned Rabbit ecology rebalance
-- [x] optional profile `aggro_range`
-- [x] initial Direwolf/Barghest aggro normalization metadata
+- [x] Tensura natural spawn mechanism + 42 natural spawn modifiers inventoried
+- [x] Wyrmroost spawn mechanism/weights/groups/tags inventoried
+- [x] Horned Rabbit data override proven
+- [x] Wyrmroost data override proven
+- [x] semantic habitat/frequency/group-size model
+- [x] optional `aggro_range`
+- [x] initial Direwolf/Barghest aggro metadata
 
-## Next implementation order
+## Content pass
 
-- [ ] inventory spawn authority for Ice and Fire CE
-- [ ] inventory spawn authority for Mowzie's Mobs / Mowzie's Cataclysm
-- [ ] inventory spawn authority for Cataclysm
-- [ ] inventory spawn authority for Mobs of Mythology
-- [ ] inventory spawn authority for Born in Chaos
-- [ ] inventory Bosses'Rise / dedicated boss spawn semantics
-- [ ] inventory remaining ordinary Tensura fauna and addon mobs
-- [ ] define global ordinary-vs-rare-vs-elite/boss spawn budget
-- [ ] dramatically reduce vanilla hostile/fauna representation where the fantasy roster should replace it
-- [ ] expand curated biome/habitat overrides
+- [ ] inventory spawn authority for every final creature source mod
+- [ ] define ordinary/rare/apex/boss spawn budgets using final evolution tiers
+- [ ] dramatically reduce vanilla representation where fantasy fauna should replace it
+- [ ] expand curated habitat/biome overrides
+- [ ] prevent advanced evolution stages from casually spawning where they should instead be earned/evolved
 - [ ] tune Wyrmroost distribution
-- [ ] add minimum player spawn distance for dangerous mobs where needed
+- [ ] minimum player spawn distance for dangerous mobs where useful
 - [ ] normalize ordinary hostile Tensura FOLLOW_RANGE
-- [ ] preserve intentionally exceptional calamity/boss detection ranges
+- [ ] preserve exceptional calamity/boss sensing intentionally
 - [ ] reduce fast/flying off-screen dogpiles
-- [ ] validate pack performance and local mob density
-- [ ] full-pack ecology playtest
+- [ ] validate density/performance and run full-pack ecology playtest
 
-# Phase 5 - MCA threat bridge and civilian combat
+# Phase 6 - MCA threat / civilian combat - FOUNDATION COMPLETE
 
 Authority: MCA owns villager Brain/simulation; Re:Monster adds narrow cross-mod threat/equipment compatibility.
 
-- [x] hook MCA guard enemy sensing rather than replace guard combat AI
-- [x] profile hostile mobs can become guard targets
-- [x] owned/Tensura allies normally ignored
-- [x] active aggression can override ownership immunity
-- [x] ordinary armed MCA civilians defend themselves/nearby villagers (**runtime-proven**)
-- [x] strongest real melee weapon selection (**runtime-proven**)
-- [x] preserve MCA civilian panic/self-defence package
-- [x] hide panic presentation only while healthy/armed/engaged
-- [x] restore visible panic below 25% health
-- [x] ordinary civilian native-style bow spacing (**runtime-proven**)
-- [x] native MCA guards/archers remain untouched
-- [x] MCA MobChampions gear-cleanup prevents invisible champion equipment while preserving real MCA inventory
-- [ ] runtime-retest owned/commanded MCA bow firing after militia-vs-subordinate cleanup conflict fix
-- [ ] runtime-test native MCA guards/archers against a broader modded-hostile sample after ecology profiles expand
+- [x] guard enemy sensing bridge for profile-hostile modded mobs
+- [x] owned/Tensura allies normally ignored unless actively hostile
+- [x] ordinary armed civilians defend themselves/nearby villagers
+- [x] strongest real melee weapon selection
+- [x] preserve MCA civilian self-defence/panic semantics
+- [x] healthy armed engaged civilians suppress only the inappropriate panic presentation
+- [x] ordinary civilian native-style bow spacing
+- [x] native MCA guards/archers untouched
+- [x] MCA MobChampions gear cleanup preserves MCA inventory authority
+- [ ] runtime-retest owned/commanded MCA bow firing after the final militia/subordinate cleanup conflict fix
+- [ ] broader guard/archer hostile-roster test after bestiary profiles expand
 
-# Phase 6 - Universal subordinate / NPC progression adapter
+# Phase 7 - Universal subordinate / NPC progression - FOUNDATION COMPLETE
 
-Goal: let non-native bodies participate in real Tensura/Better Subordinates progression without replacing their own simulation systems.
-
-## MCA preservation contract
-
-- [x] MCA entity identity/UUID remains in place
-- [x] Brain/AI remains MCA-owned
-- [x] family/relationships remain MCA-owned
-- [x] profession/work/schedule remains MCA-owned
-- [x] village/home/memories remains MCA-owned
-- [x] inventory/equipment/personality/Townstead genetics remains MCA/Townstead-owned
-
-## Ownership / progression
+Authority: Tensura/Better Subordinates owns native progression; MCA owns MCA simulation; Re:Monster bridges compatible external bodies.
 
 - [x] generic permanent Tensura owner bridge
 - [x] MCA in-place ownership adapter
 - [x] Better Subordinates storage compatibility
 - [x] external/MCA real Tensura skill/mastery state
 - [x] external individual EP/existence growth
-- [x] universal external active-skill AI through native activation (**runtime-proven: Zombie Voice Cannon**)
-- [x] MCA subordinate save/reload EP+skill preservation (**runtime-proven**)
-- [x] MCA Battlewill manual learning (**runtime-proven**)
+- [x] external active-skill fallback through native activation
+- [x] MCA subordinate save/reload EP+skill persistence
+- [x] MCA Battlewill manual learning
+- [x] Follow / Wander / Stay and Neutral / Passive / Aggressive / Protect compatibility controls
+- [x] movement/targeting skill gates use native Tensura milestones
 - [ ] runtime-retest non-MCA generic manual/tome learning after storage-confirmation fix
 - [ ] runtime-verify Better Subordinates counters such as `totalKills` / `damageTaken` on an owned compatible external/MCA subordinate
 - [ ] Harvest Festival compatibility
+- [ ] consolidated movement/targeting regression on native Tensura + MCA + generic external subordinate
+- [ ] horse/Tensura mount interaction regression
+- [ ] one third-party custom-inventory subordinate regression
 
-## Command / interaction layer
+Better Subordinates owns permanent subordinate training/unlocks. Mysticism owns its copy/paste mechanics. Re:Monster does not add a second arbitrary permanent Unique-Skill teaching framework without a deliberate future design.
 
-- [x] preserve useful native screens
-- [x] decorate known subordinate screens
-- [x] generic fallback overview UI
-- [x] owned evolution choice entry point in fallback UI
-- [x] Follow / Wander / Stay
-- [x] movement gating through Telepathy / EP milestone
-- [x] Neutral / Passive / Aggressive / Protect
-- [x] targeting gating through Thought Communication mastery
-- [x] native Tensura targeting through `SubordinateHelper`
-- [x] external/MCA targeting compatibility without replacing MCA Brain
-- [ ] consolidated movement/targeting regression on one native Tensura subordinate, one MCA subordinate and one generic external subordinate
-- [ ] regression-test horse / Tensura mount native interaction paths
-- [ ] regression-test a third-party custom-inventory subordinate
+# Phase 8 - Dungeon / spawner director
 
-## Skill teaching authority
+Start after canonical bestiary tiers and the first ecology pass exist.
 
-Better Subordinates owns permanent subordinate training/unlock progression. Mysticism owns its copy/paste mechanics. Re:Monster only bridges real manuals/tomes where a player-only interaction would otherwise block compatible NPC bodies.
-
-Do not add a second arbitrary permanent Unique-Skill teaching framework without a deliberate new game design.
-
-# Phase 7 - Dungeon / Spawner Director
-
-Start after the first ecology pass establishes final habitat/tier pools.
-
-- [ ] YUNG Better Dungeons spawner integration
-- [ ] When Dungeons Arise spawner integration
-- [ ] inspect YUNG Mineshaft/Stronghold spawner opportunities only where useful
-- [ ] randomized modded-mob spawn pools
+- [ ] YUNG Better Dungeons integration
+- [ ] When Dungeons Arise integration
+- [ ] useful YUNG Mineshaft/Stronghold spawner opportunities
+- [ ] randomized modded-mob pools
 - [ ] per-structure / structure-tag pools
-- [ ] use Mob Profile tier/ecology metadata
+- [ ] use final Mob Profile tier/ecology metadata
 - [ ] allow MobChampions variants naturally
 - [ ] investigate `SpawnPotentials` rewriting for correct cage preview
-- [ ] explicitly preserve Tensura Boss Structure and other dedicated boss arenas
+- [ ] preserve dedicated Tensura boss arenas/structures
 
-# Phase 8 - Quest-system integration
+# Phase 9 - Quest-system integration
 
-The old plan for a separate Bountiful generic bounty layer is retired unless a future gap justifies it.
+## Tensura Guild - adventurer commission authority
 
-## Tensura Guild - primary adventurer commission authority
-
-- [ ] inspect extension/data points for custom modded subjugation targets
-- [ ] feed appropriate Mob Profile targets/tiers into commissions where supported
+- [ ] inspect extension/data points for modded subjugation targets
+- [ ] feed appropriate final Mob Profile targets/tiers into commissions where supported
 - [ ] preserve native guild rank/party/commission state
-- [ ] use dedicated boss/structure content rather than parallel quest state where Tensura Guild already supports it
 
 ## MCA: Quests - villager/local quest authority
 
-- [ ] author monster-hunt quest templates through MCA: Quests datapacks
-- [ ] connect Mob Profile targets/tiers through data or custom objective adapters where practical
+- [ ] author monster-hunt quest templates through MCA: Quests data
+- [ ] bridge profile targets/tiers through data/custom objectives where practical
 - [ ] preserve MCA quest offer/progress/turn-in/favor authority
-- [ ] evaluate village projects for fantasy-civilization objectives later
+- [ ] village projects for fantasy-civilization objectives later
 
-# Phase 9 - Starting Unique Skill selector
+A third generic Bountiful-style bounty system remains intentionally out unless a concrete gap appears.
 
-- [ ] inspect all installed addons that alter reincarnation/starting skills before implementation
-- [ ] replace/intercept starting skill selection only through native ManasCore/Tensura storage
-- [ ] searchable direct Unique Skill selection
-- [ ] configurable selected-skill count
-- [ ] random mode + configurable random count
-- [ ] blacklist/pool controls across installed skill registries
-- [ ] server-side validation
-- [ ] first-login/reset/reincarnation compatibility
+# Phase 10 - MCA-backed fantasy civilizations
 
-# Phase 10 - Native race <-> Townstead body bridge
+Start after race visuals/traits and ecology provide stable species identities and settlements.
 
-Authority correction: **ManasCore/Tensura native race is the source of truth.** Re:Monster semantic species is a bound projection/body/content key for native player races, not an independent competing player race.
-
-- [x] data-driven species -> native race binding
-- [x] setting a bound Re:Monster player species updates the real native race
-- [x] native race changes update the bound project species/body state
-- [x] native evolution emits common Re:Monster evolution feedback
-- [x] Townstead body/root mapping
-- [x] deterministic phenotype seed
-- [x] preserve compatible visual loci
-- [x] Townstead recalculation/sync
-- [x] scale adapter
-- [x] Hobgoblin / Orc / Ogre native bindings retained as body-mapping foundation
-
-## Deferred visual content pass
-
-- [ ] inventory every meaningful playable native Tensura/Mysticism/SlimeThroneExtras race used by the pack
-- [ ] bind each to a Townstead/project-owned visual body recipe
-- [ ] scales/palettes/horns/ears/tusks/markings/proportions
-- [ ] preserved/gained/lost phenotype traits across native evolution
-- [ ] custom roots/attachments only where stock Townstead assets are insufficient
-- [ ] validate all final mapped player races in game
-
-# Phase 11 - Expanded player race evolution
-
-Authority: native ManasCore/Tensura race evolution requirements remain authoritative whenever the target race already exists.
-
-- [x] native race/evolution framework located
-- [x] project branch injection can expose an additional existing native target race
-- [x] native race progress/requirements remain native instead of being overwritten by duplicate Re:Monster percentages
-- [x] native evolution -> project species/body/feedback synchronization
-- [x] proof branch infrastructure runtime-tested
-- [x] proof-only authored Hobgoblin->Orc edge removed after validation
-- [ ] inspect final desired race tree across Tensura + Mysticism + SlimeThroneExtras
-- [ ] add only genuinely missing project branches
-- [ ] use project conditions only as additional restrictions where native target behavior cannot express the design
-- [ ] build final Goblin/Hobgoblin/higher content tree after race audit
-- [ ] assign final phenotype recipes during visual mapping pass
-
-# Phase 12 - Creature / subordinate evolution
-
-Architecture is implemented and runtime-proven. Current bundled proof recipes were deliberately removed so temporary test balance does not silently become production canon.
-
-- [x] data-driven directed evolution graph
-- [x] EP + skill + biome + dimension + ownership + block-light conditions
-- [x] external EntityType replacement adapter
-- [x] keep target body native AI/Brain/goals/base initialization
-- [x] transfer portable Re:Monster/Tensura/Better Subs/tame/name/equipment/health state
-- [x] avoid loading full old-body NBT into the new body
-- [x] preserve MobChampions rank/individual champion bonuses
-- [x] automatic wild evolution for a single unambiguous eligible edge
-- [x] deterministic data-authored branch selection rules
-- [x] owned evolution choice UI
-- [x] evolution can occur in combat and preserve target
-- [x] common evolution audiovisual feedback
-- [x] temporary canine proof chain runtime-validated then removed from production data
-- [ ] inspect native evolution capability of each final candidate before using controlled replacement
-- [ ] author final canonical creature evolution catalog from the final mod roster
-- [ ] runtime-test owner/tame/Better-Subs persistence across one final canonical owned evolution after content is authored
-- [ ] keep debug commands as pack-author diagnostics only
-
-# Phase 13 - MCA-backed fantasy civilizations
-
-Start after ecology establishes where civilizations and threats belong.
-
-MCA remains the citizen simulation authority; Townstead owns phenotype; Tensura/ManasCore owns race/EP/skills; MCA Capitals owns monarchy/diplomacy; MCA: Quests owns villager-local quest state.
+MCA owns citizens; Townstead owns phenotype; Tensura/ManasCore owns race/EP/skills; MCA Capitals owns monarchy/diplomacy; MCA: Quests owns local quest state.
 
 ## Goblin civilization first
 
-- [ ] MCA-backed Goblin civilian prototype bound to a real native Tensura race
-- [ ] Townstead Goblin visual identity
-- [ ] tribal clothing pools
-- [ ] tribal guard equipment/loadouts
-- [ ] preserve relevant native Tensura Goblin trade/content where useful
-- [ ] naming + native Goblin -> Hobgoblin semantics
-- [ ] bridge eligible settlements into MCA Capitals rather than build separate kingdom state
-- [ ] use MCA: Quests for local jobs/projects
-- [ ] runtime-test inheritance/professions/guards/clothing/race progression together
+- [ ] MCA-backed Goblin civilian prototype bound to real native Tensura race
+- [ ] final Townstead Goblin identity from Phase 2
+- [ ] tribal clothing and guard loadouts
+- [ ] preserve useful native Tensura Goblin trades/content
+- [ ] native Goblin -> Hobgoblin progression semantics
+- [ ] eligible settlements join MCA Capitals rather than separate kingdom state
+- [ ] local work/projects through MCA: Quests
+- [ ] inheritance/profession/guard/clothing/race-progression runtime test
 
-## Dwarf civilization after Goblin proves the pattern
+## Dwarf civilization after Goblin
 
 - [ ] MCA-backed Dwarf adapter bound to real native race
-- [ ] Townstead/Tensura dwarf visual identity
-- [ ] preserve compatible native Dwarf profession/trade/reputation/Gazel systems
-- [ ] explicitly define MCA-vs-Tensura work/restock authority
-- [ ] integrate eligible Dwarf settlements with MCA Capitals
+- [ ] final Townstead/Tensura dwarf identity
+- [ ] preserve native Dwarf profession/trade/reputation/Gazel mechanics
+- [ ] explicit MCA-vs-Tensura work/restock authority
+- [ ] MCA Capitals integration
 - [ ] dwarf clothing/equipment pools
 
-Do not remove or replace native Tensura entities that still own progression/reputation/content not yet bridged.
+# Phase 11 - Starting Unique Skill selector
 
-# Phase 14 - Polish / pack-author tools
+- [ ] inspect every installed addon that changes reincarnation/starting skills
+- [ ] intercept only through native ManasCore/Tensura storage
+- [ ] searchable direct Unique Skill selection
+- [ ] configurable selected-skill count
+- [ ] random mode/count
+- [ ] blacklist/pool controls across installed registries
+- [ ] server-side validation
+- [ ] first-login/reset/reincarnation compatibility
+
+# Phase 12 - Polish / pack-author tools
 
 - [ ] config UX
 - [x] entity/profile/existence/skill diagnostics
 - [x] ownership/MobChampions/FOLLOW_RANGE diagnostics
-- [x] targeted profile reapply command
-- [x] guard decision diagnostics
-- [x] subordinate progression/energy diagnostics
-- [x] authority startup audit/warnings
-- [ ] profile validation reports
+- [x] targeted profile reapply
+- [x] guard/subordinate diagnostics
+- [x] authority startup audit
+- [ ] profile/evolution graph validation reports
 - [ ] automatic profile reload + loaded-entity reapply
+- [ ] migration/authority checker for target-pack config and redundant mods
 - [ ] pack-maker documentation
-- [ ] migration checker that reports redundant/unsupported mods and conflicting authority settings
 
 # Final Phase - FTB Quests / progression guide
 
-FTB Quests remains deferred until the gameplay systems it documents are stable. It should act as the pack's guided progression/book layer, not replace runtime systems such as Tensura Guild or MCA: Quests.
+FTB Quests remains a guided progression/book layer after runtime systems stabilize. It must not replace Tensura Guild, MCA: Quests or other authoritative gameplay systems.
 
 - [ ] reincarnation/onboarding
+- [ ] race/evolution atlas guidance
 - [ ] survival/ecology
 - [ ] skills/acquisition
 - [ ] naming/subordinates
-- [ ] evolution
-- [ ] civilization/MCA
+- [ ] civilizations/MCA
 - [ ] dungeons
 - [ ] guild/commission guidance
 - [ ] awakening
