@@ -2,10 +2,10 @@ package com.gyugaze.remonsterintegration.learning;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import io.github.manasmods.manascore.skill.api.ManasSkill;
+import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
 import io.github.manasmods.manascore.skill.api.SkillAPI;
 import io.github.manasmods.tensura.ability.SkillHelper;
 import io.github.manasmods.tensura.ability.TensuraSkill;
-import io.github.manasmods.tensura.ability.TensuraSkillInstance;
 import io.github.manasmods.tensura.item.misc.BattlewillManualItem;
 import io.github.manasmods.tensura.item.misc.MagicTomeItem;
 import net.minecraft.world.Container;
@@ -18,9 +18,9 @@ import java.lang.reflect.Method;
 /**
  * Lets NPCs actually study Tensura manuals/tomes they carry without pretending to be a Player.
  *
- * Tensura's item UI is player-gated, but the underlying learning primitive is not: the native items
- * construct an acquisition-mastery instance and hand it to SkillHelper.learnSkill. We reproduce only
- * that primitive for LivingEntity mobs and consume the real carried item after learning succeeds.
+ * Tensura's item UI is player-gated, but the underlying learning primitive is not. Re:Monster builds
+ * the skill's own native learning instance, verifies it actually landed in the NPC's SkillStorage, and
+ * only then consumes the real item.
  */
 public final class NpcSkillTeachingService {
     private static final String NEXT_CHECK_KEY = "remonster_teaching_next_check";
@@ -69,16 +69,27 @@ public final class NpcSkillTeachingService {
             return false;
         }
 
-        TensuraSkillInstance learning = new TensuraSkillInstance(skill);
-        int mastery = skill instanceof TensuraSkill tensuraSkill
-                ? tensuraSkill.getAcquirementMastery(mob)
-                : -TensuraSkill.BASE_CONFIG.Learning.learningPointRequirement;
-        learning.setMastery(mastery);
+        ManasSkillInstance learning = skill instanceof TensuraSkill tensuraSkill
+                ? tensuraSkill.createLearningInstance(mob)
+                : skill.createDefaultInstance();
 
         if (!SkillHelper.learnSkill(mob, learning)) {
             return false;
         }
 
+        // Do not eat a real manual/tome on a false-positive return path. External bodies are allowed
+        // to use the same storage primitive as MCA, but the item is consumed only after the exact skill
+        // can be read back from that body.
+        if (SkillAPI.getSkillsFrom(mob).getSkill(skill).isEmpty()) {
+            ReMonsterIntegration.LOGGER.warn(
+                    "Entity {} reported learning {} from a carried manual/tome but storage verification failed; item preserved",
+                    mob.getUUID(),
+                    skill.getRegistryName()
+            );
+            return false;
+        }
+
+        SkillAPI.getSkillsFrom(mob).markDirty();
         stack.shrink(1);
         ReMonsterIntegration.LOGGER.debug(
                 "Entity {} studied {} from carried manual/tome",
