@@ -2,6 +2,7 @@ package com.gyugaze.remonsterintegration.evolution;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
 import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
@@ -39,6 +40,7 @@ public final class EvolutionService {
             return EvolutionResult.failure(current, targetSpecies, evaluation.failureReason());
         }
 
+        Component actorName = entity.getDisplayName().copy();
         String bodyResult = "semantic-only";
         LivingEntity evolvedEntity = entity;
         Optional<SpeciesBodyProfile> profile = SpeciesBodyProfileRegistry.get(targetSpecies);
@@ -83,6 +85,7 @@ public final class EvolutionService {
         }
 
         SpeciesStateService.setSpecies(evolvedEntity, targetSpecies);
+        EvolutionFeedbackService.announce(evolvedEntity, actorName, targetSpecies);
         ReMonsterIntegration.LOGGER.info(
                 "Evolution applied to {}: {} -> {} ({})",
                 evolvedEntity.getUUID(),
