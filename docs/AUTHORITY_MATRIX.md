@@ -34,7 +34,7 @@ The current target runtime was audited from the real 1.21.1 modpack load list. L
 | Natural spawn tables | Each source mod/datapack first; InControl only as fallback | Prefer biome modifiers/tags/data overrides; use InControl for rules data cannot express; runtime hook last | Multiple independent spawn governors altering the same mob without an authority decision |
 | Generic dungeon/spawner pools | Re:Monster Dungeon Director (future) | Compose Mob Profile ecology/tier metadata into supported generic structures | Rewriting dedicated boss-structure systems |
 
-## Required modpack removals
+## Required pack cleanup
 
 ### Tensura: Skill Obtain (`tensura_skillobtain`)
 
@@ -46,11 +46,15 @@ Migration safety: while `tensura_skillobtain` is still installed, Re:Monster sup
 
 ### Tensura: Unique Monsters (`tr_unique_monsters`)
 
-Remove it from the target pack.
+Its **random Unique Monster generation must be disabled** in the target pack because that role is now owned by MobChampions.
 
-Its purpose is random larger/stronger Tensura monsters with configurable spawn chance and EP multiplier. MobChampions is now the pack-wide generic elite authority and Re:Monster already projects champion rank into individual base EP, physical scale and Tensura birth skills. Running both creates two independent random-elite layers that can stack size/power/EP semantics and make balancing opaque.
+Unique Monsters creates random larger/stronger monsters and exposes configurable spawn chance/settings. MobChampions is now the pack-wide generic elite authority and Re:Monster projects champion rank into individual base EP, physical scale and native birth skills. Allowing both random generators to run would stack two independent elite layers and make size/power/EP semantics opaque.
 
-MobChampions remains the sole generic random elite/champion system.
+However, the addon also contributes the **Appraisal Eye** Unique Skill. If that skill is desirable, keep `tr_unique_monsters` installed with its Unique Monster spawn chance/generation disabled. If Appraisal Eye is not desired, removing the mod entirely is simpler.
+
+Future optional integration: if Appraisal Eye remains in the pack, investigate adapting its detection/highlight semantics to MobChampions ranks so its unique content has a useful target after legacy Unique Monster generation is disabled.
+
+MobChampions remains the sole generic random elite/champion generator.
 
 ## Keep, but delegate to them
 
