@@ -78,6 +78,15 @@ public final class TensuraExistenceBridge {
     }
 
     /**
+     * Re-clamps current pools after a skill/race/effect changes effective aura or magicule capacity.
+     * Tensura's over-capacity magicule path can apply Magicule Poison to any LivingEntity, so an
+     * external body must never be left with stale current magicule above a newly reduced max.
+     */
+    public static void clampCurrentEnergyToCapacity(LivingEntity entity) {
+        setCurrentEnergy(entity, getAura(entity), getMagicule(entity));
+    }
+
+    /**
      * Changes base max EP through Tensura's own MAX_AURA/MAX_MAGICULE attributes.
      * Current aura/magicule are only clamped if capacity shrinks.
      */
