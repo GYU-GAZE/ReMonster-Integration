@@ -7,11 +7,13 @@ public record EvolutionDefinition(
         ResourceLocation id,
         ResourceLocation fromSpecies,
         ResourceLocation toSpecies,
-        double minimumEp
+        double minimumEp,
+        EvolutionConditions conditions
 ) {
     public EvolutionDefinition {
         if (minimumEp < 0.0D) {
             throw new IllegalArgumentException("minimumEp cannot be negative");
         }
+        conditions = conditions == null ? EvolutionConditions.NONE : conditions;
     }
 }
