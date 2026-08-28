@@ -54,9 +54,20 @@ public final class EvolutionRequirementService {
             }
         }
 
-        if (!conditions.dimensions().isEmpty()
-                && !conditions.dimensions().contains(entity.level().dimension().location())) {
+        ResourceLocation dimension = entity.level().dimension().location();
+        if (!conditions.dimensions().isEmpty() && !conditions.dimensions().contains(dimension)) {
             return Evaluation.failure("Current dimension is not eligible");
+        }
+        if (conditions.forbiddenDimensions().contains(dimension)) {
+            return Evaluation.failure("Current dimension is forbidden: " + dimension);
+        }
+
+        int y = entity.blockPosition().getY();
+        if (conditions.minY() != null && y < conditions.minY()) {
+            return Evaluation.failure("Y level is below minimum: " + y + " / " + conditions.minY());
+        }
+        if (conditions.maxY() != null && y > conditions.maxY()) {
+            return Evaluation.failure("Y level is above maximum: " + y + " / " + conditions.maxY());
         }
 
         boolean owned = TensuraSubordinateBridge.getResolvedOwnerUuid(entity).isPresent()
