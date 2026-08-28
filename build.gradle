@@ -126,8 +126,37 @@ var extractManasCoreModules = tasks.register('extractManasCoreModules', Sync) {
     into layout.buildDirectory.dir('manascore-compile-modules')
 }
 
+// TEMPORARY RECONNAISSANCE: print the exact Direwolf class path from the pinned Tensura 2.0.1.2 jar.
+// Remove this task immediately after the package is captured from CI.
+var inspectTensuraDirewolfClass = tasks.register('inspectTensuraDirewolfClass') {
+    doLast {
+        configurations.compileClasspath.files.each { candidate ->
+            if (!candidate.isFile() || !candidate.name.endsWith('.jar')) {
+                return
+            }
+            if (!candidate.name.toLowerCase(Locale.ROOT).contains('tensura')) {
+                return
+            }
+
+            def zip = new java.util.zip.ZipFile(candidate)
+            try {
+                zip.entries().each { entry ->
+                    if (!entry.directory
+                            && entry.name.endsWith('.class')
+                            && entry.name.toLowerCase(Locale.ROOT).contains('direwolf')) {
+                        println "[Direwolf class probe] ${candidate.name} :: ${entry.name}"
+                    }
+                }
+            } finally {
+                zip.close()
+            }
+        }
+    }
+}
+
 tasks.named('compileJava').configure {
     dependsOn extractManasCoreModules
+    dependsOn inspectTensuraDirewolfClass
 }
 
 var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
