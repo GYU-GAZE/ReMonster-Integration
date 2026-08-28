@@ -49,7 +49,7 @@ jobs:
           echo '=== OPEN PAYLOAD ==='
           javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.network.s2c.OpenHumanoidSkillMenuPayload
           echo '=== THOUGHT COMM MIXIN ==='
-          javap -classpath "$JAR" -p -c com.trbeyond/tensura_better_subs/mixin/tensura/ability/skill/common/MixinThoughtCommunicationSkill
+          javap -classpath "$JAR" -p -c com.trbeyond.tensura_better_subs.mixin.tensura.ability.skill.common.MixinThoughtCommunicationSkill
 
       - name: Upload built jar
         if: success()
