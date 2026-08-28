@@ -12,11 +12,11 @@ import java.util.Optional;
 /**
  * Graduates the data-driven evolution graph from pack-author commands into ordinary mob gameplay.
  *
- * Entity-body profiles provide a reversible entity-type -> semantic-species seed. Wild mobs then
- * automatically take exactly one unambiguous eligible evolution edge after a short debounce. Combat
- * is deliberately not a blocker: a creature can evolve in the middle of a fight when its authored
- * conditions become valid. Owned mobs never auto-pick a branch; their existing server-authoritative
- * evolution UI remains the choice surface.
+ * Body profiles provide a reversible runtime-body -> semantic-species seed. Native same-EntityType
+ * form identity is checked before plain EntityType identity so an existing Fang/Mystic/etc does not
+ * collapse back into the base creature species. Wild mobs then automatically take exactly one
+ * unambiguous eligible evolution edge after a short debounce. Owned mobs never auto-pick a branch;
+ * their existing server-authoritative evolution UI remains the choice surface.
  */
 public final class NaturalEvolutionService {
     private static final String READY_EDGE_KEY = "remonster_natural_evolution_ready_edge";
@@ -85,6 +85,13 @@ public final class NaturalEvolutionService {
         if (SpeciesStateService.getSpecies(mob).isPresent()) {
             return false;
         }
+
+        Optional<ResourceLocation> nativeFormSpecies = NativeFormEvolutionCompat.resolveCurrentSpecies(mob);
+        if (nativeFormSpecies.isPresent()) {
+            SpeciesStateService.setSpecies(mob, nativeFormSpecies.get());
+            return true;
+        }
+
         ResourceLocation entityType = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
         Optional<ResourceLocation> species = SpeciesBodyProfileRegistry.speciesForEntityType(entityType);
         if (species.isEmpty()) {
