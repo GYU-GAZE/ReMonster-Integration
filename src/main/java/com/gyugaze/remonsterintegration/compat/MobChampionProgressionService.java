@@ -1,6 +1,7 @@
 package com.gyugaze.remonsterintegration.compat;
 
 import com.gyugaze.remonsterintegration.ReMonsterIntegration;
+import com.gyugaze.remonsterintegration.mca.McaSubordinateAdapter;
 import com.gyugaze.remonsterintegration.tensura.TensuraExistenceBridge;
 import com.gyugaze.remonsterintegration.tensura.TensuraSkillBridge;
 import io.github.manasmods.tensura.registry.skill.CommonSkills;
@@ -8,10 +9,12 @@ import io.github.manasmods.tensura.registry.skill.ExtraSkills;
 import io.github.manasmods.tensura.registry.skill.UniqueSkills;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -25,11 +28,15 @@ import java.util.Set;
 /**
  * Re:Monster gameplay layer for MobChampions ranks.
  *
- * MobChampions remains authoritative for rank generation and its own stat/equipment/effect package.
+ * MobChampions remains authoritative for rank generation and its own stat/effect package.
  * Re:Monster adds three rank-facing consequences:
  * - a one-time higher Tensura baseMaxEP floor, making the individual itself stronger,
  * - a visible size modifier,
  * - one random Common/Extra skill for every champion and one additional Unique skill for Legendary.
+ *
+ * MCA villagers deliberately suppress MobChampions' generated equipment once. MCA has its own
+ * inventory/equipment model, so hidden champion armor/held gear cannot be managed through the MCA UI
+ * and can interfere with the inventory-backed militia/subordinate weapon projection.
  *
  * The rank EP floor and skill rolls are persisted on the individual so chunk reloads and physical
  * evolution never stack or reroll them. Native Tensura EP gained later remains ordinary progression
@@ -48,6 +55,16 @@ public final class MobChampionProgressionService {
     private static final String UNIQUE_ROLLED_KEY = "remonster_mobchampions_unique_rolled";
     private static final String UNIQUE_ID_KEY = "remonster_mobchampions_unique_id";
     private static final String EVOLUTION_TRANSFER_KEY = "remonster_mobchampions_evolution_transfer";
+    private static final String MCA_EQUIPMENT_SUPPRESSED_KEY = "remonster_mobchampions_mca_equipment_suppressed";
+
+    private static final EquipmentSlot[] MCA_VISIBLE_EQUIPMENT_SLOTS = {
+            EquipmentSlot.MAINHAND,
+            EquipmentSlot.OFFHAND,
+            EquipmentSlot.HEAD,
+            EquipmentSlot.CHEST,
+            EquipmentSlot.LEGS,
+            EquipmentSlot.FEET
+    };
 
     private static final Set<ResourceLocation> ORDINARY_EXCLUSIONS = Set.of(
             CommonSkills.TELEPATHY.getId(),
@@ -78,6 +95,7 @@ public final class MobChampionProgressionService {
         }
 
         MobChampionsBridge.ChampionRank rank = rankOptional.get();
+        suppressMcaChampionEquipmentOnce(entity, data);
         applyRankEpFloor(entity, rank, data);
         applyScaleModifier(entity, scaleFor(rank));
 
@@ -102,6 +120,21 @@ public final class MobChampionProgressionService {
         // above the new effective maximum, which made certain MCA villagers/dragons die instantly based
         // on the random champion skill they rolled. Normalize current pools after every birth package.
         TensuraExistenceBridge.clampCurrentEnergyToCapacity(entity);
+    }
+
+    private static void suppressMcaChampionEquipmentOnce(LivingEntity entity, CompoundTag data) {
+        if (data.getBoolean(MCA_EQUIPMENT_SUPPRESSED_KEY) || !McaSubordinateAdapter.isMcaVillager(entity)) {
+            return;
+        }
+
+        for (EquipmentSlot slot : MCA_VISIBLE_EQUIPMENT_SLOTS) {
+            entity.setItemSlot(slot, ItemStack.EMPTY);
+        }
+        data.putBoolean(MCA_EQUIPMENT_SUPPRESSED_KEY, true);
+        ReMonsterIntegration.LOGGER.debug(
+                "Suppressed MobChampions generated equipment for MCA villager {}",
+                entity.getUUID()
+        );
     }
 
     /**
