@@ -11,6 +11,7 @@
     "mobchampions.MobChampionEventHandlerMixin",
     "manascore.ManasRaceInstanceEvolutionMixin",
     "manascore.RaceStorageEvolutionMixin",
+    "tensura.DirewolfEvolutionAuthorityMixin",
     "tensura.SubordinateHelperMixin",
     "tensura.TelepathySkillMixin",
     "tensura.ThoughtCommunicationSkillMixin",
