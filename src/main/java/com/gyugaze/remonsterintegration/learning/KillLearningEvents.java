@@ -9,15 +9,13 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 
 import java.util.List;
 import java.util.Optional;
 
-/** NeoForge event bridge for universal kill-driven skill learning. */
+/** NeoForge event bridge for non-player kill-driven native acquisition/mastery learning. */
 public final class KillLearningEvents {
-    private static final String LEGACY_SKILL_OBTAIN_MOD_ID = "tensura_skillobtain";
     private static final double DEFAULT_BASE_LEARNING_POINTS = 1.0;
 
     private KillLearningEvents() {
@@ -35,11 +33,14 @@ public final class KillLearningEvents {
         }
 
         LivingEntity learner = creditedLearner.get();
-        // Legacy Tensura: Skill Obtain directly grants configured skills to players on kill. While that
-        // mod is still present during pack migration, let it own the player path so one kill cannot both
-        // direct-grant and advance a second Re:Monster acquisition for the same event. Non-player
-        // LivingEntity learners remain Re:Monster-owned. The target pack should remove the legacy addon.
-        if (learner instanceof ServerPlayer && ModList.get().isLoaded(LEGACY_SKILL_OBTAIN_MOD_ID)) {
+
+        // The target pack deliberately keeps Tensura: Skill Obtain as the player-facing kill-skill
+        // authority. It provides authored EntityType -> skill drop tables with independent chances and
+        // direct native SkillHelper.learnSkill delivery. Re:Monster owns the complementary non-player
+        // path so MCA villagers, subordinates, pets and wild compatible mobs can gradually acquire the
+        // real skills/profile skills of what they defeat. Never process players here, even if the
+        // external addon is temporarily missing, or the two semantics can silently diverge by pack.
+        if (learner instanceof ServerPlayer) {
             return;
         }
 
