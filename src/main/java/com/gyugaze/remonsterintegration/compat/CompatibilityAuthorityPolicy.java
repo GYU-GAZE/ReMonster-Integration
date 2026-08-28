@@ -8,7 +8,7 @@ import net.neoforged.fml.ModList;
  *
  * The integration addon should bridge foreign state, not silently create competing sources of truth.
  * This startup audit makes intentional authority decisions visible in logs and flags legacy overlaps
- * that should be removed from the assembled modpack.
+ * that should be disabled or removed from the assembled modpack.
  */
 public final class CompatibilityAuthorityPolicy {
     private CompatibilityAuthorityPolicy() {
@@ -40,9 +40,9 @@ public final class CompatibilityAuthorityPolicy {
 
         if (mods.isLoaded("tr_unique_monsters")) {
             ReMonsterIntegration.LOGGER.warn(
-                    "[Re:Monster Authority] tr_unique_monsters overlaps the pack's MobChampions elite layer with its own larger/stronger "
-                            + "EP-multiplied random monsters. Remove tr_unique_monsters from the target pack so MobChampions is the sole "
-                            + "generic random elite authority."
+                    "[Re:Monster Authority] tr_unique_monsters overlaps MobChampions with its own random larger/stronger EP-scaled monsters. "
+                            + "MobChampions must remain the sole generic elite generator. Disable Unique Monsters spawning/chance in that mod's "
+                            + "server config if keeping it for Appraisal Eye, or remove the mod entirely if Appraisal Eye is not desired."
             );
         }
     }
