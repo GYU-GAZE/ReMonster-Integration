@@ -9,16 +9,18 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.neoforged.fml.ModList;
 
 /**
- * Converts Tensura's already-native individual EP growth into stable physical stat growth for mobs.
+ * Fallback EP-to-physical-stat growth for packs that do not provide a dedicated existence scaler.
  *
- * Tensura's DeathHandler already awards EP to arbitrary LivingEntity killers. This service never
- * creates a second XP/EP currency: it snapshots the individual's initial base-max EP and derives a
- * small logarithmic modifier from later base-max EP increases. Dedicated modifier ids are replaced,
- * never stacked, so save/reload and repeated ticks are deterministic.
+ * EPGains is the authority in the target modpack. When it is present this service removes any old
+ * Re:Monster growth modifiers and stays dormant, preventing two independent EP power curves from
+ * stacking on the same entity. The fallback remains available for standalone addon use without
+ * EPGains.
  */
 public final class UniversalCharacterGrowthService {
+    private static final String EPGAINS_MOD_ID = "epgains";
     private static final String BASELINE_EP_KEY = "remonster_growth_baseline_ep";
     private static final String LAST_EP_KEY = "remonster_growth_last_ep";
     private static final int CHECK_INTERVAL_TICKS = 40;
@@ -44,6 +46,11 @@ public final class UniversalCharacterGrowthService {
     }
 
     public static void reapply(LivingEntity entity) {
+        if (hasDedicatedExistenceScaling()) {
+            clearFallbackState(entity);
+            return;
+        }
+
         double currentEp = TensuraExistenceBridge.getBaseMaxEp(entity);
         if (!Double.isFinite(currentEp) || currentEp <= 0.0D) {
             return;
@@ -85,12 +92,26 @@ public final class UniversalCharacterGrowthService {
     }
 
     public static void copyBaselineState(LivingEntity from, LivingEntity to) {
+        if (hasDedicatedExistenceScaling()) {
+            clearFallbackState(to);
+            return;
+        }
         CompoundTag source = from.getPersistentData();
         CompoundTag target = to.getPersistentData();
         if (source.contains(BASELINE_EP_KEY)) {
             target.putDouble(BASELINE_EP_KEY, source.getDouble(BASELINE_EP_KEY));
         }
         target.remove(LAST_EP_KEY);
+    }
+
+    private static boolean hasDedicatedExistenceScaling() {
+        return ModList.get().isLoaded(EPGAINS_MOD_ID);
+    }
+
+    private static void clearFallbackState(LivingEntity entity) {
+        removeGrowthModifiers(entity);
+        entity.getPersistentData().remove(BASELINE_EP_KEY);
+        entity.getPersistentData().remove(LAST_EP_KEY);
     }
 
     private static void removeGrowthModifiers(LivingEntity entity) {
@@ -112,6 +133,7 @@ public final class UniversalCharacterGrowthService {
         if (instance == null) {
             return;
         }
+
         instance.removeModifier(id);
         if (amount > 1.0E-9D) {
             instance.addPermanentModifier(new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
