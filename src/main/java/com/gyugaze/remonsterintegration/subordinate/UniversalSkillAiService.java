@@ -27,8 +27,8 @@ import java.util.Set;
  * Native Tensura mobs/subordinates remain authoritative for their own casting. External mobs, MCA
  * villagers and other compatibility entities may use learned active skills whenever their original AI
  * supplies a valid combat target. Owned mobs additionally respect Re:Monster STAY/PASSIVE orders.
- * ManasCore still owns activation events, requirements, energy cost, cooldowns, mastery and held-skill
- * lifecycle; this service supplies only the missing NPC decision to press a usable skill.
+ * ManasCore/Tensura still own activation events, energy cost, cooldowns, mastery and held-skill
+ * lifecycle; this service only supplies the missing NPC decision and active-preset slot.
  */
 public final class UniversalSkillAiService {
     private static final String CURSOR_KEY = "remonster_skill_ai_cursor";
@@ -104,7 +104,9 @@ public final class UniversalSkillAiService {
             mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
             data.putInt(CURSOR_KEY, (index + 1) % candidates.size());
             try {
-                if (!storage.startHoldSkill(instance, 0, 0)) {
+                int slot = TensuraSkillBridge.externalNpcAbilitySlot();
+                if (!TensuraSkillBridge.prepareExternalNpcAbilitySlot(mob, instance, 0)
+                        || !storage.startHoldSkill(instance, slot, 0)) {
                     data.putLong(NEXT_ATTEMPT_KEY, gameTime + FAILED_ACTIVATION_BACKOFF_TICKS);
                 }
             } catch (RuntimeException | LinkageError exception) {
