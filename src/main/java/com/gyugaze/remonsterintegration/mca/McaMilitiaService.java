@@ -6,8 +6,10 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Comparator;
+import java.util.Optional;
 
 /** Armed MCA civilian support without replacing profession/schedule/Brain or native self-defence. */
 public final class McaMilitiaService {
@@ -134,7 +136,8 @@ public final class McaMilitiaService {
     }
 
     private static void driveCombat(Mob villager, LivingEntity threat) {
-        if (villager.getMainHandItem().getItem() instanceof BowItem bow) {
+        Optional<ItemStack> heldBow = McaSubordinateAdapter.getHeldBowStack(villager);
+        if (heldBow.isPresent() && heldBow.get().getItem() instanceof BowItem bow) {
             driveBow(villager, threat, bow);
             return;
         }
@@ -163,7 +166,6 @@ public final class McaMilitiaService {
             return;
         }
         if (positioning == McaBowPositioningService.Positioning.EMERGENCY_FLEE) {
-            // MCA's native BowTask also cancels the shot during emergency flee. Survive first.
             stopBow(villager);
             return;
         }
@@ -172,7 +174,7 @@ public final class McaMilitiaService {
             return;
         }
         if (!villager.isUsingItem()) {
-            villager.startUsingItem(InteractionHand.MAIN_HAND);
+            McaSubordinateAdapter.getHeldBowHand(villager).ifPresent(villager::startUsingItem);
             return;
         }
         if (!(villager.getUseItem().getItem() instanceof BowItem)) {
