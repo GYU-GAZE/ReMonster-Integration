@@ -25,7 +25,7 @@ public final class CompatibilityAuthorityPolicy {
         infoIfLoaded(mods, "mysticism", "Mysticism owns its races/skills and copy/paste skill mechanics");
         infoIfLoaded(mods, "mca", "MCA owns villager identity, Brain, family, profession, schedule and inventory");
         infoIfLoaded(mods, "townstead", "Townstead owns MCA phenotype/genetics/body rendering and species/personality voice");
-        infoIfLoaded(mods, "mcacapitals", "MCA Capitals owns capital politics and capital-specific dialogue; Re:Monster composes it ahead of Townstead species voice");
+        infoIfLoaded(mods, "mcacapitals", "MCA Capitals owns capital politics and capital-specific dialogue; Re:Monster does not mediate unrelated Townstead/MCA dialogue conflicts");
         infoIfLoaded(mods, "mobchampions", "MobChampions owns random elite rank generation and champion effects/stats");
         infoIfLoaded(mods, "bossesrisetensuracompat", "Bosses'Rise Tensura compatibility owns Bosses'Rise EP/skills/ability behavior");
         infoIfLoaded(mods, "tensura_guild", "Tensura Guild owns adventurer guild ranks, parties and guild commissions");
