@@ -10,7 +10,7 @@ ManasCore stores this config at:
 
 `config/epgains/config.toml`
 
-The exact NeoForge 0.0.18 runtime jar initializes the three linear rates 100x higher than the scaling described on the mod page. The implementation multiplies the raw maximum pool directly by the configured rate, so the documented `+1% per 50,000 Max EP` requires `0.01 / 50000 = 2e-7`, not the jar default `2e-5`.
+The exact NeoForge 0.0.18 runtime jar initializes the three linear rates 100x higher than the scaling described on the public mod page. The implementation multiplies the raw maximum pool directly by the configured rate, so the documented `+1% per 50,000 Max EP` requires `0.01 / 50000 = 2e-7`, not the jar constructor default `2e-5`.
 
 Recommended Re:Monster target-pack values:
 
@@ -44,16 +44,16 @@ The magic and battlewill bonuses stack multiplicatively with the EP bonus exactl
 
 ## Tensura: Skill Obtain 1.1
 
-Authority: player-facing configured kill skill drops.
+Remove `tensura_skillobtain` from the target pack.
 
-Keep the mod installed. Its exact runtime implementation is intentionally player-only and directly calls Tensura's native `SkillHelper.learnSkill` after a configured EntityType kill passes its per-skill chance.
+Its useful feature is an authored `EntityType -> skill -> independent chance` table for direct player grants. It does **not** assign innate skills to mobs. Keeping it would require maintaining a second player-only skill-source table beside the canonical skills already authored on mobs through dedicated compatibility addons and Re:Monster Mob Profiles.
 
-Re:Monster's kill-learning handler never processes `ServerPlayer`. Re:Monster instead owns gradual native acquisition/mastery for non-player living combatants such as MCA villagers, subordinates, pets and wild compatible mobs.
+Re:Monster remains the single kill-learning authority for both players and non-player living combatants. The defeated mob's real ManasCore/Tensura skill storage plus Mob Profile declarations define what can be learned, and progression uses native acquisition/mastery rather than a parallel fake skill flag.
 
-Skill Obtain does **not** assign innate skills to the defeated mob. Innate/effective mob skills are authored through Re:Monster Mob Profiles or a dedicated Tensura compatibility addon and live in the mob's real ManasCore/Tensura skill storage.
+If per-skill kill chance is desirable later, add it as data on the canonical Re:Monster skill/profile source rather than reintroducing a second EntityType skill-drop registry.
 
 ## Tensura: Unique Monsters
 
 Remove `tr_unique_monsters` from the target pack.
 
-MobChampions plus Re:Monster's champion EP/scale/skill integration is the sole generic random elite layer. Appraisal Eye is not considered sufficient reason to retain a second elite generator in the target pack.
+MobChampions plus Re:Monster's champion EP/scale/skill integration is the sole generic random elite layer. Appraisal Eye is not considered sufficient reason to retain a second elite generator in this pack.
