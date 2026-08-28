@@ -1,0 +1,7 @@
+{
+  "species": "remonster_integration:direwolf/star_wolf",
+  "native_form": {
+    "adapter": "tensura:direwolf",
+    "form": "star_wolf"
+  }
+}
